@@ -1,5 +1,6 @@
 import { Bell, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +23,18 @@ export const Header = () => {
     <header className="bg-card border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold text-foreground">
-            Welcome back, Trader
-          </h1>
+          <Link 
+            to="/" 
+            className="flex items-center space-x-2 group transition-all duration-300 hover:scale-105 lg:hidden"
+          >
+            <div className="w-8 h-8 bg-gradient-to-br from-brand-green to-brand-green/80 rounded-lg flex items-center justify-center">
+              <Bell className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-lg group-hover:animate-pulse">
+              <span className="text-foreground group-hover:text-white transition-colors duration-300">Arova</span>
+              <span className="text-brand-green group-hover:text-brand-green/80 transition-colors duration-300">Forex</span>
+            </span>
+          </Link>
         </div>
 
         <div className="flex items-center space-x-4">

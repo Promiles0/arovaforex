@@ -71,6 +71,9 @@
     /* Home page animations */
     --animation-float: float 6s ease-in-out infinite;
     --animation-glow: glow 2s ease-in-out infinite alternate;
+    
+    /* Brand colors */
+    --brand-green: 8 77 52;
 
     --sidebar-background: 0 0% 98%;
 
@@ -135,5 +138,12 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 1024px) {
+  .dashboard-layout {
+    margin-left: 0 !important;
   }
 }

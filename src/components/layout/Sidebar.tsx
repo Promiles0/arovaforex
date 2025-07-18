@@ -41,20 +41,24 @@ export const Sidebar = () => {
 
   return (
     <div className={cn(
-      "bg-card border-r border-border flex flex-col transition-all duration-300",
+      "h-screen bg-card border-r border-border flex flex-col transition-all duration-300 sticky top-0",
       collapsed ? "w-16" : "w-64"
     )}>
       {/* Header */}
       <div className="p-4 border-b border-border flex items-center justify-between">
         {!collapsed && (
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-primary-foreground" />
+          <Link 
+            to="/" 
+            className="flex items-center space-x-2 group transition-all duration-300 hover:scale-105"
+          >
+            <div className="w-8 h-8 bg-gradient-to-br from-brand-green to-brand-green/80 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-lg bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              Arova
+            <span className="font-bold text-lg group-hover:animate-pulse">
+              <span className="text-foreground group-hover:text-white transition-colors duration-300">Arova</span>
+              <span className="text-brand-green group-hover:text-brand-green/80 transition-colors duration-300">Forex</span>
             </span>
-          </div>
+          </Link>
         )}
         <Button
           variant="ghost"

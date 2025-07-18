@@ -5,10 +5,12 @@ import { Header } from "./Header";
 export const DashboardLayout = () => {
   return (
     <div className="min-h-screen bg-background flex w-full">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="fixed inset-y-0 left-0 z-50">
+        <Sidebar />
+      </div>
+      <div className="flex-1 flex flex-col lg:ml-64 dashboard-layout">
         <Header />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 sm:p-6 overflow-auto">
           <Outlet />
         </main>
       </div>

@@ -2,22 +2,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Signal, Wallet, BookOpen, Bell, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { WelcomeCard } from "@/components/dashboard/WelcomeCard";
 
 export default function Dashboard() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-6 border border-primary/20">
-        <h1 className="text-2xl font-bold text-foreground mb-2">
-          Welcome to Arova Trading Platform
-        </h1>
-        <p className="text-muted-foreground">
-          Your professional gateway to Forex trading insights and premium signals.
-        </p>
-      </div>
+      <WelcomeCard />
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link to="/dashboard/academy">
           <Card className="hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 cursor-pointer">
             <CardHeader className="pb-2">
@@ -70,7 +64,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Latest Forecast */}
         <Card className="border-border/50">
           <CardHeader>
