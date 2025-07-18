@@ -67,6 +67,10 @@
     /* Additional animations for auth forms */
     --animation-fade-in: fade-in 0.6s ease-out;
     --animation-scale-in: scale-in 0.4s ease-out;
+    
+    /* Home page animations */
+    --animation-float: float 6s ease-in-out infinite;
+    --animation-glow: glow 2s ease-in-out infinite alternate;
 
     --sidebar-background: 0 0% 98%;
 
