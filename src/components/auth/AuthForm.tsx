@@ -132,15 +132,21 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
   };
 
   return (
-    <div className="w-full max-w-md space-y-8 animate-fade-in">
+    <div className="w-full max-w-md space-y-8 animate-slide-in-right">
       <div className="text-center">
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">
-          {mode === "login" ? "Welcome back" : "Create your account"}
+        <div className="mb-4 animate-brand-glow">
+          <h1 className="text-4xl font-bold tracking-tight">
+            <span className="text-white">Arova</span>
+            <span style={{ color: '#084d34' }}>Forex</span>
+          </h1>
+        </div>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          {mode === "login" ? "Welcome back" : "Start your trading journey"}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           {mode === "login" 
             ? "Log in to access real-time forecasts and trading signals" 
-            : "Master the Markets. Start your Trading Journey with Arova."
+            : "Start your trading journey with ArovaForex."
           }
         </p>
       </div>
@@ -258,7 +264,7 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
 
         <Button
           type="submit"
-          className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-semibold py-3 rounded-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/25"
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/25"
           disabled={loading}
         >
           {loading ? (

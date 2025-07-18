@@ -38,15 +38,14 @@ export function AuthVisual() {
         </div>
 
         {/* Main heading */}
-        <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 animate-fade-in">
-          <span className="bg-gradient-to-r from-primary via-premium to-primary bg-clip-text text-transparent">
-            Arova
-          </span>
+        <h1 className="text-4xl md:text-5xl font-bold mb-6 animate-fade-in animate-brand-glow">
+          <span className="text-white">Arova</span>
+          <span style={{ color: '#084d34' }}>Forex</span>
         </h1>
 
         {/* Tagline */}
         <p className="text-xl text-muted-foreground mb-8 animate-fade-in delay-300">
-          Master the Markets. Start your Trading Journey with Professional Forecasts & Signals.
+          Master the Markets. Start your Trading Journey with ArovaForex.
         </p>
 
         {/* Feature highlights */}
