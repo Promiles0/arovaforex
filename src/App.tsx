@@ -12,6 +12,9 @@ import Dashboard from "./pages/Dashboard";
 import Forecasts from "./pages/Forecasts";
 import PremiumSignals from "./pages/PremiumSignals";
 import Wallet from "./pages/Wallet";
+import Profile from "./pages/Profile";
+import Support from "./pages/Support";
+import Calendar from "./pages/Calendar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +38,9 @@ const App = () => (
               <Route path="forecasts" element={<Forecasts />} />
               <Route path="signals" element={<PremiumSignals />} />
               <Route path="wallet" element={<Wallet />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="support" element={<Support />} />
+              <Route path="calendar" element={<Calendar />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
