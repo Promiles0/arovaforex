@@ -28,7 +28,7 @@ const Index = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/dashboard">
+            <Link to="/auth">
               <Button size="lg" className="bg-primary hover:bg-primary/90">
                 Start Trading
               </Button>
@@ -92,7 +92,7 @@ const Index = () => {
           <p className="text-xl text-muted-foreground mb-8">
             Join our community of successful traders and get access to professional insights.
           </p>
-          <Link to="/dashboard">
+          <Link to="/auth">
             <Button size="lg" className="bg-premium hover:bg-premium/90 text-premium-foreground">
               Get Started Today
             </Button>
