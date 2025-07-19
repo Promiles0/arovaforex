@@ -31,7 +31,7 @@ export const Header = () => {
               <Bell className="w-5 h-5 text-white" />
             </div>
             <span className="font-bold text-lg group-hover:animate-pulse">
-              <span className="text-foreground group-hover:text-white transition-colors duration-300">Arovra</span>
+              <span className="text-foreground group-hover:text-white transition-colors duration-300">Arova</span>
               <span className="text-brand-green group-hover:text-brand-green/80 transition-colors duration-300">Forex</span>
             </span>
           </Link>
