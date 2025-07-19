@@ -23,8 +23,8 @@ const navigationItems = [
   { name: "Forecasts", href: "/dashboard/forecasts", icon: TrendingUp },
   { name: "Premium Signals", href: "/dashboard/signals", icon: Signal, premium: true },
   { name: "My Wallet", href: "/dashboard/wallet", icon: Wallet },
-  { name: "Join Academy", href: "/dashboard/academy", icon: BookOpen, premium: true },
-  { name: "Support", href: "/dashboard/support", icon: MessageCircle },
+  { name: "Join Academy", href: "/dashboard/academy", icon: BookOpen },
+  { name: "Contact Us", href: "/dashboard/contact", icon: MessageCircle },
   { name: "Calendar", href: "/dashboard/calendar", icon: Calendar },
 ];
 

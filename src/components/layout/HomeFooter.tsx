@@ -1,6 +1,31 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Lock } from "lucide-react";
 
 export const HomeFooter = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleProtectedLink = (path: string, pageName: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: `🔒 Please log in to access ${pageName}.`,
+        action: (
+          <Link 
+            to="/auth" 
+            className="underline hover:no-underline text-primary font-medium"
+          >
+            Login
+          </Link>
+        ),
+      });
+      return null;
+    }
+    return path;
+  };
+
   return (
     <footer className="bg-card border-t border-border">
       <div className="max-w-6xl mx-auto px-6 py-12">
@@ -22,34 +47,85 @@ export const HomeFooter = () => {
             </p>
           </div>
 
-          {/* Legal Links */}
+          {/* Quick Access */}
           <div>
-            <h4 className="font-semibold mb-4">Legal</h4>
+            <h4 className="font-semibold mb-4">Quick Access</h4>
             <div className="space-y-2">
-              <Link to="#" className="block text-muted-foreground hover:text-primary transition-colors">
-                Privacy Policy
-              </Link>
-              <Link to="#" className="block text-muted-foreground hover:text-primary transition-colors">
-                Terms of Service
-              </Link>
-              <Link to="#" className="block text-muted-foreground hover:text-primary transition-colors">
-                Risk Disclosure
-              </Link>
+              {user ? (
+                <>
+                  <Link 
+                    to="/dashboard/forecasts" 
+                    className="block text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    My Forecasts
+                  </Link>
+                  <Link 
+                    to="/dashboard/signals" 
+                    className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    My Signals
+                    <Lock className="w-3 h-3" />
+                  </Link>
+                  <Link 
+                    to="/dashboard/academy" 
+                    className="block text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Join Academy
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => handleProtectedLink("/dashboard/forecasts", "Forecasts")}
+                    className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-left"
+                  >
+                    My Forecasts
+                    <Lock className="w-3 h-3" />
+                  </button>
+                  <button 
+                    onClick={() => handleProtectedLink("/dashboard/signals", "Premium Signals")}
+                    className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-left"
+                  >
+                    My Signals
+                    <Lock className="w-3 h-3" />
+                  </button>
+                  <button 
+                    onClick={() => handleProtectedLink("/dashboard/academy", "Academy")}
+                    className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-left"
+                  >
+                    Join Academy
+                    <Lock className="w-3 h-3" />
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
           {/* Contact */}
           <div>
-            <h4 className="font-semibold mb-4">Contact</h4>
+            <h4 className="font-semibold mb-4">Support</h4>
             <div className="space-y-2">
+              {user ? (
+                <Link 
+                  to="/dashboard/contact" 
+                  className="block text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Contact Us
+                </Link>
+              ) : (
+                <button 
+                  onClick={() => handleProtectedLink("/dashboard/contact", "Contact Us")}
+                  className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-left"
+                >
+                  Contact Us
+                  <Lock className="w-3 h-3" />
+                </button>
+              )}
               <Link to="#" className="block text-muted-foreground hover:text-primary transition-colors">
-                Support
+                Privacy Policy
               </Link>
               <Link to="#" className="block text-muted-foreground hover:text-primary transition-colors">
-                Contact Us
-              </Link>
-              <Link to="#" className="block text-muted-foreground hover:text-primary transition-colors">
-                About
+                Terms of Service
               </Link>
             </div>
           </div>

@@ -13,7 +13,8 @@ import Forecasts from "./pages/Forecasts";
 import PremiumSignals from "./pages/PremiumSignals";
 import Wallet from "./pages/Wallet";
 import Profile from "./pages/Profile";
-import Support from "./pages/Support";
+import ContactUs from "./pages/Support";
+import JoinAcademy from "./pages/JoinAcademy";
 import Calendar from "./pages/Calendar";
 import NotFound from "./pages/NotFound";
 
@@ -39,7 +40,8 @@ const App = () => (
               <Route path="signals" element={<PremiumSignals />} />
               <Route path="wallet" element={<Wallet />} />
               <Route path="profile" element={<Profile />} />
-              <Route path="support" element={<Support />} />
+              <Route path="contact" element={<ContactUs />} />
+              <Route path="academy" element={<JoinAcademy />} />
               <Route path="calendar" element={<Calendar />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
