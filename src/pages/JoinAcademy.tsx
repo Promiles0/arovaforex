@@ -32,7 +32,7 @@ export default function JoinAcademy() {
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* Header */}
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold tracking-tight animate-fade-in">
+        <h1 className="text-4xl font-bold tracking-tight text-primary animate-fade-in">
           Join the ArovaForex Academy
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
@@ -41,10 +41,10 @@ export default function JoinAcademy() {
       </div>
 
       {/* Hero Card */}
-      <Card className="relative overflow-hidden bg-gradient-to-br from-card to-card/50 border-2 animate-scale-in">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-green/5 to-transparent" />
+      <Card className="relative overflow-hidden bg-gradient-to-br from-card to-card/50 border-primary/20 shadow-brand animate-scale-in">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
         <CardHeader className="relative z-10 text-center pb-6">
-          <CardTitle className="text-3xl font-bold mb-4">
+          <CardTitle className="text-3xl font-bold mb-4 text-primary">
             Become a Profitable Trader with ArovaForex Mentorship
           </CardTitle>
           <CardDescription className="text-lg mb-6">
@@ -54,7 +54,8 @@ export default function JoinAcademy() {
           <Button 
             asChild
             size="lg"
-            className="bg-brand-green hover:bg-brand-green/90 text-white font-semibold py-4 px-8 text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-brand-green/25 animate-pulse"
+            variant="brand"
+            className="font-semibold py-4 px-8 text-lg transition-all duration-300 hover:scale-105 shadow-brand animate-pulse"
           >
             <a 
               href={whatsappUrl}
@@ -79,10 +80,10 @@ export default function JoinAcademy() {
           >
             <CardHeader>
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-brand-green/10 rounded-lg flex items-center justify-center group-hover:bg-brand-green/20 transition-colors">
-                  <benefit.icon className="w-6 h-6 text-brand-green" />
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <benefit.icon className="w-6 h-6 text-primary" />
                 </div>
-                <CardTitle className="text-lg">{benefit.title}</CardTitle>
+                <CardTitle className="text-lg text-primary">{benefit.title}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
@@ -93,11 +94,11 @@ export default function JoinAcademy() {
       </div>
 
       {/* Call to Action Section */}
-      <Card className="bg-gradient-to-r from-brand-green/10 to-brand-green/5 border-brand-green/20 animate-fade-in">
+      <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 shadow-brand animate-fade-in">
         <CardContent className="p-8 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Zap className="w-8 h-8 text-brand-green" />
-            <h3 className="text-2xl font-bold">Ready to Start Your Trading Journey?</h3>
+            <Zap className="w-8 h-8 text-primary" />
+            <h3 className="text-2xl font-bold text-primary">Ready to Start Your Trading Journey?</h3>
           </div>
           <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
             Don't miss this opportunity to learn from experienced traders and transform your approach to the Forex market. 
@@ -106,7 +107,8 @@ export default function JoinAcademy() {
           <Button 
             asChild
             size="lg"
-            className="bg-brand-green hover:bg-brand-green/90 text-white font-semibold py-4 px-8 transition-all duration-300 hover:scale-105"
+            variant="brand"
+            className="font-semibold py-4 px-8 transition-all duration-300 hover:scale-105 shadow-brand"
           >
             <a 
               href={whatsappUrl}

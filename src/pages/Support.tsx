@@ -57,7 +57,7 @@ export default function ContactUs() {
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       <div className="text-center space-y-4 animate-fade-in">
-        <h1 className="text-4xl font-bold tracking-tight">Contact Us</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-primary">Contact Us</h1>
         <p className="text-xl text-muted-foreground">
           Have questions about your account, forecasts, or mentorship? We're happy to help.
         </p>
@@ -65,9 +65,9 @@ export default function ContactUs() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Contact Form */}
-        <Card className="animate-fade-in">
+        <Card className="animate-fade-in border-primary/20 shadow-brand">
           <CardHeader>
-            <CardTitle>Send us a Message</CardTitle>
+            <CardTitle className="text-primary">Send us a Message</CardTitle>
             <CardDescription>
               Fill out the form below and we'll get back to you as soon as possible.
             </CardDescription>
@@ -82,7 +82,7 @@ export default function ContactUs() {
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Your full name"
                   required
-                  className="transition-all duration-200 focus:scale-105"
+                  className="transition-all duration-200 focus:scale-105 focus:border-primary"
                 />
               </div>
               <div className="space-y-2">
@@ -94,7 +94,7 @@ export default function ContactUs() {
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="your@email.com"
                   required
-                  className="transition-all duration-200 focus:scale-105"
+                  className="transition-all duration-200 focus:scale-105 focus:border-primary"
                 />
               </div>
               <div className="space-y-2">
@@ -105,13 +105,13 @@ export default function ContactUs() {
                   onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
                   placeholder="Brief description of your inquiry"
                   required
-                  className="transition-all duration-200 focus:scale-105"
+                  className="transition-all duration-200 focus:scale-105 focus:border-primary"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                  <SelectTrigger className="transition-all duration-200 focus:scale-105">
+                  <SelectTrigger className="transition-all duration-200 focus:scale-105 focus:border-primary">
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -132,12 +132,13 @@ export default function ContactUs() {
                   onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
                   placeholder="Describe your inquiry in detail..."
                   required
-                  className="transition-all duration-200 focus:scale-105"
+                  className="transition-all duration-200 focus:scale-105 focus:border-primary"
                 />
               </div>
               <Button 
                 type="submit" 
-                className="w-full bg-brand-green hover:bg-brand-green/90 transition-all duration-300 hover:scale-105" 
+                variant="brand"
+                className="w-full transition-all duration-300 hover:scale-105 shadow-brand" 
                 disabled={loading}
               >
                 {loading ? (
@@ -155,9 +156,9 @@ export default function ContactUs() {
 
         {/* Direct Contact Card */}
         <div className="space-y-6">
-          <Card className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
+          <Card className="animate-fade-in border-primary/20 shadow-brand" style={{ animationDelay: "0.2s" }}>
             <CardHeader>
-              <CardTitle>Direct Contact</CardTitle>
+              <CardTitle className="text-primary">Direct Contact</CardTitle>
               <CardDescription>
                 Get immediate assistance through our preferred channels.
               </CardDescription>
@@ -167,7 +168,8 @@ export default function ContactUs() {
                 <Button 
                   asChild
                   size="lg"
-                  className="bg-brand-green hover:bg-brand-green/90 text-white font-semibold transition-all duration-300 hover:scale-105 w-full"
+                  variant="brand"
+                  className="font-semibold transition-all duration-300 hover:scale-105 w-full shadow-brand"
                 >
                   <a 
                     href={whatsappUrl}
@@ -186,8 +188,8 @@ export default function ContactUs() {
 
               <div className="space-y-4 pt-4 border-t border-border">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-brand-green/10 rounded-lg flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-brand-green" />
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <p className="font-medium">Email Support</p>
@@ -195,8 +197,8 @@ export default function ContactUs() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-brand-green/10 rounded-lg flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-brand-green" />
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <p className="font-medium">Response Time</p>
