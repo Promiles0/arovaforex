@@ -51,12 +51,12 @@ export const Sidebar = () => {
             to="/" 
             className="flex items-center space-x-2 group transition-all duration-300 hover:scale-105"
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-brand-green to-brand-green/80 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-brand rounded-lg flex items-center justify-center shadow-brand">
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
             <span className="font-bold text-lg group-hover:animate-pulse">
               <span className="text-foreground group-hover:text-white transition-colors duration-300">Arova</span>
-              <span className="text-brand-green group-hover:text-brand-green/80 transition-colors duration-300">Forex</span>
+              <span className="text-primary group-hover:text-primary/80 transition-colors duration-300">Forex</span>
             </span>
           </Link>
         )}
@@ -75,15 +75,21 @@ export const Sidebar = () => {
         {navigationItems.map((item) => (
           <Link key={item.name} to={item.href}>
             <Button
-              variant={isActive(item.href) ? "secondary" : "ghost"}
+              variant={isActive(item.href) ? "ghost" : "ghost"}
               className={cn(
-                "w-full justify-start h-10 transition-all duration-200",
+                "w-full justify-start h-10 transition-all duration-200 group",
                 collapsed ? "px-2" : "px-3",
-                isActive(item.href) && "bg-secondary/80 text-secondary-foreground font-medium",
+                isActive(item.href) && "bg-primary/10 text-primary font-medium border-r-2 border-primary",
+                !isActive(item.href) && "hover:bg-primary/5 hover:text-primary",
                 item.premium && "relative"
               )}
             >
-              <item.icon className={cn("w-4 h-4", !collapsed && "mr-3")} />
+              <item.icon className={cn(
+                "w-4 h-4 transition-colors duration-200", 
+                !collapsed && "mr-3",
+                isActive(item.href) && "text-primary",
+                !isActive(item.href) && "group-hover:text-primary"
+              )} />
               {!collapsed && (
                 <span className="flex items-center gap-2">
                   {item.name}
@@ -102,15 +108,28 @@ export const Sidebar = () => {
         {bottomItems.map((item) => (
           <Link key={item.name} to={item.href}>
             <Button
-              variant={isActive(item.href) ? "secondary" : "ghost"}
+              variant={isActive(item.href) ? "ghost" : "ghost"}
               className={cn(
-                "w-full justify-start h-10",
+                "w-full justify-start h-10 transition-all duration-200 group",
                 collapsed ? "px-2" : "px-3",
-                isActive(item.href) && "bg-secondary/80 text-secondary-foreground font-medium"
+                isActive(item.href) && "bg-primary/10 text-primary font-medium border-r-2 border-primary",
+                !isActive(item.href) && "hover:bg-primary/5 hover:text-primary"
               )}
             >
-              <item.icon className={cn("w-4 h-4", !collapsed && "mr-3")} />
-              {!collapsed && item.name}
+              <item.icon className={cn(
+                "w-4 h-4 transition-colors duration-200", 
+                !collapsed && "mr-3",
+                isActive(item.href) && "text-primary",
+                !isActive(item.href) && "group-hover:text-primary"
+              )} />
+              {!collapsed && (
+                <span className={cn(
+                  "transition-colors duration-200",
+                  isActive(item.href) && "text-primary"
+                )}>
+                  {item.name}
+                </span>
+              )}
             </Button>
           </Link>
         ))}

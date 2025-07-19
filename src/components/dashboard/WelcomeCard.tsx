@@ -18,26 +18,29 @@ export const WelcomeCard = () => {
   };
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-brand-green/10 via-brand-green/5 to-transparent rounded-xl p-6 border border-brand-green/20 animate-fade-in">
+    <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-xl p-6 border border-primary/20 shadow-brand animate-fade-in">
+      {/* Top brand accent bar */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-brand" />
+      
       {/* Background animation elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-4 -right-4 w-24 h-24 bg-brand-green/5 rounded-full animate-pulse" />
-        <div className="absolute top-1/2 -left-8 w-16 h-16 bg-brand-green/10 rounded-full animate-bounce" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-0 right-1/3 w-12 h-12 bg-brand-green/5 rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute -top-4 -right-4 w-24 h-24 bg-primary/5 rounded-full animate-pulse" />
+        <div className="absolute top-1/2 -left-8 w-16 h-16 bg-primary/10 rounded-full animate-bounce" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-0 right-1/3 w-12 h-12 bg-primary/5 rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
       
       <div className="relative z-10">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary flex items-center gap-2">
               {getGreeting()}, {getUserName()} 
               <span className="animate-bounce">👋</span>
             </h1>
             <p className="text-muted-foreground max-w-md">
               Ready to explore today's market opportunities? Check out the latest forecasts and signals.
             </p>
-            <div className="flex items-center text-sm text-brand-green/80 animate-fade-in" style={{ animationDelay: '0.5s' }}>
-              <TrendingUp className="w-4 h-4 mr-1" />
+            <div className="flex items-center text-sm text-primary/80 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+              <TrendingUp className="w-4 h-4 mr-1 text-primary" />
               Market is active • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
             </div>
           </div>
@@ -45,8 +48,8 @@ export const WelcomeCard = () => {
           <div className="flex flex-col sm:flex-row gap-3">
             <Link to="/dashboard/forecasts">
               <Button 
-                variant="outline" 
-                className="border-brand-green/30 hover:border-brand-green hover:bg-brand-green/10 transition-all duration-300 hover:scale-105"
+                variant="brand" 
+                className="transition-all duration-300 hover:scale-105 shadow-brand"
               >
                 View Today's Forecasts
                 <ArrowRight className="w-4 h-4 ml-2" />
