@@ -34,7 +34,7 @@ export const WelcomeCard = () => {
           <div className="space-y-2">
             <h1 className="text-2xl sm:text-3xl font-bold text-primary flex items-center gap-2">
               {getGreeting()}, {getUserName()} 
-              <span className="animate-bounce">👋💲</span>
+              <span className="animate-bounce">👋</span>
             </h1>
             <p className="text-muted-foreground max-w-md">
               Ready to explore today's market opportunities? Check out the latest forecasts and signals.
