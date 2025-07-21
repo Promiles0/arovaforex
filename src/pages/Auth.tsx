@@ -34,20 +34,17 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Visual */}
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Left Panel - Visual (hidden on mobile) */}
       <div className="hidden lg:flex lg:w-1/2">
         <AuthVisual />
       </div>
 
       {/* Right Panel - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
-        <AuthForm mode={mode} onToggleMode={toggleMode} />
-      </div>
-
-      {/* Mobile visual background */}
-      <div className="lg:hidden fixed inset-0 z-0 opacity-10">
-        <AuthVisual />
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 bg-background relative z-10 min-h-screen">
+        <div className="w-full max-w-md">
+          <AuthForm mode={mode} onToggleMode={toggleMode} />
+        </div>
       </div>
     </div>
   );
