@@ -1,205 +1,269 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Bookmark, Eye, Calendar, TrendingUp } from "lucide-react";
+import { Heart, Bookmark, Eye, Upload, AlertCircle, Plus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useNavigate } from "react-router-dom";
 
-const mockForecasts = [
-  {
-    id: 1,
-    title: "EUR/USD Weekly Technical Analysis",
-    image: "/placeholder.svg",
-    publishedAt: "2024-01-15T10:00:00Z",
-    likes: 45,
-    bookmarks: 12,
-    views: 234,
-    pair: "EUR/USD",
-    timeframe: "1W",
-    outlook: "Bullish"
-  },
-  {
-    id: 2,
-    title: "GBP/JPY Support & Resistance Levels",
-    image: "/placeholder.svg",
-    publishedAt: "2024-01-14T14:30:00Z",
-    likes: 38,
-    bookmarks: 8,
-    views: 189,
-    pair: "GBP/JPY",
-    timeframe: "4H",
-    outlook: "Bearish"
-  },
-  {
-    id: 3,
-    title: "USD/CAD Market Structure Analysis",
-    image: "/placeholder.svg",
-    publishedAt: "2024-01-13T09:15:00Z",
-    likes: 52,
-    bookmarks: 15,
-    views: 301,
-    pair: "USD/CAD",
-    timeframe: "1D",
-    outlook: "Neutral"
-  }
-];
+interface Forecast {
+  id: string;
+  title: string | null;
+  description: string | null;
+  image_url: string;
+  forecast_type: 'arova' | 'public';
+  tags: string[] | null;
+  likes_count: number;
+  created_at: string;
+  user_id: string;
+}
+
+interface Profile {
+  full_name: string | null;
+  country: string | null;
+  phone_number: string | null;
+}
 
 export default function Forecasts() {
-  const [likedForecasts, setLikedForecasts] = useState<Set<number>>(new Set());
-  const [bookmarkedForecasts, setBookmarkedForecasts] = useState<Set<number>>(new Set());
+  const [arovaForecasts, setArovaForecasts] = useState<Forecast[]>([]);
+  const [publicForecasts, setPublicForecasts] = useState<Forecast[]>([]);
+  const [likedForecasts, setLikedForecasts] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [uploadForm, setUploadForm] = useState({
+    title: '',
+    description: '',
+    file: null as File | null
+  });
+  
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const toggleLike = (id: number) => {
-    const newLikes = new Set(likedForecasts);
-    if (newLikes.has(id)) {
-      newLikes.delete(id);
-    } else {
-      newLikes.add(id);
-    }
-    setLikedForecasts(newLikes);
-  };
+  useEffect(() => {
+    fetchForecasts();
+    fetchProfile();
+    fetchLikedForecasts();
+  }, []);
 
-  const toggleBookmark = (id: number) => {
-    const newBookmarks = new Set(bookmarkedForecasts);
-    if (newBookmarks.has(id)) {
-      newBookmarks.delete(id);
-    } else {
-      newBookmarks.add(id);
-    }
-    setBookmarkedForecasts(newBookmarks);
-  };
+  const fetchProfile = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-  };
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, country, phone_number')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-  const getOutlookColor = (outlook: string) => {
-    switch (outlook.toLowerCase()) {
-      case "bullish":
-        return "bg-success/10 text-success border-success/20";
-      case "bearish":
-        return "bg-destructive/10 text-destructive border-destructive/20";
-      default:
-        return "bg-muted/10 text-muted-foreground border-border";
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
     }
   };
+
+  const fetchForecasts = async () => {
+    try {
+      const { data: arovaData, error: arovaError } = await supabase
+        .from('forecasts')
+        .select('*')
+        .eq('forecast_type', 'arova')
+        .order('created_at', { ascending: false });
+
+      if (arovaError) throw arovaError;
+      setArovaForecasts(arovaData || []);
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      
+      if (user) {
+        const { data: publicData, error: publicError } = await supabase
+          .from('forecasts')
+          .select('*')
+          .eq('forecast_type', 'public')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (publicError) throw publicError;
+        setPublicForecasts(publicData || []);
+      }
+    } catch (error) {
+      console.error('Error fetching forecasts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load forecasts",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchLikedForecasts = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('forecast_likes')
+        .select('forecast_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      const likedIds = new Set(data.map(like => like.forecast_id));
+      setLikedForecasts(likedIds);
+    } catch (error) {
+      console.error('Error fetching liked forecasts:', error);
+    }
+  };
+
+  const isProfileComplete = () => {
+    return profile?.full_name && profile?.country && profile?.phone_number;
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadForm(prev => ({ ...prev, file }));
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-success" />
-            Market Forecasts
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Professional technical analysis and market insights - Free for all members
-          </p>
-        </div>
+    <div className="container mx-auto p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-primary mb-2">Market Forecasts</h1>
+        <p className="text-muted-foreground">
+          Explore professional forecasts from ArovaForex experts and share your own market analysis.
+        </p>
       </div>
 
-      {/* Forecasts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockForecasts.map((forecast) => (
-          <Card key={forecast.id} className="border-border/50 overflow-hidden hover:shadow-lg transition-all duration-300">
-            <div className="aspect-video bg-muted/30 relative group cursor-pointer">
-              <img 
-                src={forecast.image} 
-                alt={forecast.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                <Button variant="secondary" size="sm">
-                  View Analysis
-                </Button>
-              </div>
-              
-              {/* Pair Badge */}
-              <Badge className="absolute top-3 left-3 bg-background/90 text-foreground border-border">
-                {forecast.pair}
-              </Badge>
-              
-              {/* Outlook Badge */}
-              <Badge className={`absolute top-3 right-3 ${getOutlookColor(forecast.outlook)}`}>
-                {forecast.outlook}
-              </Badge>
+      <Tabs defaultValue="arova" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsTrigger value="arova">Arova Forecasts</TabsTrigger>
+          <TabsTrigger value="public">My Forecasts</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="arova" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-primary">Professional Forecasts</h2>
+            <Badge variant="outline" className="border-primary text-primary">
+              {arovaForecasts.length} Forecasts
+            </Badge>
+          </div>
+          
+          {arovaForecasts.length === 0 ? (
+            <Card className="p-8 text-center border-primary/20">
+              <CardContent>
+                <div className="text-muted-foreground">
+                  <Eye className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No professional forecasts available yet.</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {arovaForecasts.map((forecast) => (
+                <Card key={forecast.id} className="border-primary/20">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-primary">{forecast.title || "Untitled"}</h3>
+                    <p className="text-sm text-muted-foreground">{forecast.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+          )}
+        </TabsContent>
 
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg leading-tight">{forecast.title}</CardTitle>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="w-3 h-3" />
-                {formatDate(forecast.publishedAt)}
-                <Badge variant="outline" className="ml-auto">
-                  {forecast.timeframe}
-                </Badge>
-              </div>
+        <TabsContent value="public" className="space-y-6">
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-primary">Upload New Forecast</CardTitle>
             </CardHeader>
-
-            <CardContent className="pt-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-3 h-3" />
-                    {forecast.views}
+            <CardContent className="space-y-4">
+              {!isProfileComplete() && (
+                <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-warning">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>Profile Incomplete</span>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-2">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    onClick={() => toggleLike(forecast.id)}
-                    className={`h-8 w-8 p-0 ${
-                      likedForecasts.has(forecast.id) 
-                        ? "text-red-500 hover:text-red-600" 
-                        : "text-muted-foreground hover:text-red-500"
-                    }`}
+                    className="mt-2"
+                    onClick={() => navigate('/dashboard/profile')}
                   >
-                    <Heart className={`w-4 h-4 ${likedForecasts.has(forecast.id) ? "fill-current" : ""}`} />
+                    Complete Profile
                   </Button>
-                  <span className="text-sm text-muted-foreground min-w-[20px]">
-                    {forecast.likes + (likedForecasts.has(forecast.id) ? 1 : 0)}
-                  </span>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleBookmark(forecast.id)}
-                    className={`h-8 w-8 p-0 ml-2 ${
-                      bookmarkedForecasts.has(forecast.id) 
-                        ? "text-primary hover:text-primary/80" 
-                        : "text-muted-foreground hover:text-primary"
-                    }`}
-                  >
-                    <Bookmark className={`w-4 h-4 ${bookmarkedForecasts.has(forecast.id) ? "fill-current" : ""}`} />
-                  </Button>
-                  <span className="text-sm text-muted-foreground min-w-[20px]">
-                    {forecast.bookmarks + (bookmarkedForecasts.has(forecast.id) ? 1 : 0)}
-                  </span>
                 </div>
+              )}
+
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={uploadForm.title}
+                  onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Forecast title"
+                />
               </div>
+
+              <div>
+                <Label htmlFor="image">Image</Label>
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </div>
+
+              <Button
+                disabled={!uploadForm.file || !isProfileComplete()}
+                className="w-full bg-primary hover:bg-primary/90"
+              >
+                Upload Forecast
+              </Button>
             </CardContent>
           </Card>
-        ))}
-      </div>
 
-      {/* Empty State for No Bookmarks */}
-      {mockForecasts.length === 0 && (
-        <Card className="border-border/50">
-          <CardContent className="py-12 text-center">
-            <TrendingUp className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No forecasts available</h3>
-            <p className="text-muted-foreground">
-              Check back soon for the latest market analysis and insights.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+          {publicForecasts.length === 0 ? (
+            <Card className="p-8 text-center">
+              <CardContent>
+                <Upload className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No forecasts uploaded yet.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {publicForecasts.map((forecast) => (
+                <Card key={forecast.id}>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold">{forecast.title}</h3>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

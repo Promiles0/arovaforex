@@ -1,58 +1,69 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/hooks/useAuth";
-import { User, Camera, LogOut, Shield, Edit } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { User } from "lucide-react";
+
+interface Profile {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  country: string | null;
+  phone_number: string | null;
+  telegram_handle: string | null;
+  whatsapp_handle: string | null;
+}
 
 export default function Profile() {
-  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    full_name: user?.user_metadata?.full_name || "",
-    email: user?.email || "",
-    country: user?.user_metadata?.country || "",
-    phone: user?.user_metadata?.phone || "",
-  });
 
-  const [passwords, setPasswords] = useState({
-    current: "",
-    new: "",
-    confirm: "",
-  });
+  const countries = [
+    "Afghanistan", "Albania", "Algeria", "Argentina", "Australia", "Austria", "Bangladesh", "Belgium", "Brazil", "Canada", "China", "Denmark", "Egypt", "France", "Germany", "Ghana", "India", "Indonesia", "Italy", "Japan", "Kenya", "Malaysia", "Mexico", "Netherlands", "Nigeria", "Norway", "Pakistan", "Philippines", "Poland", "Russia", "Saudi Arabia", "Singapore", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkey", "Ukraine", "United Kingdom", "United States", "Vietnam"
+  ];
 
-  const handleUpdateProfile = async () => {
-    setLoading(true);
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          full_name: formData.full_name,
-          country: formData.country,
-          phone: formData.phone,
-        }
-      });
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
       if (error) throw error;
 
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
-      });
-      setIsEditing(false);
-    } catch (error: any) {
+      if (data) {
+        setProfile(data);
+      } else {
+        // Create a new profile
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([{ user_id: user.id }])
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        setProfile(newProfile);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to load profile data",
         variant: "destructive",
       });
     } finally {
@@ -60,239 +71,159 @@ export default function Profile() {
     }
   };
 
-  const handleChangePassword = async () => {
-    if (passwords.new !== passwords.confirm) {
-      toast({
-        title: "Error",
-        description: "New passwords don't match.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSave = async () => {
+    if (!profile) return;
 
-    setLoading(true);
+    setSaving(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: passwords.new
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profile.full_name,
+          country: profile.country,
+          phone_number: profile.phone_number,
+          telegram_handle: profile.telegram_handle,
+          whatsapp_handle: profile.whatsapp_handle,
+        })
+        .eq('id', profile.id);
 
       if (error) throw error;
 
       toast({
-        title: "Password changed",
-        description: "Your password has been updated successfully.",
+        title: "Success",
+        description: "Profile updated successfully",
       });
-      setPasswords({ current: "", new: "", confirm: "" });
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Error updating profile:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to update profile",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      toast({
-        title: "Logged out",
-        description: "You have been logged out successfully.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to log out. Please try again.",
-        variant: "destructive",
-      });
+  const updateProfile = (field: keyof Profile, value: string) => {
+    if (profile) {
+      setProfile({ ...profile, [field]: value });
     }
   };
 
-  const getUserInitials = () => {
-    const name = formData.full_name || user?.email || "User";
-    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  const isProfileComplete = () => {
+    return profile?.full_name && profile?.country && profile?.phone_number;
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+    <div className="container mx-auto p-6 max-w-2xl">
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <User className="h-6 w-6 text-primary" />
+          <h1 className="text-3xl font-bold text-primary">Profile Settings</h1>
+        </div>
         <p className="text-muted-foreground">
-          Manage your account settings and preferences.
+          Complete your profile to unlock all features including forecast uploads.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Overview */}
-        <Card className="lg:col-span-1">
-          <CardHeader className="text-center">
-            <div className="relative mx-auto">
-              <Avatar className="w-24 h-24 mx-auto">
-                <AvatarImage src="" />
-                <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                  {getUserInitials()}
-                </AvatarFallback>
-              </Avatar>
-              <Button
-                size="sm"
-                variant="outline"
-                className="absolute -bottom-2 -right-2 h-8 w-8 p-0 rounded-full"
-              >
-                <Camera className="w-4 h-4" />
-              </Button>
-            </div>
-            <div>
-              <CardTitle className="text-xl">{formData.full_name || "User"}</CardTitle>
-              <CardDescription>{user?.email}</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-center">
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Shield className="w-3 h-3" />
-                User Role
-              </Badge>
-            </div>
-            <Separator />
-            <Button 
-              variant="destructive" 
-              className="w-full" 
-              onClick={handleLogout}
+      <Card className="border-primary/20 shadow-brand">
+        <CardHeader>
+          <CardTitle className="text-primary">Personal Information</CardTitle>
+          <CardDescription>
+            Fill out your profile details. Fields marked with * are required to submit forecasts.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <Label htmlFor="fullName">Full Name *</Label>
+            <Input
+              id="fullName"
+              value={profile?.full_name || ''}
+              onChange={(e) => updateProfile('full_name', e.target.value)}
+              placeholder="Enter your full name"
+              className="border-primary/20 focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="country">Country *</Label>
+            <Select
+              value={profile?.country || ''}
+              onValueChange={(value) => updateProfile('country', value)}
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              Log Out
-            </Button>
-          </CardContent>
-        </Card>
+              <SelectTrigger className="border-primary/20 focus:border-primary">
+                <SelectValue placeholder="Select your country" />
+              </SelectTrigger>
+              <SelectContent>
+                {countries.map((country) => (
+                  <SelectItem key={country} value={country}>
+                    {country}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Profile Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Personal Information */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Personal Information</CardTitle>
-                  <CardDescription>
-                    Update your personal details here.
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(!isEditing)}
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  {isEditing ? "Cancel" : "Edit"}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="full_name">Full Name</Label>
-                  <Input
-                    id="full_name"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                    disabled={!isEditing}
-                    placeholder="Enter your full name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    value={formData.email}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <Input
-                    id="country"
-                    value={formData.country}
-                    onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                    disabled={!isEditing}
-                    placeholder="Enter your country"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone (Optional)</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    disabled={!isEditing}
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-              </div>
-              {isEditing && (
-                <div className="flex gap-2 pt-4">
-                  <Button onClick={handleUpdateProfile} disabled={loading}>
-                    {loading ? "Saving..." : "Save Changes"}
-                  </Button>
-                  <Button variant="outline" onClick={() => setIsEditing(false)}>
-                    Cancel
-                  </Button>
-                </div>
+          <div>
+            <Label htmlFor="phone">Phone Number *</Label>
+            <Input
+              id="phone"
+              value={profile?.phone_number || ''}
+              onChange={(e) => updateProfile('phone_number', e.target.value)}
+              placeholder="Enter your phone number"
+              className="border-primary/20 focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="telegram">Telegram Handle (Optional)</Label>
+            <Input
+              id="telegram"
+              value={profile?.telegram_handle || ''}
+              onChange={(e) => updateProfile('telegram_handle', e.target.value)}
+              placeholder="@username"
+              className="border-primary/20 focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="whatsapp">WhatsApp Handle (Optional)</Label>
+            <Input
+              id="whatsapp"
+              value={profile?.whatsapp_handle || ''}
+              onChange={(e) => updateProfile('whatsapp_handle', e.target.value)}
+              placeholder="WhatsApp contact info"
+              className="border-primary/20 focus:border-primary"
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-4">
+            <div className="text-sm">
+              {isProfileComplete() ? (
+                <span className="text-success">✓ Profile is complete</span>
+              ) : (
+                <span className="text-warning">Profile incomplete - complete to submit forecasts</span>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Password Change */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>
-                Update your password to keep your account secure.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="current_password">Current Password</Label>
-                <Input
-                  id="current_password"
-                  type="password"
-                  value={passwords.current}
-                  onChange={(e) => setPasswords(prev => ({ ...prev, current: e.target.value }))}
-                  placeholder="Enter current password"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new_password">New Password</Label>
-                <Input
-                  id="new_password"
-                  type="password"
-                  value={passwords.new}
-                  onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
-                  placeholder="Enter new password"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm_password">Confirm New Password</Label>
-                <Input
-                  id="confirm_password"
-                  type="password"
-                  value={passwords.confirm}
-                  onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
-                  placeholder="Confirm new password"
-                />
-              </div>
-              <Button 
-                onClick={handleChangePassword} 
-                disabled={loading || !passwords.new || passwords.new !== passwords.confirm}
-              >
-                {loading ? "Updating..." : "Update Password"}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            </div>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {saving ? "Saving..." : "Save Profile"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
