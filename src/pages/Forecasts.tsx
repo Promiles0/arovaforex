@@ -79,7 +79,7 @@ export default function Forecasts() {
         .order('created_at', { ascending: false });
 
       if (arovaError) throw arovaError;
-      setArovaForecasts(arovaData || []);
+      setArovaForecasts((arovaData || []) as Forecast[]);
 
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
@@ -93,7 +93,7 @@ export default function Forecasts() {
           .order('created_at', { ascending: false });
 
         if (publicError) throw publicError;
-        setPublicForecasts(publicData || []);
+        setPublicForecasts((publicData || []) as Forecast[]);
       }
     } catch (error) {
       console.error('Error fetching forecasts:', error);
