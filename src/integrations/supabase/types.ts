@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      forecast_comments: {
+        Row: {
+          content: string
+          created_at: string
+          forecast_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          forecast_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          forecast_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forecast_comments_forecast_id_fkey"
+            columns: ["forecast_id"]
+            isOneToOne: false
+            referencedRelation: "forecasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       forecast_likes: {
         Row: {
           created_at: string
@@ -45,7 +80,10 @@ export type Database = {
       }
       forecasts: {
         Row: {
+          commentary: string | null
+          comments_count: number | null
           created_at: string
+          currency_pair: string | null
           description: string | null
           forecast_type: string
           id: string
@@ -53,11 +91,15 @@ export type Database = {
           likes_count: number | null
           tags: string[] | null
           title: string | null
+          trade_bias: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          commentary?: string | null
+          comments_count?: number | null
           created_at?: string
+          currency_pair?: string | null
           description?: string | null
           forecast_type: string
           id?: string
@@ -65,11 +107,15 @@ export type Database = {
           likes_count?: number | null
           tags?: string[] | null
           title?: string | null
+          trade_bias?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          commentary?: string | null
+          comments_count?: number | null
           created_at?: string
+          currency_pair?: string | null
           description?: string | null
           forecast_type?: string
           id?: string
@@ -77,6 +123,7 @@ export type Database = {
           likes_count?: number | null
           tags?: string[] | null
           title?: string | null
+          trade_bias?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -117,6 +164,35 @@ export type Database = {
           whatsapp_handle?: string | null
         }
         Relationships: []
+      }
+      user_bookmarks: {
+        Row: {
+          bookmarked_at: string
+          forecast_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          bookmarked_at?: string
+          forecast_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          bookmarked_at?: string
+          forecast_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bookmarks_forecast_id_fkey"
+            columns: ["forecast_id"]
+            isOneToOne: false
+            referencedRelation: "forecasts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
