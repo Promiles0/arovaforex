@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import BookmarkedForecasts from "@/components/forecasts/BookmarkedForecasts";
 
 export const Header = () => {
   const { user, signOut } = useAuth();
@@ -38,6 +39,12 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Bookmarked Forecasts */}
+          <BookmarkedForecasts onForecastClick={(forecast) => {
+            // Navigate to forecasts page and show the selected forecast
+            window.location.href = `/dashboard/forecasts#forecast-${forecast.id}`;
+          }} />
+
           {/* Notifications */}
           <Button variant="ghost" size="sm" className="relative">
             <Bell className="w-5 h-5" />

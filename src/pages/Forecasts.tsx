@@ -1,17 +1,13 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Bookmark, Eye, Upload, AlertCircle, Plus, TrendingUp, TrendingDown, Minus, MessageCircle, Camera, X } from "lucide-react";
+import { Heart, Bookmark, TrendingUp, TrendingDown, Minus, MessageCircle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ForecastUploadModal from "@/components/forecasts/ForecastUploadModal";
 
 interface Forecast {
   id: string;
@@ -41,29 +37,14 @@ interface ExtendedForecast extends Forecast {
   is_bookmarked?: boolean;
 }
 
-const CURRENCY_PAIRS = [
-  'EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'USD/CHF',
-  'EUR/GBP', 'EUR/JPY', 'GBP/JPY', 'XAU/USD', 'BTC/USD', 'ETH/USD'
-];
-
 export default function Forecasts() {
   const [publicForecasts, setPublicForecasts] = useState<ExtendedForecast[]>([]);
   const [arovaForecasts, setArovaForecasts] = useState<ExtendedForecast[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [selectedForecast, setSelectedForecast] = useState<ExtendedForecast | null>(null);
-  const [uploadForm, setUploadForm] = useState({
-    title: '',
-    currency_pair: '',
-    trade_bias: '',
-    commentary: '',
-    file: null as File | null,
-    preview: null as string | null
-  });
 
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchForecasts();
@@ -165,92 +146,6 @@ export default function Forecasts() {
     }
   };
 
-  const isProfileComplete = () => {
-    return profile?.full_name && profile?.country && profile?.phone_number;
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const preview = URL.createObjectURL(file);
-      setUploadForm(prev => ({ ...prev, file, preview }));
-    }
-  };
-
-  const clearPreview = () => {
-    if (uploadForm.preview) {
-      URL.revokeObjectURL(uploadForm.preview);
-    }
-    setUploadForm(prev => ({ ...prev, file: null, preview: null }));
-  };
-
-  const handleUpload = async () => {
-    if (!uploadForm.file || !isProfileComplete()) return;
-
-    try {
-      setUploading(true);
-      
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      if (!user) throw new Error('User not authenticated');
-
-      // Upload image to storage
-      const fileName = `${user.id}/${Date.now()}-${uploadForm.file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('forecasts')
-        .upload(fileName, uploadForm.file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL for the image
-      const { data: { publicUrl } } = supabase.storage
-        .from('forecasts')
-        .getPublicUrl(fileName);
-
-      // Insert forecast record
-      const { error: insertError } = await supabase
-        .from('forecasts')
-        .insert({
-          title: uploadForm.title,
-          image_url: publicUrl,
-          forecast_type: 'public',
-          currency_pair: uploadForm.currency_pair,
-          trade_bias: uploadForm.trade_bias as 'long' | 'short' | 'neutral',
-          commentary: uploadForm.commentary,
-          user_id: user.id
-        });
-
-      if (insertError) throw insertError;
-
-      toast({
-        title: "Success",
-        description: "Forecast uploaded successfully!",
-      });
-
-      // Reset form
-      setUploadForm({
-        title: '',
-        currency_pair: '',
-        trade_bias: '',
-        commentary: '',
-        file: null,
-        preview: null
-      });
-
-      // Refresh forecasts
-      fetchForecasts();
-    } catch (error) {
-      console.error('Error uploading forecast:', error);
-      toast({
-        title: "Error",
-        description: "Failed to upload forecast",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleLike = async (forecastId: string) => {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -322,70 +217,137 @@ export default function Forecasts() {
 
   const getBiasColor = (bias: string | null) => {
     switch (bias) {
-      case 'long': return 'border-l-green-500 bg-green-50 dark:bg-green-900/20';
-      case 'short': return 'border-l-red-500 bg-red-50 dark:bg-red-900/20';
-      case 'neutral': return 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20';
-      default: return 'border-l-gray-500 bg-gray-50 dark:bg-gray-900/20';
+      case 'long': return 'border-l-green-500 bg-gradient-to-r from-green-50 to-transparent dark:from-green-900/20';
+      case 'short': return 'border-l-red-500 bg-gradient-to-r from-red-50 to-transparent dark:from-red-900/20';
+      case 'neutral': return 'border-l-yellow-500 bg-gradient-to-r from-yellow-50 to-transparent dark:from-yellow-900/20';
+      default: return 'border-l-muted bg-gradient-to-r from-muted/20 to-transparent';
     }
   };
 
-  const ForecastCard = ({ forecast }: { forecast: ExtendedForecast }) => (
-    <Card className={`group hover:shadow-lg transition-all duration-300 border-l-4 ${getBiasColor(forecast.trade_bias)} cursor-pointer`}>
-      <CardContent className="p-4" onClick={() => setSelectedForecast(forecast)}>
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex items-center gap-2">
-            {forecast.currency_pair && (
-              <Badge variant="outline" className="font-mono text-xs">
-                {forecast.currency_pair}
-              </Badge>
-            )}
-            {getBiasIcon(forecast.trade_bias)}
+  const ForecastImageModal = ({ forecast, open, onClose }: { forecast: ExtendedForecast; open: boolean; onClose: () => void }) => (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+        <DialogHeader className="p-6 pb-0">
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {forecast.currency_pair && (
+                <Badge variant="outline" className="font-mono">
+                  {forecast.currency_pair}
+                </Badge>
+              )}
+              {getBiasIcon(forecast.trade_bias)}
+              <span>{forecast.title || "Untitled Forecast"}</span>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="p-6 pt-3">
+          <img 
+            src={forecast.image_url} 
+            alt={forecast.title || "Forecast"} 
+            className="w-full h-auto rounded-lg mb-4"
+          />
+          {forecast.commentary && (
+            <div className="bg-muted rounded-lg p-4">
+              <h4 className="font-medium mb-2">Analysis:</h4>
+              <p className="text-muted-foreground">{forecast.commentary}</p>
+            </div>
+          )}
+          <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
+            <span>By {forecast.user_profile?.full_name || "Unknown"}</span>
+            <span>{new Date(forecast.created_at).toLocaleString()}</span>
           </div>
-          <div className="flex gap-1">
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const ForecastCard = ({ forecast }: { forecast: ExtendedForecast }) => (
+    <Card className={`group hover:shadow-xl transition-all duration-300 border-l-4 ${getBiasColor(forecast.trade_bias)} hover:scale-[1.02] cursor-pointer backdrop-blur-sm`}>
+      <CardContent className="p-0">
+        {/* Image Preview */}
+        <div className="relative overflow-hidden rounded-t-lg">
+          <img 
+            src={forecast.image_url} 
+            alt={forecast.title || "Forecast"} 
+            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+            onClick={() => setSelectedForecast(forecast)}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          
+          {/* Quick Actions Overlay */}
+          <div className="absolute top-3 right-3 flex gap-2">
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
                 handleLike(forecast.id);
               }}
-              className={forecast.is_liked ? 'text-red-500' : ''}
+              className={`backdrop-blur-sm bg-background/20 hover:bg-background/40 ${forecast.is_liked ? 'text-red-500' : 'text-white'}`}
             >
               <Heart className={`w-4 h-4 ${forecast.is_liked ? 'fill-current' : ''}`} />
               <span className="ml-1 text-xs">{forecast.likes_count}</span>
             </Button>
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
                 handleBookmark(forecast.id);
               }}
-              className={forecast.is_bookmarked ? 'text-blue-500' : ''}
+              className={`backdrop-blur-sm bg-background/20 hover:bg-background/40 ${forecast.is_bookmarked ? 'text-blue-500' : 'text-white'}`}
             >
               <Bookmark className={`w-4 h-4 ${forecast.is_bookmarked ? 'fill-current' : ''}`} />
             </Button>
           </div>
+          
+          {/* Currency Pair & Bias */}
+          <div className="absolute bottom-3 left-3 flex items-center gap-2">
+            {forecast.currency_pair && (
+              <Badge variant="secondary" className="font-mono text-xs backdrop-blur-sm bg-background/20">
+                {forecast.currency_pair}
+              </Badge>
+            )}
+            <div className="flex items-center gap-1 px-2 py-1 rounded-full backdrop-blur-sm bg-background/20">
+              {getBiasIcon(forecast.trade_bias)}
+              <span className="text-xs text-white font-medium">
+                {forecast.trade_bias?.toUpperCase() || 'NEUTRAL'}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <h3 className="font-semibold mb-2 text-primary group-hover:text-primary/80 transition-colors">
-          {forecast.title || "Untitled Forecast"}
-        </h3>
-        
-        {forecast.commentary && (
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-            {forecast.commentary}
-          </p>
-        )}
+        {/* Content */}
+        <div className="p-4" onClick={() => setSelectedForecast(forecast)}>
+          <h3 className="font-semibold mb-2 text-foreground group-hover:text-primary transition-colors line-clamp-1">
+            {forecast.title || "Untitled Forecast"}
+          </h3>
+          
+          {forecast.commentary && (
+            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+              {forecast.commentary}
+            </p>
+          )}
 
-        <div className="flex justify-between items-center text-xs text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <span>By {forecast.user_profile?.full_name || "Unknown"}</span>
-            <span>{new Date(forecast.created_at).toLocaleDateString()}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <MessageCircle className="w-3 h-3" />
-            <span>{forecast.comments_count}</span>
+          <div className="flex justify-between items-center text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-xs font-medium">
+                  {forecast.user_profile?.full_name?.charAt(0) || "?"}
+                </span>
+              </div>
+              <span className="font-medium">{forecast.user_profile?.full_name || "Unknown"}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <MessageCircle className="w-3 h-3" />
+                <span>{forecast.comments_count}</span>
+              </div>
+              <span>{new Date(forecast.created_at).toLocaleDateString()}</span>
+            </div>
           </div>
         </div>
       </CardContent>
@@ -401,289 +363,73 @@ export default function Forecasts() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-primary mb-2">Market Forecasts</h1>
-        <p className="text-muted-foreground">
+    <div className="container mx-auto p-4 md:p-6 space-y-6">
+      <div className="text-center md:text-left">
+        <h1 className="text-2xl md:text-3xl font-bold text-primary mb-2">Market Forecasts</h1>
+        <p className="text-muted-foreground text-sm md:text-base">
           Share your market analysis and explore professional forecasts from the trading community.
         </p>
       </div>
 
       <Tabs defaultValue="public" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-8">
-          <TabsTrigger value="public">Public Forecasts</TabsTrigger>
-          <TabsTrigger value="arova">Arova Forecasts</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="public" className="text-xs md:text-sm">Public Forecasts</TabsTrigger>
+          <TabsTrigger value="arova" className="text-xs md:text-sm">Arova Forecasts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="public" className="space-y-6">
-          {/* Upload Section */}
-          <Card className="border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-primary flex items-center gap-2">
-                <Upload className="w-5 h-5" />
-                Submit Your Market Forecast
-              </CardTitle>
-              <CardDescription>
-                Share your analysis with the trading community
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!isProfileComplete() && (
-                <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-warning mb-2">
-                    <AlertCircle className="w-4 h-4" />
-                    <span className="font-medium">Profile Incomplete</span>
-                  </div>
-                  <p className="text-sm text-warning/80 mb-3">
-                    Please complete your profile before uploading a forecast.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/dashboard/profile')}
-                    className="border-warning text-warning hover:bg-warning/10"
-                  >
-                    Go to Profile
-                  </Button>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="currency_pair">Currency Pair</Label>
-                  <Select value={uploadForm.currency_pair} onValueChange={(value) => 
-                    setUploadForm(prev => ({ ...prev, currency_pair: value }))
-                  }>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select currency pair" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CURRENCY_PAIRS.map(pair => (
-                        <SelectItem key={pair} value={pair}>{pair}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="trade_bias">Trade Bias</Label>
-                  <Select value={uploadForm.trade_bias} onValueChange={(value) => 
-                    setUploadForm(prev => ({ ...prev, trade_bias: value }))
-                  }>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select bias" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="long">🔼 Long (Bullish)</SelectItem>
-                      <SelectItem value="short">🔽 Short (Bearish)</SelectItem>
-                      <SelectItem value="neutral">⚖️ Neutral</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="title">Forecast Title</Label>
-                <Input
-                  id="title"
-                  value={uploadForm.title}
-                  onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="e.g., Bullish OB on EUR/USD H4"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="image">Chart Image</Label>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                  {uploadForm.preview ? (
-                    <div className="relative">
-                      <img 
-                        src={uploadForm.preview} 
-                        alt="Preview" 
-                        className="max-h-48 mx-auto rounded"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={clearPreview}
-                        className="absolute top-2 right-2"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div>
-                      <Camera className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                      <Input
-                        id="image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
-                      <Label 
-                        htmlFor="image" 
-                        className="cursor-pointer text-primary hover:text-primary/80"
-                      >
-                        Click to upload chart image
-                      </Label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        JPG, PNG up to 10MB
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="commentary">Trade Commentary</Label>
-                <Textarea
-                  id="commentary"
-                  value={uploadForm.commentary}
-                  onChange={(e) => setUploadForm(prev => ({ ...prev, commentary: e.target.value }))}
-                  placeholder="Explain your analysis (max 500 characters)"
-                  maxLength={500}
-                  rows={3}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {uploadForm.commentary.length}/500 characters
-                </p>
-              </div>
-
-              <Button
-                onClick={handleUpload}
-                disabled={!uploadForm.file || !uploadForm.title || !uploadForm.currency_pair || !uploadForm.trade_bias || !isProfileComplete() || uploading}
-                className="w-full bg-primary hover:bg-primary/90"
-              >
-                {uploading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Forecast
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Public Forecasts List */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-primary">Community Forecasts</h2>
-            <Badge variant="outline" className="border-primary text-primary">
-              {publicForecasts.length} Forecasts
-            </Badge>
+          {/* Upload Button */}
+          <div className="flex justify-center md:justify-start">
+            <ForecastUploadModal 
+              profile={profile} 
+              onUploadSuccess={fetchForecasts}
+            />
           </div>
 
-          {publicForecasts.length === 0 ? (
-            <Card className="p-8 text-center border-primary/20">
-              <CardContent>
-                <div className="text-muted-foreground">
-                  <Eye className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No community forecasts yet. Be the first to share!</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {publicForecasts.map((forecast) => (
-                <ForecastCard key={forecast.id} forecast={forecast} />
-              ))}
+          {/* Public Forecasts Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {publicForecasts.map((forecast) => (
+              <ForecastCard key={forecast.id} forecast={forecast} />
+            ))}
+          </div>
+
+          {publicForecasts.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <div className="bg-muted/50 rounded-lg p-8 max-w-md mx-auto">
+                <p className="text-muted-foreground mb-4">No public forecasts available yet.</p>
+                <p className="text-sm text-muted-foreground">Be the first to share your market analysis!</p>
+              </div>
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="arova" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-primary">Professional Forecasts</h2>
-            <Badge variant="outline" className="border-primary text-primary">
-              {arovaForecasts.length} Forecasts
-            </Badge>
+          {/* Arova Forecasts Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {arovaForecasts.map((forecast) => (
+              <ForecastCard key={forecast.id} forecast={forecast} />
+            ))}
           </div>
 
-          {arovaForecasts.length === 0 ? (
-            <Card className="p-8 text-center border-primary/20">
-              <CardContent>
-                <div className="text-muted-foreground">
-                  <Eye className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No professional forecasts available yet.</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {arovaForecasts.map((forecast) => (
-                <ForecastCard key={forecast.id} forecast={forecast} />
-              ))}
+          {arovaForecasts.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <div className="bg-muted/50 rounded-lg p-8 max-w-md mx-auto">
+                <p className="text-muted-foreground mb-4">No Arova forecasts available yet.</p>
+                <p className="text-sm text-muted-foreground">Professional forecasts will appear here.</p>
+              </div>
             </div>
           )}
         </TabsContent>
       </Tabs>
 
       {/* Forecast Detail Modal */}
-      <Dialog open={!!selectedForecast} onOpenChange={() => setSelectedForecast(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          {selectedForecast && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {selectedForecast.currency_pair && (
-                    <Badge variant="outline" className="font-mono">
-                      {selectedForecast.currency_pair}
-                    </Badge>
-                  )}
-                  {getBiasIcon(selectedForecast.trade_bias)}
-                  {selectedForecast.title || "Untitled Forecast"}
-                </DialogTitle>
-              </DialogHeader>
-              
-              <div className="space-y-4">
-                <img 
-                  src={selectedForecast.image_url} 
-                  alt="Forecast chart"
-                  className="w-full rounded-lg"
-                />
-                
-                {selectedForecast.commentary && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Analysis</h4>
-                    <p className="text-muted-foreground">{selectedForecast.commentary}</p>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between pt-4 border-t">
-                  <div className="text-sm text-muted-foreground">
-                    Posted by <span className="font-medium">{selectedForecast.user_profile?.full_name || "Unknown"}</span> on{' '}
-                    {new Date(selectedForecast.created_at).toLocaleDateString()}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleLike(selectedForecast.id)}
-                      className={selectedForecast.is_liked ? 'text-red-500 border-red-500' : ''}
-                    >
-                      <Heart className={`w-4 h-4 mr-1 ${selectedForecast.is_liked ? 'fill-current' : ''}`} />
-                      {selectedForecast.likes_count}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleBookmark(selectedForecast.id)}
-                      className={selectedForecast.is_bookmarked ? 'text-blue-500 border-blue-500' : ''}
-                    >
-                      <Bookmark className={`w-4 h-4 ${selectedForecast.is_bookmarked ? 'fill-current' : ''}`} />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {selectedForecast && (
+        <ForecastImageModal 
+          forecast={selectedForecast} 
+          open={!!selectedForecast} 
+          onClose={() => setSelectedForecast(null)} 
+        />
+      )}
     </div>
   );
 }
