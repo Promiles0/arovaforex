@@ -265,88 +265,106 @@ export default function Forecasts() {
   );
 
   const ForecastCard = ({ forecast }: { forecast: ExtendedForecast }) => (
-    <Card className={`group hover:shadow-xl transition-all duration-300 border-l-4 ${getBiasColor(forecast.trade_bias)} hover:scale-[1.02] cursor-pointer backdrop-blur-sm`}>
+    <Card className="group relative overflow-hidden bg-gradient-to-br from-card via-card to-card/80 border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1">
       <CardContent className="p-0">
-        {/* Image Preview */}
-        <div className="relative overflow-hidden rounded-t-lg">
+        {/* Header with Currency Pair and Bias */}
+        <div className="relative p-4 pb-2">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              {forecast.currency_pair && (
+                <Badge variant="outline" className="font-mono text-sm font-bold border-primary/30 text-primary">
+                  {forecast.currency_pair}
+                </Badge>
+              )}
+              <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                forecast.trade_bias === 'long' ? 'bg-success/10 text-success border border-success/20' :
+                forecast.trade_bias === 'short' ? 'bg-destructive/10 text-destructive border border-destructive/20' :
+                'bg-warning/10 text-warning border border-warning/20'
+              }`}>
+                {getBiasIcon(forecast.trade_bias)}
+                <span className="ml-1">{forecast.trade_bias?.toUpperCase() || 'NEUTRAL'}</span>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLike(forecast.id);
+                }}
+                className={`h-8 w-8 p-0 hover:scale-110 transition-all ${forecast.is_liked ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-red-500'}`}
+              >
+                <Heart className={`w-4 h-4 ${forecast.is_liked ? 'fill-current' : ''}`} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleBookmark(forecast.id);
+                }}
+                className={`h-8 w-8 p-0 hover:scale-110 transition-all ${forecast.is_bookmarked ? 'text-primary hover:text-primary/80' : 'text-muted-foreground hover:text-primary'}`}
+              >
+                <Bookmark className={`w-4 h-4 ${forecast.is_bookmarked ? 'fill-current' : ''}`} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Title */}
+          <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-2">
+            {forecast.title || "Market Analysis"}
+          </h3>
+        </div>
+
+        {/* Chart Image */}
+        <div className="relative mx-4 mb-4 overflow-hidden rounded-lg border border-border/30 bg-card-chart">
           <img 
             src={forecast.image_url} 
             alt={forecast.title || "Forecast"} 
-            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
             onClick={() => setSelectedForecast(forecast)}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-          
-          {/* Quick Actions Overlay */}
-          <div className="absolute top-3 right-3 flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleLike(forecast.id);
-              }}
-              className={`backdrop-blur-sm bg-background/20 hover:bg-background/40 ${forecast.is_liked ? 'text-red-500' : 'text-white'}`}
-            >
-              <Heart className={`w-4 h-4 ${forecast.is_liked ? 'fill-current' : ''}`} />
-              <span className="ml-1 text-xs">{forecast.likes_count}</span>
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleBookmark(forecast.id);
-              }}
-              className={`backdrop-blur-sm bg-background/20 hover:bg-background/40 ${forecast.is_bookmarked ? 'text-blue-500' : 'text-white'}`}
-            >
-              <Bookmark className={`w-4 h-4 ${forecast.is_bookmarked ? 'fill-current' : ''}`} />
-            </Button>
-          </div>
-          
-          {/* Currency Pair & Bias */}
-          <div className="absolute bottom-3 left-3 flex items-center gap-2">
-            {forecast.currency_pair && (
-              <Badge variant="secondary" className="font-mono text-xs backdrop-blur-sm bg-background/20">
-                {forecast.currency_pair}
-              </Badge>
-            )}
-            <div className="flex items-center gap-1 px-2 py-1 rounded-full backdrop-blur-sm bg-background/20">
-              {getBiasIcon(forecast.trade_bias)}
-              <span className="text-xs text-white font-medium">
-                {forecast.trade_bias?.toUpperCase() || 'NEUTRAL'}
-              </span>
-            </div>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
 
-        {/* Content */}
-        <div className="p-4" onClick={() => setSelectedForecast(forecast)}>
-          <h3 className="font-semibold mb-2 text-foreground group-hover:text-primary transition-colors line-clamp-1">
-            {forecast.title || "Untitled Forecast"}
-          </h3>
-          
-          {forecast.commentary && (
-            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+        {/* Commentary Preview */}
+        {forecast.commentary && (
+          <div className="px-4 mb-4">
+            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
               {forecast.commentary}
             </p>
-          )}
+          </div>
+        )}
 
-          <div className="flex justify-between items-center text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-xs font-medium">
-                  {forecast.user_profile?.full_name?.charAt(0) || "?"}
+        {/* Footer */}
+        <div className="px-4 pb-4">
+          <div className="flex items-center justify-between text-xs">
+            {/* User Info */}
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
+                <span className="text-xs font-bold text-primary">
+                  {forecast.user_profile?.full_name?.charAt(0)?.toUpperCase() || "?"}
                 </span>
               </div>
-              <span className="font-medium">{forecast.user_profile?.full_name || "Unknown"}</span>
+              <div className="flex flex-col">
+                <span className="font-medium text-foreground text-xs">{forecast.user_profile?.full_name || "Unknown"}</span>
+                <span className="text-muted-foreground text-xs">{new Date(forecast.created_at).toLocaleDateString()}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
+
+            {/* Stats */}
+            <div className="flex items-center gap-4 text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Heart className="w-3 h-3" />
+                <span className="font-medium">{forecast.likes_count}</span>
+              </div>
               <div className="flex items-center gap-1">
                 <MessageCircle className="w-3 h-3" />
-                <span>{forecast.comments_count}</span>
+                <span className="font-medium">{forecast.comments_count}</span>
               </div>
-              <span>{new Date(forecast.created_at).toLocaleDateString()}</span>
             </div>
           </div>
         </div>
