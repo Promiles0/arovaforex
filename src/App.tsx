@@ -16,6 +16,9 @@ import Profile from "./pages/Profile";
 import ContactUs from "./pages/Support";
 import JoinAcademy from "./pages/JoinAcademy";
 import Calendar from "./pages/Calendar";
+import Settings from "./pages/Settings";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +33,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <DashboardLayout />
@@ -43,6 +48,7 @@ const App = () => (
               <Route path="contact" element={<ContactUs />} />
               <Route path="academy" element={<JoinAcademy />} />
               <Route path="calendar" element={<Calendar />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
