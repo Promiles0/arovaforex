@@ -233,11 +233,11 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
             />
             <Label htmlFor="terms" className="text-sm text-muted-foreground">
               I accept the{" "}
-              <a href="#" className="text-primary hover:underline">
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 Terms & Conditions
               </a>{" "}
               and{" "}
-              <a href="#" className="text-primary hover:underline">
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 Privacy Policy
               </a>
             </Label>

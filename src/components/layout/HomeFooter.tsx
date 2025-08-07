@@ -121,10 +121,10 @@ export const HomeFooter = () => {
                   <Lock className="w-3 h-3" />
                 </button>
               )}
-              <Link to="#" className="block text-muted-foreground hover:text-primary transition-colors">
+              <Link to="/privacy" className="block text-muted-foreground hover:text-primary transition-colors">
                 Privacy Policy
               </Link>
-              <Link to="#" className="block text-muted-foreground hover:text-primary transition-colors">
+              <Link to="/terms" className="block text-muted-foreground hover:text-primary transition-colors">
                 Terms of Service
               </Link>
             </div>
