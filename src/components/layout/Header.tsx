@@ -8,13 +8,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import BookmarkedForecasts from "@/components/forecasts/BookmarkedForecasts";
+import { NotificationsBell } from "@/components/notifications/NotificationsBell";
 
 export const Header = () => {
   const { user, signOut } = useAuth();
-  const notificationCount = 3; // Mock data
 
   const handleSignOut = async () => {
     await signOut();
@@ -46,17 +45,7 @@ export const Header = () => {
           }} />
 
           {/* Notifications */}
-          <Button variant="ghost" size="sm" className="relative">
-            <Bell className="w-5 h-5" />
-            {notificationCount > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
-              >
-                {notificationCount}
-              </Badge>
-            )}
-          </Button>
+          <NotificationsBell />
 
           {/* User Menu */}
           <DropdownMenu>

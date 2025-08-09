@@ -166,9 +166,16 @@ export type Database = {
         Row: {
           country: string | null
           created_at: string
+          email_notifications_enabled: boolean
           full_name: string | null
           id: string
+          notify_announcement: boolean
+          notify_bookmark: boolean
+          notify_comment: boolean
+          notify_like: boolean
+          notify_system: boolean
           phone_number: string | null
+          push_notifications_enabled: boolean
           telegram_handle: string | null
           updated_at: string
           user_id: string
@@ -177,9 +184,16 @@ export type Database = {
         Insert: {
           country?: string | null
           created_at?: string
+          email_notifications_enabled?: boolean
           full_name?: string | null
           id?: string
+          notify_announcement?: boolean
+          notify_bookmark?: boolean
+          notify_comment?: boolean
+          notify_like?: boolean
+          notify_system?: boolean
           phone_number?: string | null
+          push_notifications_enabled?: boolean
           telegram_handle?: string | null
           updated_at?: string
           user_id: string
@@ -188,9 +202,16 @@ export type Database = {
         Update: {
           country?: string | null
           created_at?: string
+          email_notifications_enabled?: boolean
           full_name?: string | null
           id?: string
+          notify_announcement?: boolean
+          notify_bookmark?: boolean
+          notify_comment?: boolean
+          notify_like?: boolean
+          notify_system?: boolean
           phone_number?: string | null
+          push_notifications_enabled?: boolean
           telegram_handle?: string | null
           updated_at?: string
           user_id?: string

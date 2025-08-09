@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,16 +9,21 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Bell, Shield, Palette, Globe, CreditCard, Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [settings, setSettings] = useState({
     notifications: {
-      email: true,
+      email: false,
       push: false,
-      sms: false,
-      signalAlerts: true,
-      marketUpdates: true,
+      like: true,
+      bookmark: true,
+      comment: true,
+      announcement: true,
+      system: true,
     },
     appearance: {
       theme: "system",
@@ -33,13 +38,57 @@ const Settings = () => {
     },
   });
 
-  const handleSave = () => {
-    toast({
-      title: "Settings saved",
-      description: "Your preferences have been updated successfully.",
-    });
-  };
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(
+          "notify_like, notify_bookmark, notify_comment, notify_announcement, notify_system, email_notifications_enabled, push_notifications_enabled"
+        )
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!error && data) {
+        setSettings((prev) => ({
+          ...prev,
+          notifications: {
+            email: data.email_notifications_enabled ?? false,
+            push: data.push_notifications_enabled ?? false,
+            like: data.notify_like ?? true,
+            bookmark: data.notify_bookmark ?? true,
+            comment: data.notify_comment ?? true,
+            announcement: data.notify_announcement ?? true,
+            system: data.notify_system ?? true,
+          },
+        }));
+      }
+    })();
+  }, [user?.id]);
 
+  const handleSave = async () => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          user_id: user.id,
+          notify_like: settings.notifications.like,
+          notify_bookmark: settings.notifications.bookmark,
+          notify_comment: settings.notifications.comment,
+          notify_announcement: settings.notifications.announcement,
+          notify_system: settings.notifications.system,
+          email_notifications_enabled: settings.notifications.email,
+          push_notifications_enabled: settings.notifications.push,
+        },
+        { onConflict: "user_id" }
+      );
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to save settings", variant: "destructive" });
+    } else {
+      toast({ title: "Settings saved", description: "Your preferences have been updated successfully." });
+    }
+  };
   const updateNotification = (key: string, value: boolean) => {
     setSettings(prev => ({
       ...prev,
@@ -105,26 +154,60 @@ const Settings = () => {
                 onCheckedChange={(checked) => updateNotification('push', checked)}
               />
             </div>
+            <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="signal-alerts">Signal Alerts</Label>
-                <p className="text-sm text-muted-foreground">Get notified when new trading signals are available</p>
+                <Label htmlFor="like-notifications">Likes</Label>
+                <p className="text-sm text-muted-foreground">Notify when someone likes your forecast</p>
               </div>
               <Switch
-                id="signal-alerts"
-                checked={settings.notifications.signalAlerts}
-                onCheckedChange={(checked) => updateNotification('signalAlerts', checked)}
+                id="like-notifications"
+                checked={settings.notifications.like}
+                onCheckedChange={(checked) => updateNotification('like', checked)}
               />
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="market-updates">Market Updates</Label>
-                <p className="text-sm text-muted-foreground">Receive important market news and updates</p>
+                <Label htmlFor="bookmark-notifications">Bookmarks</Label>
+                <p className="text-sm text-muted-foreground">Notify when someone bookmarks your forecast</p>
               </div>
               <Switch
-                id="market-updates"
-                checked={settings.notifications.marketUpdates}
-                onCheckedChange={(checked) => updateNotification('marketUpdates', checked)}
+                id="bookmark-notifications"
+                checked={settings.notifications.bookmark}
+                onCheckedChange={(checked) => updateNotification('bookmark', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="comment-notifications">Comments</Label>
+                <p className="text-sm text-muted-foreground">Notify when someone comments on your forecast</p>
+              </div>
+              <Switch
+                id="comment-notifications"
+                checked={settings.notifications.comment}
+                onCheckedChange={(checked) => updateNotification('comment', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="announcement-notifications">Announcements</Label>
+                <p className="text-sm text-muted-foreground">Platform updates and trading tips</p>
+              </div>
+              <Switch
+                id="announcement-notifications"
+                checked={settings.notifications.announcement}
+                onCheckedChange={(checked) => updateNotification('announcement', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="system-notifications">System Alerts</Label>
+                <p className="text-sm text-muted-foreground">Account and security notifications</p>
+              </div>
+              <Switch
+                id="system-notifications"
+                checked={settings.notifications.system}
+                onCheckedChange={(checked) => updateNotification('system', checked)}
               />
             </div>
           </div>
