@@ -235,9 +235,11 @@ export type Database = {
         Row: {
           country: string | null
           created_at: string
+          email: string | null
           email_notifications_enabled: boolean
           full_name: string | null
           id: string
+          is_suspended: boolean
           notify_announcement: boolean
           notify_bookmark: boolean
           notify_comment: boolean
@@ -253,9 +255,11 @@ export type Database = {
         Insert: {
           country?: string | null
           created_at?: string
+          email?: string | null
           email_notifications_enabled?: boolean
           full_name?: string | null
           id?: string
+          is_suspended?: boolean
           notify_announcement?: boolean
           notify_bookmark?: boolean
           notify_comment?: boolean
@@ -271,9 +275,11 @@ export type Database = {
         Update: {
           country?: string | null
           created_at?: string
+          email?: string | null
           email_notifications_enabled?: boolean
           full_name?: string | null
           id?: string
+          is_suspended?: boolean
           notify_announcement?: boolean
           notify_bookmark?: boolean
           notify_comment?: boolean
