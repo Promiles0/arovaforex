@@ -16,7 +16,7 @@ export const HomeHeader = () => {
             className="flex items-center space-x-2 group transition-all duration-300 hover:scale-105"
           >
             <div className="w-8 h-8 bg-gradient-to-br from-primary to-success rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">A</span>
+              <span className="text-primary-foreground font-bold text-sm">Axx</span>
             </div>
             <span className="text-2xl font-bold">
               <span className="text-foreground group-hover:text-primary transition-colors duration-300">Arova</span>
@@ -51,7 +51,7 @@ export const HomeHeader = () => {
                 <Button 
                   className="flex items-center space-x-2 bg-primary hover:bg-primary/90 transition-all duration-300 hover:scale-105"
                 >
-                  <span>Go to Dashboard</span>
+                  <span>Dashboard</span>
                 </Button>
               </Link>
             )}

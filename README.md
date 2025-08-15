@@ -1,73 +1,55 @@
-# Welcome to your Lovable project
+# ArovaForex
 
-## Project info
+ArovaForex is a modern, responsive trading platform providing **Forex forecasts**, **premium signals**, **trading education**, and **community features**.  
+It includes **User Dashboard** and **Admin Dashboard** with role-based access powered by **Supabase**.
 
-**URL**: https://lovable.dev/projects/d3f4a0f5-3012-46f8-8cc3-f540091be593
+---
 
-## How can I edit this code?
+## 🚀 Features
 
-There are several ways of editing your application.
+### **User Dashboard**
+- **Forecasts**
+  - Two tabs: Public Forecasts & Arova Forecasts
+  - Image uploads with trading-specific metadata (pair, bias, title, commentary)
+  - Like, comment, and bookmark forecasts (real-time updates)
+  - Responsive image popups
+- **My Signals**
+  - Premium signal access for subscribed members
+- **Profile**
+  - Editable profile with phone, country, and trading experience
+  - Required profile completion before uploading public forecasts
+- **Support**
+  - Contact form with admin responses
+- **Calendar**
+  - Trading calendar with events and reminders
 
-**Use Lovable**
+### **Admin Dashboard**
+- **Home Overview**
+  - User growth, content stats, and notifications
+- **User Management**
+  - View, search, filter, edit, and deactivate users
+- **Content Management**
+  - Manage forecasts (edit/delete) and academy learning material
+- **Analytics**
+  - User engagement, forecast activity, and growth charts
+- **Notifications**
+  - Send targeted or broadcast notifications to all users
+- **Contact Messages**
+  - View and respond to user-submitted messages
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/d3f4a0f5-3012-46f8-8cc3-f540091be593) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠 Tech Stack
 
-**Use your preferred IDE**
+- **Frontend:** React + Vite + Tailwind CSS + ShadCN/UI
+- **Animations:** Framer Motion
+- **Charts:** Recharts
+- **Backend & Auth:** Supabase (PostgreSQL + Auth + RLS Policies)
+- **Realtime Updates:** Supabase Realtime
+- **Hosting:** Vercel (Frontend), Supabase (Backend)
+- **Version Control:** Git + GitHub
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 📂 Project Structure
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/d3f4a0f5-3012-46f8-8cc3-f540091be593) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
