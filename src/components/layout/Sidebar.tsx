@@ -52,7 +52,9 @@ export const Sidebar = () => {
             className="flex items-center space-x-2 group transition-all duration-300 hover:scale-105"
           >
             <div className="w-8 h-8 bg-gradient-brand rounded-lg flex items-center justify-center shadow-brand">
-              <TrendingUp className="w-5 h-5 text-white" />
+              {/* <TrendingUp className="w-5 h-5 text-white" /> */}
+            <img src="/public/apple-touch-icon.png" alt="ArovaForex Logo" className="w-7 h-7 roundeds-xl mr animate-scale-in " />
+
             </div>
             <span className="font-bold text-lg group-hover:animate-pulse">
               <span className="text-foreground group-hover:text-white transition-colors duration-300">Arova</span>

@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-
+import { Link } from "react-router-dom";
 interface AuthFormProps {
   mode: "login" | "signup";
   onToggleMode: () => void;
@@ -134,12 +134,34 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
   return (
     <div className="w-full max-w-md space-y-8 animate-slide-in-right">
       <div className="text-center">
-        <div className="mb-4 animate-brand-glow">
+        {/* <div className="mb-4 animate-brand-glow">
           <h1 className="text-4xl font-bold tracking-tight">
             <span className="text-white">Arova</span>
             <span style={{ color: '#084d34' }}>Forex</span>
           </h1>
-        </div>
+        </div> */}
+      
+<div className="mb-4 animate-brand-glow">
+  <Link
+    to="/"
+    className="flex flex-col items-center justify-center sm:flex-row sm:space-x-2 group transition-all duration-300 hover:scale-105"
+  >
+    <img
+      src="/public/apple-touch-icon.png"
+      alt="ArovaForex Logo"
+      className="w-12 h-12 sm:w-10 sm:h-10 rounde.d-xl object-contain mb-2 sm:mb-0"
+    />
+    <span className="text-2xl font-bold flex flex-col sm:flex-row items-center">
+      <span className="text-foreground group-hover:text-primary transition-colors duration-300">
+        Arova
+      </span>
+      <span className="text-primary group-hover:text-foreground transition-colors duration-300 sm:ml-1">
+        Forex
+      </span>
+    </span>
+  </Link>
+</div>
+         
         <h2 className="text-2xl font-semibold tracking-tight text-foreground">
           {mode === "login" ? "Welcome back" : "Start your trading journey"}
         </h2>

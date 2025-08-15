@@ -1,6 +1,6 @@
 import { Bell, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,9 +14,14 @@ import { NotificationsBell } from "@/components/notifications/NotificationsBell"
 
 export const Header = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  const handleProfileClick = () => {
+    navigate("/dashboard/profile");
   };
 
   return (
@@ -29,6 +34,7 @@ export const Header = () => {
           >
             <img src="/src/assets/logo.png" alt="ArovaForex Logo" className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-lg group-hover:animate-pulse">
+              <img src="/public/apple-touch-icon.png" alt="ArovaForex Logo" className="w-8 h-8 rounded-lg" />
               <span className="text-foreground group-hover:text-white transition-colors duration-300">Arova</span>
               <span className="text-brand-green group-hover:text-brand-green/80 transition-colors duration-300">Forex</span>
             </span>
@@ -56,7 +62,7 @@ export const Header = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleProfileClick}>
                 <User className="w-4 h-4 mr-2" />
                 Profile
               </DropdownMenuItem>

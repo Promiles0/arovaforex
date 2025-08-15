@@ -15,12 +15,11 @@ export const HomeHeader = () => {
             to="/" 
             className="flex items-center space-x-2 group transition-all duration-300 hover:scale-105"
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-success rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">Axx</span>
-            </div>
+            <img src="/public/apple-touch-icon.png" alt="ArovaForex Logo" className="w-10 h-10 roundeds-xl mr-4 animate-scale-in " />
             <span className="text-2xl font-bold">
+              
               <span className="text-foreground group-hover:text-primary transition-colors duration-300">Arova</span>
-              <span className="text-primary group-hover:text-success transition-colors duration-300">Forex</span>
+              <span className="text-primary group-hover:text-foreground transition-colors duration-300">Forex</span>
             </span>
           </Link>
 
