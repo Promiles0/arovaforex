@@ -25,9 +25,13 @@ const Index = () => {
 
         <div className="max-w-6xl mx-auto text-center relative">
           <div className="flex items-center justify-center mb-6 animate-fade-in">
-            <img src="/public/apple-touch-icon.png" alt="ArovaForex Logo" className="w-16 h-16  mr-4 animate-scalne-in shaldow-glow" />
-            {/* <img src="/public/apple-touch-icon.png" alt="ArovaForex Logo" className="w-16 h-16 rounded-xl mr-4 animate-scale-in shadow-glow" /> */}
+                   <img
+  
+      src="https://raw.githubusercontent.com/Promiles0/assets/main/apple-touch-icon.png"
 
+      alt="ArovaForex Logo"
+      className="w-12 h-12 sm:w-10 sm:h-10 rounde.d-xl object-contain mb-2 sm:mb-0"
+    />
             <h1 className="text-5xl font-bold">
               <span className="text-foreground">Arova</span>
               <span className="text-primary">Forex</span>

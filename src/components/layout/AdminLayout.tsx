@@ -19,6 +19,10 @@ export const AdminLayout = () => {
               <span>•</span>
               <a className="hover:text-foreground transition-colors" href="/privacy">Privacy Policy</a>
               <span className="ml-auto">Arova Admin</span>
+                       <img  src="https://raw.githubusercontent.com/Promiles0/assets/main/apple-touch-icon.png"
+      alt="ArovaForex Logo"
+      className="w-12 h-12 sm:w-10 sm:h-10 rounde.d-xl object-contain mb-2 sm:mb-0"
+    />
             </div>
           </footer>
         </SidebarInset>

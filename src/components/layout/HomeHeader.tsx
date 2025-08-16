@@ -15,7 +15,13 @@ export const HomeHeader = () => {
             to="/" 
             className="flex items-center space-x-2 group transition-all duration-300 hover:scale-105"
           >
-            <img src="/public/apple-touch-icon.png" alt="ArovaForex Logo" className="w-10 h-10 roundeds-xl mr-4 animate-scale-in " />
+                  <img
+  
+      src="https://raw.githubusercontent.com/Promiles0/assets/main/apple-touch-icon.png"
+
+      alt="ArovaForex Logo"
+      className="w-12 h-12 sm:w-10 sm:h-10 rounde.d-xl object-contain mb-2 sm:mb-0"
+    />
             <span className="text-2xl font-bold">
               
               <span className="text-foreground group-hover:text-primary transition-colors duration-300">Arova</span>

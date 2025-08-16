@@ -53,8 +53,13 @@ export const Sidebar = () => {
           >
             <div className="w-8 h-8 bg-gradient-brand rounded-lg flex items-center justify-center shadow-brand">
               {/* <TrendingUp className="w-5 h-5 text-white" /> */}
-            <img src="/public/apple-touch-icon.png" alt="ArovaForex Logo" className="w-7 h-7 roundeds-xl mr animate-scale-in " />
+            <img
+  
+      src="https://raw.githubusercontent.com/Promiles0/assets/main/apple-touch-icon.png"
 
+      alt="ArovaForex Logo"
+      className="w-12 h-12 sm:w-10 sm:h-10 rounde.d-xl object-contain mb-2 sm:mb-0"
+    />
             </div>
             <span className="font-bold text-lg group-hover:animate-pulse">
               <span className="text-foreground group-hover:text-white transition-colors duration-300">Arova</span>
