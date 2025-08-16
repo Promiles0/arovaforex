@@ -146,13 +146,11 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
     to="/"
     className="flex flex-col items-center justify-center sm:flex-row sm:space-x-2 group transition-all duration-300 hover:scale-105"
   >
-    {/* <img
+    <img
       src="/public/apple-touch-icon.png"
       alt="ArovaForex Logo"
       className="w-12 h-12 sm:w-10 sm:h-10 rounde.d-xl object-contain mb-2 sm:mb-0"
-    /> */}
-
-              <img rel="apple-touch-icon" alt="ArovaForex Logo" ref="https://raw.githubusercontent.com/Promiles0/assets/main/apple-touch-icon.png"></img>
+    />
     <span className="text-2xl font-bold flex flex-col sm:flex-row items-center">
       <span className="text-foreground group-hover:text-primary transition-colors duration-300">
         Arova
