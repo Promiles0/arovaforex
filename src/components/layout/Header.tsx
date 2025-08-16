@@ -32,9 +32,9 @@ export const Header = () => {
             to="/" 
             className="flex items-center space-x-2 group transition-all duration-300 hover:scale-105 lg:hidden"
           >
-            <img src="/src/assets/logo.png" alt="ArovaForex Logo" className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-lg group-hover:animate-pulse">
-              <img src="/public/apple-touch-icon.png" alt="ArovaForex Logo" className="w-8 h-8 rounded-lg" />
+              {/* <img src="/public/apple-touch-icon.png" alt="ArovaForex Logo" className="w-8 h-8 rounded-lg" /> */}
+              <img rel="apple-touch-icon" alt="ArovaForex Logo" ref="https://raw.githubusercontent.com/Promiles0/assets/main/apple-touch-icon.png"></img>
               <span className="text-foreground group-hover:text-white transition-colors duration-300">Arova</span>
               <span className="text-brand-green group-hover:text-brand-green/80 transition-colors duration-300">Forex</span>
             </span>
