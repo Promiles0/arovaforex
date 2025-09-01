@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/seo/SEO";
@@ -44,6 +44,8 @@ export default function AdminContent() {
   const [loading, setLoading] = useState(true);
   const [editingForecast, setEditingForecast] = useState<Forecast | null>(null);
   const [editingAcademy, setEditingAcademy] = useState<AcademyContent | null>(null);
+  const [showCreateForecast, setShowCreateForecast] = useState(false);
+  const [showCreateAcademy, setShowCreateAcademy] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -102,6 +104,7 @@ export default function AdminContent() {
       });
       
       loadContent();
+      setShowCreateForecast(false);
       setEditingForecast(null);
     } catch (error) {
       console.error('Error creating forecast:', error);
@@ -200,6 +203,7 @@ export default function AdminContent() {
       });
       
       loadContent();
+      setShowCreateAcademy(false);
       setEditingAcademy(null);
     } catch (error) {
       console.error('Error creating academy content:', error);
@@ -276,20 +280,28 @@ export default function AdminContent() {
 
   const ForecastFormDialog = ({ isEditing }: { isEditing: boolean }) => (
     <Dialog 
-      open={isEditing ? !!editingForecast : false} 
-      onOpenChange={() => setEditingForecast(null)}
+      open={isEditing ? !!editingForecast : showCreateForecast} 
+      onOpenChange={(open) => {
+        if (!open) {
+          setEditingForecast(null);
+          setShowCreateForecast(false);
+        }
+      }}
     >
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Edit Forecast' : 'Create New Forecast'}
           </DialogTitle>
+          <DialogDescription>
+            {isEditing ? 'Update the forecast details below.' : 'Fill in the details to create a new Arova forecast.'}
+          </DialogDescription>
         </DialogHeader>
         <form 
           onSubmit={(e) => {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
-            isEditing ? handleUpdateForecast(formData) : handleCreateForecast(formData);
+            isEditing && editingForecast?.id ? handleUpdateForecast(formData) : handleCreateForecast(formData);
           }}
           className="space-y-4"
         >
@@ -344,20 +356,28 @@ export default function AdminContent() {
 
   const AcademyFormDialog = ({ isEditing }: { isEditing: boolean }) => (
     <Dialog 
-      open={isEditing ? !!editingAcademy : false} 
-      onOpenChange={() => setEditingAcademy(null)}
+      open={isEditing ? !!editingAcademy : showCreateAcademy} 
+      onOpenChange={(open) => {
+        if (!open) {
+          setEditingAcademy(null);
+          setShowCreateAcademy(false);
+        }
+      }}
     >
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Edit Academy Content' : 'Create New Academy Content'}
           </DialogTitle>
+          <DialogDescription>
+            {isEditing ? 'Update the academy content details below.' : 'Fill in the details to create new educational content.'}
+          </DialogDescription>
         </DialogHeader>
         <form 
           onSubmit={(e) => {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
-            isEditing ? handleUpdateAcademyContent(formData) : handleCreateAcademyContent(formData);
+            isEditing && editingAcademy?.id ? handleUpdateAcademyContent(formData) : handleCreateAcademyContent(formData);
           }}
           className="space-y-4"
         >
@@ -424,7 +444,7 @@ export default function AdminContent() {
               </CardTitle>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setEditingForecast({} as Forecast)}>
+                  <Button onClick={() => setShowCreateForecast(true)}>
                     <Plus className="w-4 h-4 mr-2" />
                     New Forecast
                   </Button>
@@ -534,7 +554,7 @@ export default function AdminContent() {
                 <DialogTrigger asChild>
                   <Button 
                     variant="secondary"
-                    onClick={() => setEditingAcademy({} as AcademyContent)}
+                    onClick={() => setShowCreateAcademy(true)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     New Article
