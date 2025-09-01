@@ -1,13 +1,12 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Heart, Bookmark, TrendingUp, TrendingDown, Minus, MessageCircle, X } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ForecastUploadModal from "@/components/forecasts/ForecastUploadModal";
+import EnhancedForecastCard from "@/components/forecasts/EnhancedForecastCard";
+import EnhancedImageModal from "@/components/forecasts/EnhancedImageModal";
+import ForecastDetailModal from "@/components/forecasts/ForecastDetailModal";
+import SentimentFilter from "@/components/forecasts/SentimentFilter";
 
 interface Forecast {
   id: string;
@@ -42,7 +41,10 @@ export default function Forecasts() {
   const [arovaForecasts, setArovaForecasts] = useState<ExtendedForecast[]>([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [selectedForecast, setSelectedForecast] = useState<ExtendedForecast | null>(null);
+  const [selectedImageForecast, setSelectedImageForecast] = useState<ExtendedForecast | null>(null);
+  const [selectedDetailForecast, setSelectedDetailForecast] = useState<ExtendedForecast | null>(null);
+  const [publicSentimentFilter, setPublicSentimentFilter] = useState<string | null>(null);
+  const [arovaSentimentFilter, setArovaSentimentFilter] = useState<string | null>(null);
 
   const { toast } = useToast();
 
@@ -206,171 +208,37 @@ export default function Forecasts() {
     }
   };
 
-  const getBiasIcon = (bias: string | null) => {
-    switch (bias) {
-      case 'long': return <TrendingUp className="w-4 h-4 text-green-500" />;
-      case 'short': return <TrendingDown className="w-4 h-4 text-red-500" />;
-      case 'neutral': return <Minus className="w-4 h-4 text-yellow-500" />;
-      default: return null;
-    }
-  };
+  // Filter forecasts based on sentiment
+  const filteredPublicForecasts = useMemo(() => {
+    if (!publicSentimentFilter) return publicForecasts;
+    return publicForecasts.filter(forecast => forecast.trade_bias === publicSentimentFilter);
+  }, [publicForecasts, publicSentimentFilter]);
 
-  const getBiasColor = (bias: string | null) => {
-    switch (bias) {
-      case 'long': return 'border-l-green-500 bg-gradient-to-r from-green-50 to-transparent dark:from-green-900/20';
-      case 'short': return 'border-l-red-500 bg-gradient-to-r from-red-50 to-transparent dark:from-red-900/20';
-      case 'neutral': return 'border-l-yellow-500 bg-gradient-to-r from-yellow-50 to-transparent dark:from-yellow-900/20';
-      default: return 'border-l-muted bg-gradient-to-r from-muted/20 to-transparent';
-    }
-  };
+  const filteredArovaForecasts = useMemo(() => {
+    if (!arovaSentimentFilter) return arovaForecasts;
+    return arovaForecasts.filter(forecast => forecast.trade_bias === arovaSentimentFilter);
+  }, [arovaForecasts, arovaSentimentFilter]);
 
-  const ForecastImageModal = ({ forecast, open, onClose }: { forecast: ExtendedForecast; open: boolean; onClose: () => void }) => (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {forecast.currency_pair && (
-                <Badge variant="outline" className="font-mono">
-                  {forecast.currency_pair}
-                </Badge>
-              )}
-              {getBiasIcon(forecast.trade_bias)}
-              <span>{forecast.title || "Untitled Forecast"}</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="w-4 h-4" />
-            </Button>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="p-6 pt-3">
-          <img 
-            src={forecast.image_url} 
-            alt={forecast.title || "Forecast"} 
-            className="w-full h-auto rounded-lg mb-4"
-          />
-          {forecast.commentary && (
-            <div className="bg-muted rounded-lg p-4">
-              <h4 className="font-medium mb-2">Analysis:</h4>
-              <p className="text-muted-foreground">{forecast.commentary}</p>
-            </div>
-          )}
-          <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-            <span>By {forecast.user_profile?.full_name || "Unknown"}</span>
-            <span>{new Date(forecast.created_at).toLocaleString()}</span>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+  // Calculate sentiment counts
+  const publicSentimentCounts = useMemo(() => {
+    const counts = { long: 0, short: 0, neutral: 0, total: publicForecasts.length };
+    publicForecasts.forEach(forecast => {
+      if (forecast.trade_bias === 'long') counts.long++;
+      else if (forecast.trade_bias === 'short') counts.short++;
+      else counts.neutral++;
+    });
+    return counts;
+  }, [publicForecasts]);
 
-  const ForecastCard = ({ forecast }: { forecast: ExtendedForecast }) => (
-    <Card className="group relative overflow-hidden bg-gradient-to-br from-card via-card to-card/80 border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1">
-      <CardContent className="p-0">
-        {/* Header with Currency Pair and Bias */}
-        <div className="relative p-4 pb-2">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              {forecast.currency_pair && (
-                <Badge variant="outline" className="font-mono text-sm font-bold border-primary/30 text-primary">
-                  {forecast.currency_pair}
-                </Badge>
-              )}
-              <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                forecast.trade_bias === 'long' ? 'bg-success/10 text-success border border-success/20' :
-                forecast.trade_bias === 'short' ? 'bg-destructive/10 text-destructive border border-destructive/20' :
-                'bg-warning/10 text-warning border border-warning/20'
-              }`}>
-                {getBiasIcon(forecast.trade_bias)}
-                <span className="ml-1">{forecast.trade_bias?.toUpperCase() || 'NEUTRAL'}</span>
-              </div>
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleLike(forecast.id);
-                }}
-                className={`h-8 w-8 p-0 hover:scale-110 transition-all ${forecast.is_liked ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-red-500'}`}
-              >
-                <Heart className={`w-4 h-4 ${forecast.is_liked ? 'fill-current' : ''}`} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleBookmark(forecast.id);
-                }}
-                className={`h-8 w-8 p-0 hover:scale-110 transition-all ${forecast.is_bookmarked ? 'text-primary hover:text-primary/80' : 'text-muted-foreground hover:text-primary'}`}
-              >
-                <Bookmark className={`w-4 h-4 ${forecast.is_bookmarked ? 'fill-current' : ''}`} />
-              </Button>
-            </div>
-          </div>
-
-          {/* Title */}
-          <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-2">
-            {forecast.title || "Market Analysis"}
-          </h3>
-        </div>
-
-        {/* Chart Image */}
-        <div className="relative mx-4 mb-4 overflow-hidden rounded-lg border border-border/30 bg-card-chart">
-          <img 
-            src={forecast.image_url} 
-            alt={forecast.title || "Forecast"} 
-            className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-            onClick={() => setSelectedForecast(forecast)}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        </div>
-
-        {/* Commentary Preview */}
-        {forecast.commentary && (
-          <div className="px-4 mb-4">
-            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-              {forecast.commentary}
-            </p>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="px-4 pb-4">
-          <div className="flex items-center justify-between text-xs">
-            {/* User Info */}
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
-                <span className="text-xs font-bold text-primary">
-                  {forecast.user_profile?.full_name?.charAt(0)?.toUpperCase() || "?"}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-medium text-foreground text-xs">{forecast.user_profile?.full_name || "Unknown"}</span>
-                <span className="text-muted-foreground text-xs">{new Date(forecast.created_at).toLocaleDateString()}</span>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="flex items-center gap-4 text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Heart className="w-3 h-3" />
-                <span className="font-medium">{forecast.likes_count}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MessageCircle className="w-3 h-3" />
-                <span className="font-medium">{forecast.comments_count}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const arovaSentimentCounts = useMemo(() => {
+    const counts = { long: 0, short: 0, neutral: 0, total: arovaForecasts.length };
+    arovaForecasts.forEach(forecast => {
+      if (forecast.trade_bias === 'long') counts.long++;
+      else if (forecast.trade_bias === 'short') counts.short++;
+      else counts.neutral++;
+    });
+    return counts;
+  }, [arovaForecasts]);
 
   if (loading) {
     return (
@@ -404,12 +272,37 @@ export default function Forecasts() {
             />
           </div>
 
+          {/* Sentiment Filter */}
+          {publicForecasts.length > 0 && (
+            <SentimentFilter
+              activeFilter={publicSentimentFilter}
+              onFilterChange={setPublicSentimentFilter}
+              counts={publicSentimentCounts}
+            />
+          )}
+
           {/* Public Forecasts Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-            {publicForecasts.map((forecast) => (
-              <ForecastCard key={forecast.id} forecast={forecast} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+            {filteredPublicForecasts.map((forecast) => (
+              <EnhancedForecastCard 
+                key={forecast.id} 
+                forecast={forecast}
+                onLike={handleLike}
+                onBookmark={handleBookmark}
+                onImageClick={setSelectedImageForecast}
+                onCardClick={setSelectedDetailForecast}
+              />
             ))}
           </div>
+
+          {filteredPublicForecasts.length === 0 && publicForecasts.length > 0 && (
+            <div className="text-center py-12">
+              <div className="bg-muted/50 rounded-lg p-8 max-w-md mx-auto">
+                <p className="text-muted-foreground mb-4">No forecasts match your filter.</p>
+                <p className="text-sm text-muted-foreground">Try selecting a different sentiment or clear the filter.</p>
+              </div>
+            </div>
+          )}
 
           {publicForecasts.length === 0 && !loading && (
             <div className="text-center py-12">
@@ -422,12 +315,37 @@ export default function Forecasts() {
         </TabsContent>
 
         <TabsContent value="arova" className="space-y-6">
+          {/* Sentiment Filter */}
+          {arovaForecasts.length > 0 && (
+            <SentimentFilter
+              activeFilter={arovaSentimentFilter}
+              onFilterChange={setArovaSentimentFilter}
+              counts={arovaSentimentCounts}
+            />
+          )}
+
           {/* Arova Forecasts Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-            {arovaForecasts.map((forecast) => (
-              <ForecastCard key={forecast.id} forecast={forecast} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+            {filteredArovaForecasts.map((forecast) => (
+              <EnhancedForecastCard 
+                key={forecast.id} 
+                forecast={forecast}
+                onLike={handleLike}
+                onBookmark={handleBookmark}
+                onImageClick={setSelectedImageForecast}
+                onCardClick={setSelectedDetailForecast}
+              />
             ))}
           </div>
+
+          {filteredArovaForecasts.length === 0 && arovaForecasts.length > 0 && (
+            <div className="text-center py-12">
+              <div className="bg-muted/50 rounded-lg p-8 max-w-md mx-auto">
+                <p className="text-muted-foreground mb-4">No forecasts match your filter.</p>
+                <p className="text-sm text-muted-foreground">Try selecting a different sentiment or clear the filter.</p>
+              </div>
+            </div>
+          )}
 
           {arovaForecasts.length === 0 && !loading && (
             <div className="text-center py-12">
@@ -440,12 +358,24 @@ export default function Forecasts() {
         </TabsContent>
       </Tabs>
 
+      {/* Enhanced Image Modal */}
+      {selectedImageForecast && (
+        <EnhancedImageModal 
+          forecast={selectedImageForecast} 
+          open={!!selectedImageForecast} 
+          onClose={() => setSelectedImageForecast(null)} 
+        />
+      )}
+
       {/* Forecast Detail Modal */}
-      {selectedForecast && (
-        <ForecastImageModal 
-          forecast={selectedForecast} 
-          open={!!selectedForecast} 
-          onClose={() => setSelectedForecast(null)} 
+      {selectedDetailForecast && (
+        <ForecastDetailModal 
+          forecast={selectedDetailForecast} 
+          open={!!selectedDetailForecast} 
+          onClose={() => setSelectedDetailForecast(null)}
+          onLike={handleLike}
+          onBookmark={handleBookmark}
+          onImageClick={setSelectedImageForecast}
         />
       )}
     </div>
