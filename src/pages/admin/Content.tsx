@@ -336,8 +336,8 @@ export default function AdminContent() {
               <SelectValue placeholder="Select Trade Bias" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="bullish">Bullish</SelectItem>
-              <SelectItem value="bearish">Bearish</SelectItem>
+              <SelectItem value="long">Long (Bullish)</SelectItem>
+              <SelectItem value="short">Short (Bearish)</SelectItem>
               <SelectItem value="neutral">Neutral</SelectItem>
             </SelectContent>
           </Select>
@@ -487,8 +487,8 @@ export default function AdminContent() {
                         <TableCell>
                           {forecast.trade_bias && (
                             <Badge variant={
-                              forecast.trade_bias === 'bullish' ? 'default' :
-                              forecast.trade_bias === 'bearish' ? 'destructive' : 'secondary'
+                              forecast.trade_bias === 'long' ? 'default' :
+                              forecast.trade_bias === 'short' ? 'destructive' : 'secondary'
                             }>
                               {forecast.trade_bias}
                             </Badge>
