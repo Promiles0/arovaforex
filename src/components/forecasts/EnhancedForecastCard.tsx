@@ -120,7 +120,7 @@ export default function EnhancedForecastCard({
 
   return (
     <Card 
-      className="group relative overflow-hidden bg-card hover:bg-card/80 border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 cursor-pointer animate-fade-in w-full min-h-[300px] lg:min-h-[320px]"
+      className="group relative overflow-hidden bg-card hover:bg-card/80 border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 cursor-pointer animate-fade-in w-full min-h-[280px] lg:min-h-[300px]"
       onClick={() => onCardClick(forecast)}
     >
       <CardContent className="p-0">
@@ -173,14 +173,7 @@ export default function EnhancedForecastCard({
                   </div>
                 </div>
                 
-                {/* Confidence Level */}
-                <div className="text-right">
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Confidence</div>
-                  <div className="text-2xl font-bold text-primary">85%</div>
-                  <div className="w-12 h-1 bg-muted rounded-full mt-1">
-                    <div className="w-[85%] h-full bg-primary rounded-full"></div>
-                  </div>
-                </div>
+                
               </div>
 
               {/* Title/Description */}
@@ -213,25 +206,7 @@ export default function EnhancedForecastCard({
                 </div>
               )}
 
-              {/* Entry/Target Levels */}
-              <div className="grid grid-cols-2 gap-4 p-3 bg-muted/20 rounded-lg border border-border/30">
-                <div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Entry Point</div>
-                  <div className="text-sm font-bold text-foreground">1.2380</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Target</div>
-                  <div className="text-sm font-bold text-success">1.2450</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Stop Loss</div>
-                  <div className="text-sm font-bold text-destructive">1.2320</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Timeframe</div>
-                  <div className="text-sm font-bold text-foreground">4H</div>
-                </div>
-              </div>
+              
             </div>
 
             {/* Bottom Section - Author & Actions */}
