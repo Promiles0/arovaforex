@@ -281,8 +281,8 @@ export default function Forecasts() {
             />
           )}
 
-          {/* Public Forecasts Grid - Responsive Layout for Landscape Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 justify-items-center">
+          {/* Public Forecasts Grid - Large Landscape Cards: 1 per row mobile, 2 per row desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 justify-items-center max-w-[1400px] mx-auto">
             {filteredPublicForecasts.map((forecast) => (
               <EnhancedForecastCard 
                 key={forecast.id} 
@@ -324,8 +324,8 @@ export default function Forecasts() {
             />
           )}
 
-          {/* Arova Forecasts Grid - Responsive Layout for Landscape Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 justify-items-center">
+          {/* Arova Forecasts Grid - Large Landscape Cards: 1 per row mobile, 2 per row desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 justify-items-center max-w-[1400px] mx-auto">
             {filteredArovaForecasts.map((forecast) => (
               <EnhancedForecastCard 
                 key={forecast.id} 

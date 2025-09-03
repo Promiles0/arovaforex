@@ -120,16 +120,16 @@ export default function EnhancedForecastCard({
 
   return (
     <Card 
-      className="group relative overflow-hidden bg-card hover:bg-card/95 border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-card hover:scale-[1.02] cursor-pointer animate-fade-in w-full max-w-[450px] mx-auto"
+      className="group relative overflow-hidden bg-card hover:bg-card/80 border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 cursor-pointer animate-fade-in w-full min-h-[300px] lg:min-h-[320px]"
       onClick={() => onCardClick(forecast)}
     >
-      <CardContent className="p-0">
-        {/* Horizontal Layout: 40% Chart + 60% Content */}
-        <div className="flex h-[180px]">
+      <CardContent className="p-0 h-full">
+        {/* Large Horizontal Layout: 50% Chart + 50% Content */}
+        <div className="flex h-full min-h-[300px] lg:min-h-[320px]">
           
-          {/* Left Section - Chart Thumbnail (40%) */}
+          {/* Left Section - Large Chart (50%) */}
           <div 
-            className="relative w-[40%] flex-shrink-0 overflow-hidden cursor-pointer"
+            className="relative w-1/2 flex-shrink-0 overflow-hidden cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               onImageClick(forecast);
@@ -138,36 +138,36 @@ export default function EnhancedForecastCard({
             <img 
               src={forecast.image_url} 
               alt={`${forecast.currency_pair || 'Market'} analysis chart`} 
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 min-h-[250px]"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             
             {/* Chart hover indicator */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <div className="bg-black/60 backdrop-blur-sm rounded-full p-2">
-                <Eye className="w-4 h-4 text-white" />
+              <div className="bg-black/70 backdrop-blur-sm rounded-full p-3">
+                <Eye className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
 
-          {/* Right Section - Content (60%) */}
-          <div className="flex-1 p-4 flex flex-col justify-between">
+          {/* Right Section - Organized Content (50%) */}
+          <div className="flex-1 p-5 lg:p-6 flex flex-col justify-between min-h-[300px]">
             
-            {/* Top Content */}
-            <div className="space-y-3">
-              {/* Market Pair & Timeframe */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+            {/* Top Content Area */}
+            <div className="space-y-4">
+              
+              {/* Currency Pair & Sentiment Header */}
+              <div className="flex items-start justify-between">
+                <div className="space-y-3">
+                  {/* Large Currency Pair */}
                   {forecast.currency_pair && (
-                    <Badge 
-                      variant="outline" 
-                      className="font-mono text-xs font-bold border-primary/30 text-primary bg-primary/5 px-2 py-1"
-                    >
+                    <div className="text-xl lg:text-2xl font-bold text-foreground font-mono tracking-wider">
                       {forecast.currency_pair}
-                    </Badge>
+                    </div>
                   )}
+                  
                   {/* Sentiment Badge */}
-                  <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold border ${sentiment.badge}`}>
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold border-2 ${sentiment.badge}`}>
                     {sentiment.icon}
                     <span>{sentiment.label}</span>
                   </div>
@@ -175,20 +175,26 @@ export default function EnhancedForecastCard({
                 
                 {/* Confidence Level */}
                 <div className="text-right">
-                  <div className="text-xs text-muted-foreground">Confidence</div>
-                  <div className="text-sm font-semibold text-primary">85%</div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Confidence</div>
+                  <div className="text-2xl font-bold text-primary">85%</div>
+                  <div className="w-12 h-1 bg-muted rounded-full mt-1">
+                    <div className="w-[85%] h-full bg-primary rounded-full"></div>
+                  </div>
                 </div>
               </div>
 
-              {/* Title */}
-              <h3 className="font-semibold text-base text-foreground group-hover:text-primary transition-colors duration-200 line-clamp-2 leading-tight">
-                {forecast.title || `${forecast.currency_pair || 'Market'} Analysis`}
-              </h3>
+              {/* Title/Description */}
+              <div>
+                <h3 className="text-lg lg:text-xl font-bold text-foreground group-hover:text-primary transition-colors duration-200 leading-tight mb-2">
+                  {forecast.title || `${forecast.currency_pair || 'Market'} Technical Analysis`}
+                </h3>
+              </div>
 
-              {/* Analysis Preview */}
+              {/* Full Analysis Preview */}
               {forecast.commentary && (
-                <div>
-                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                <div className="space-y-2">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Analysis</div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     {displayComment}
                   </p>
                   {shouldShowReadMore && (
@@ -199,7 +205,7 @@ export default function EnhancedForecastCard({
                         e.stopPropagation();
                         setShowFullComment(!showFullComment);
                       }}
-                      className="h-auto p-0 text-xs text-primary hover:text-primary/80 font-medium mt-1"
+                      className="h-auto p-0 text-xs text-primary hover:text-primary/80 font-medium"
                     >
                       {showFullComment ? 'Show Less' : 'Read More'}
                     </Button>
@@ -207,23 +213,38 @@ export default function EnhancedForecastCard({
                 </div>
               )}
 
-              {/* Target/Entry Points */}
-              <div className="text-xs text-muted-foreground">
-                <span>Target: 1.2450 • Entry: 1.2380 • 4H</span>
+              {/* Entry/Target Levels */}
+              <div className="grid grid-cols-2 gap-4 p-3 bg-muted/20 rounded-lg border border-border/30">
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Entry Point</div>
+                  <div className="text-sm font-bold text-foreground">1.2380</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Target</div>
+                  <div className="text-sm font-bold text-success">1.2450</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Stop Loss</div>
+                  <div className="text-sm font-bold text-destructive">1.2320</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Timeframe</div>
+                  <div className="text-sm font-bold text-foreground">4H</div>
+                </div>
               </div>
             </div>
 
-            {/* Bottom Metadata */}
-            <div className="flex items-center justify-between mt-4">
-              {/* Author */}
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
-                  <span className="text-xs font-bold text-primary">
-                    {forecast.user_profile?.full_name?.charAt(0)?.toUpperCase() || <User className="w-3 h-3" />}
+            {/* Bottom Section - Author & Actions */}
+            <div className="flex items-center justify-between pt-4 border-t border-border/30">
+              {/* Author Info */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary/30 to-primary/20 flex items-center justify-center border-2 border-primary/30">
+                  <span className="text-sm font-bold text-primary">
+                    {forecast.user_profile?.full_name?.charAt(0)?.toUpperCase() || <User className="w-4 h-4" />}
                   </span>
                 </div>
                 <div>
-                  <div className="font-medium text-foreground text-xs leading-tight">
+                  <div className="font-semibold text-foreground text-sm">
                     {forecast.user_profile?.full_name || "Analyst"}
                   </div>
                   <div className="text-muted-foreground text-xs">
@@ -233,7 +254,7 @@ export default function EnhancedForecastCard({
               </div>
 
               {/* Engagement Actions */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -241,16 +262,14 @@ export default function EnhancedForecastCard({
                     e.stopPropagation();
                     onLike(forecast.id);
                   }}
-                  className={`h-8 w-8 p-0 transition-all duration-200 min-w-[44px] ${
+                  className={`h-10 px-3 transition-all duration-200 ${
                     forecast.is_liked 
-                      ? 'text-destructive hover:text-destructive/80' 
-                      : 'text-muted-foreground hover:text-destructive'
+                      ? 'text-destructive hover:text-destructive/80 bg-destructive/10' 
+                      : 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
                   }`}
                 >
-                  <div className="flex flex-col items-center">
-                    <Heart className={`w-3 h-3 ${forecast.is_liked ? 'fill-current' : ''}`} />
-                    <span className="text-[10px] font-medium">{forecast.likes_count}</span>
-                  </div>
+                  <Heart className={`w-4 h-4 mr-1 ${forecast.is_liked ? 'fill-current' : ''}`} />
+                  <span className="text-sm font-medium">{forecast.likes_count}</span>
                 </Button>
                 
                 <Button
@@ -260,27 +279,27 @@ export default function EnhancedForecastCard({
                     e.stopPropagation();
                     onBookmark(forecast.id);
                   }}
-                  className={`h-8 w-8 p-0 transition-all duration-200 min-w-[44px] ${
+                  className={`h-10 w-10 p-0 transition-all duration-200 ${
                     forecast.is_bookmarked 
-                      ? 'text-primary hover:text-primary/80' 
-                      : 'text-muted-foreground hover:text-primary'
+                      ? 'text-primary hover:text-primary/80 bg-primary/10' 
+                      : 'text-muted-foreground hover:text-primary hover:bg-primary/10'
                   }`}
                 >
-                  <Bookmark className={`w-3 h-3 ${forecast.is_bookmarked ? 'fill-current' : ''}`} />
+                  <Bookmark className={`w-4 h-4 ${forecast.is_bookmarked ? 'fill-current' : ''}`} />
                 </Button>
                 
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleShare}
-                  className="h-8 w-8 p-0 transition-all duration-200 text-muted-foreground hover:text-primary min-w-[44px]"
+                  className="h-10 w-10 p-0 transition-all duration-200 text-muted-foreground hover:text-primary hover:bg-primary/10"
                 >
-                  <Share2 className="w-3 h-3" />
+                  <Share2 className="w-4 h-4" />
                 </Button>
                 
-                <div className="flex items-center gap-1 text-muted-foreground ml-1">
-                  <MessageCircle className="w-3 h-3" />
-                  <span className="text-xs font-medium">{forecast.comments_count}</span>
+                <div className="flex items-center gap-1 text-muted-foreground ml-2 px-2">
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="text-sm font-medium">{forecast.comments_count}</span>
                 </div>
               </div>
             </div>
