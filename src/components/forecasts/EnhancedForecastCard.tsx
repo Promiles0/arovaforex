@@ -123,13 +123,13 @@ export default function EnhancedForecastCard({
       className="group relative overflow-hidden bg-card hover:bg-card/80 border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 cursor-pointer animate-fade-in w-full min-h-[300px] lg:min-h-[320px]"
       onClick={() => onCardClick(forecast)}
     >
-      <CardContent className="p-0 h-full">
-        {/* Large Horizontal Layout: 50% Chart + 50% Content */}
-        <div className="flex h-full min-h-[300px] lg:min-h-[320px]">
+      <CardContent className="p-0">
+        {/* Vertical Layout: Chart on top, content below */}
+        <div className="flex flex-col">
           
-          {/* Left Section - Large Chart (50%) */}
+          {/* Top Section - Large Chart (Full Width) */}
           <div 
-            className="relative w-1/2 flex-shrink-0 overflow-hidden cursor-pointer"
+            className="relative w-full h-48 lg:h-56 overflow-hidden cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               onImageClick(forecast);
@@ -138,9 +138,9 @@ export default function EnhancedForecastCard({
             <img 
               src={forecast.image_url} 
               alt={`${forecast.currency_pair || 'Market'} analysis chart`} 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 min-h-[250px]"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             
             {/* Chart hover indicator */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -150,8 +150,8 @@ export default function EnhancedForecastCard({
             </div>
           </div>
 
-          {/* Right Section - Organized Content (50%) */}
-          <div className="flex-1 p-5 lg:p-6 flex flex-col justify-between min-h-[300px]">
+          {/* Bottom Section - All Content */}
+          <div className="p-5 lg:p-6 space-y-4">
             
             {/* Top Content Area */}
             <div className="space-y-4">
