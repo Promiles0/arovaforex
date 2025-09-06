@@ -3,8 +3,115 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, Signal, Wallet, BookOpen, Bell, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { WelcomeCard } from "@/components/dashboard/WelcomeCard";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const [latestForecast, setLatestForecast] = useState<any>(null);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLatestForecast();
+    fetchRecentActivity();
+    
+    // Real-time subscriptions
+    const notificationsChannel = supabase
+      .channel('dashboard-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user?.id}`
+        },
+        () => fetchRecentActivity()
+      )
+      .subscribe();
+
+    const forecastsChannel = supabase
+      .channel('dashboard-forecasts')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'forecasts'
+        },
+        () => fetchLatestForecast()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(notificationsChannel);
+      supabase.removeChannel(forecastsChannel);
+    };
+  }, [user?.id]);
+
+  const fetchLatestForecast = async () => {
+    try {
+      const { data: forecast, error } = await supabase
+        .from('forecasts')
+        .select(`
+          *,
+          profiles!forecasts_user_id_fkey(full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+      setLatestForecast(forecast);
+    } catch (error) {
+      console.error('Error fetching latest forecast:', error);
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      if (!user?.id) return;
+
+      const { data: notifications, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setRecentActivity(notifications || []);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'like':
+        return 'success';
+      case 'comment':
+        return 'primary';
+      case 'bookmark':
+        return 'premium';
+      default:
+        return 'primary';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto px-2 sm:px-0">
       {/* Welcome Section */}
@@ -22,6 +129,17 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0">
               <p className="text-xs text-muted-foreground hidden sm:block">Access premium courses</p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/dashboard/journal">
+          <Card className="hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 cursor-pointer">
+            <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium truncate">My Journal</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <p className="text-xs text-muted-foreground hidden sm:block">Track trades & reflection</p>
             </CardContent>
           </Card>
         </Link>
@@ -75,20 +193,41 @@ export default function Dashboard() {
             <CardDescription>Free analysis for all members</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-4">
-            <div className="aspect-video bg-muted/30 rounded-lg flex items-center justify-center border border-border/50">
-              <p className="text-muted-foreground text-xs sm:text-sm">EUR/USD Analysis Chart</p>
-            </div>
-            <div className="flex items-start sm:items-center justify-between flex-col sm:flex-row gap-2 sm:gap-0">
-              <div>
-                <p className="font-medium text-sm sm:text-base">EUR/USD Weekly Outlook</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">Posted 2 hours ago</p>
+            {latestForecast ? (
+              <>
+                <div className="aspect-video bg-muted/30 rounded-lg flex items-center justify-center border border-border/50 overflow-hidden">
+                  {latestForecast.image_url ? (
+                    <img 
+                      src={latestForecast.image_url} 
+                      alt={latestForecast.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <p className="text-muted-foreground text-xs sm:text-sm">No chart available</p>
+                  )}
+                </div>
+                <div className="flex items-start sm:items-center justify-between flex-col sm:flex-row gap-2 sm:gap-0">
+                  <div>
+                    <p className="font-medium text-sm sm:text-base">{latestForecast.title || `${latestForecast.currency_pair} Analysis`}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      Posted {formatDistanceToNow(new Date(latestForecast.created_at), { addSuffix: true })}
+                    </p>
+                    {latestForecast.profiles?.full_name && (
+                      <p className="text-xs text-muted-foreground">by {latestForecast.profiles.full_name}</p>
+                    )}
+                  </div>
+                  <Link to="/dashboard/forecasts">
+                    <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                      View All <ArrowRight className="w-3 h-3 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No forecasts available yet</p>
               </div>
-              <Link to="/dashboard/forecasts">
-                <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-                  View All <ArrowRight className="w-3 h-3 ml-1" />
-                </Button>
-              </Link>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -130,27 +269,23 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/30">
-              <div className="w-2 h-2 bg-success rounded-full flex-shrink-0"></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-medium truncate">New forecast published</p>
-                <p className="text-xs text-muted-foreground truncate">EUR/USD technical analysis - 2 hours ago</p>
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity) => (
+                <div key={activity.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/30">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 bg-${getActivityIcon(activity.type)}`}></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm font-medium truncate">{activity.content}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-xs sm:text-sm text-muted-foreground">No recent activity</p>
               </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/30">
-              <div className="w-2 h-2 bg-premium rounded-full flex-shrink-0"></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-medium truncate">Premium signal alert</p>
-                <p className="text-xs text-muted-foreground truncate">GBP/JPY signal posted - 4 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/30">
-              <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-medium truncate">Calendar event reminder</p>
-                <p className="text-xs text-muted-foreground truncate">US NFP data release - Tomorrow 8:30 AM</p>
-              </div>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>

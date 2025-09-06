@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import ContactUs from "./pages/Support";
 import JoinAcademy from "./pages/JoinAcademy";
 import Calendar from "./pages/Calendar";
+import Journal from "./pages/Journal";
 import Settings from "./pages/Settings";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -57,6 +58,7 @@ const App = () => (
                 <Route path="contact" element={<ContactUs />} />
                 <Route path="academy" element={<JoinAcademy />} />
                 <Route path="calendar" element={<Calendar />} />
+                <Route path="journal" element={<Journal />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
 
@@ -71,6 +73,7 @@ const App = () => (
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="contact" element={<AdminContact />} />
+                <Route path="journal" element={<Journal />} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -1,79 +1,76 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarIcon, Clock, Filter, Bell, TrendingUp, BookOpen, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
-// Mock events data
-const events = [
-  {
-    id: 1,
-    title: "US Non-Farm Payrolls",
-    date: "2024-01-05",
-    time: "08:30",
-    category: "Market Event",
-    impact: "high",
-    description: "Monthly employment report showing the number of jobs added or lost in the US economy."
-  },
-  {
-    id: 2,
-    title: "EUR/USD Weekly Analysis",
-    date: "2024-01-08",
-    time: "10:00",
-    category: "Forecast",
-    impact: "medium",
-    description: "Weekly technical and fundamental analysis for EUR/USD pair."
-  },
-  {
-    id: 3,
-    title: "Live Trading Session",
-    date: "2024-01-10",
-    time: "14:00",
-    category: "Academy",
-    impact: "low",
-    description: "Interactive trading session with our senior analysts."
-  },
-  {
-    id: 4,
-    title: "Federal Reserve Meeting",
-    date: "2024-01-12",
-    time: "14:00",
-    category: "Market Event",
-    impact: "high",
-    description: "FOMC meeting with potential interest rate decision."
-  },
-  {
-    id: 5,
-    title: "Risk Management Webinar",
-    date: "2024-01-15",
-    time: "16:00",
-    category: "Academy",
-    impact: "medium",
-    description: "Educational webinar on effective risk management strategies."
-  },
-  {
-    id: 6,
-    title: "GBP/JPY Signal Alert",
-    date: "2024-01-16",
-    time: "09:30",
-    category: "Signal",
-    impact: "medium",
-    description: "Premium trading signal for GBP/JPY with entry and exit levels."
-  }
-];
+interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  event_date: string;
+  event_time?: string;
+  category: string;
+  impact: string;
+  timezone?: string;
+  currency_pairs?: string[];
+  external_url?: string;
+}
 
 const categories = [
   { value: "all", label: "All Events", icon: CalendarIcon },
-  { value: "Market Event", label: "Market Events", icon: TrendingUp },
-  { value: "Academy", label: "Academy", icon: BookOpen },
-  { value: "Signal", label: "Signals", icon: Bell },
-  { value: "Forecast", label: "Forecasts", icon: Users }
+  { value: "market_event", label: "Market Events", icon: TrendingUp },
+  { value: "academy", label: "Academy", icon: BookOpen },
+  { value: "signal", label: "Signals", icon: Bell },
+  { value: "forecast", label: "Forecasts", icon: Users },
+  { value: "webinar", label: "Webinars", icon: BookOpen }
 ];
 
 export default function Calendar() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchEvents();
+
+    // Real-time subscription for events
+    const channel = supabase
+      .channel('calendar-events')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'calendar_events'
+        },
+        () => fetchEvents()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .order('event_date', { ascending: true });
+
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredEvents = events.filter(event => 
     selectedCategory === "all" || event.category === selectedCategory
@@ -94,14 +91,16 @@ export default function Calendar() {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case "Market Event":
+      case "market_event":
         return <TrendingUp className="w-4 h-4" />;
-      case "Academy":
+      case "academy":
         return <BookOpen className="w-4 h-4" />;
-      case "Signal":
+      case "signal":
         return <Bell className="w-4 h-4" />;
-      case "Forecast":
+      case "forecast":
         return <Users className="w-4 h-4" />;
+      case "webinar":
+        return <BookOpen className="w-4 h-4" />;
       default:
         return <CalendarIcon className="w-4 h-4" />;
     }
@@ -127,6 +126,14 @@ export default function Calendar() {
     const eventDate = new Date(dateString);
     return eventDate > today;
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -176,8 +183,8 @@ export default function Calendar() {
             key={event.id}
             className={cn(
               "transition-all duration-200 hover:shadow-md cursor-pointer border-border/50",
-              isToday(event.date) && "ring-2 ring-primary/20 border-primary/30",
-              !isUpcoming(event.date) && "opacity-75"
+              isToday(event.event_date) && "ring-2 ring-primary/20 border-primary/30",
+              !isUpcoming(event.event_date) && "opacity-75"
             )}
           >
             <CardHeader className="pb-3">
@@ -204,20 +211,29 @@ export default function Calendar() {
                 <div className="flex items-center gap-1">
                   <CalendarIcon className="w-4 h-4" />
                   <span className={cn(
-                    isToday(event.date) && "text-primary font-medium"
+                    isToday(event.event_date) && "text-primary font-medium"
                   )}>
-                    {formatDate(event.date)}
+                    {formatDate(event.event_date)}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
-                  <span>{event.time} GMT</span>
+                  <span>{event.event_time || 'All Day'} {event.timezone || 'GMT'}</span>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground line-clamp-2">
                 {event.description}
               </p>
-              {isToday(event.date) && (
+              {event.currency_pairs && event.currency_pairs.length > 0 && (
+                <div className="flex gap-1 flex-wrap">
+                  {event.currency_pairs.map((pair) => (
+                    <Badge key={pair} variant="outline" className="text-xs">
+                      {pair}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              {isToday(event.event_date) && (
                 <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
                   Today
                 </Badge>

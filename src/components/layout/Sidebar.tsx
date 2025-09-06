@@ -15,13 +15,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Bell,
-  Lock
+  Lock,
+  NotebookPen
 } from "lucide-react";
 
 const navigationItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Forecasts", href: "/dashboard/forecasts", icon: TrendingUp },
   { name: "Premium Signals", href: "/dashboard/signals", icon: Signal, premium: true },
+  { name: "My Journal", href: "/dashboard/journal", icon: NotebookPen },
   { name: "My Wallet", href: "/dashboard/wallet", icon: Wallet },
   { name: "Join Academy", href: "/dashboard/academy", icon: BookOpen },
   { name: "Contact Us", href: "/dashboard/contact", icon: MessageCircle },

@@ -50,6 +50,60 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          category: string
+          created_at: string
+          currency_pairs: string[] | null
+          description: string | null
+          event_date: string
+          event_time: string | null
+          external_url: string | null
+          id: string
+          impact: string
+          is_featured: boolean
+          is_recurring: boolean
+          recurrence_pattern: string | null
+          timezone: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          currency_pairs?: string[] | null
+          description?: string | null
+          event_date: string
+          event_time?: string | null
+          external_url?: string | null
+          id?: string
+          impact?: string
+          is_featured?: boolean
+          is_recurring?: boolean
+          recurrence_pattern?: string | null
+          timezone?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          currency_pairs?: string[] | null
+          description?: string | null
+          event_date?: string
+          event_time?: string | null
+          external_url?: string | null
+          id?: string
+          impact?: string
+          is_featured?: boolean
+          is_recurring?: boolean
+          recurrence_pattern?: string | null
+          timezone?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -203,6 +257,111 @@ export type Database = {
           trade_bias?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      journal_entries: {
+        Row: {
+          chart_screenshot_url: string | null
+          chart_screenshot_urls: string[] | null
+          created_at: string
+          direction: string | null
+          emotions: string | null
+          entry_date: string
+          entry_price: number | null
+          entry_time: string | null
+          exit_price: number | null
+          external_id: string | null
+          id: string
+          instrument: string | null
+          is_draft: boolean
+          is_shared: boolean
+          lessons_learned: string | null
+          market_analysis: string | null
+          outcome: string | null
+          pnl: number | null
+          quantity: number | null
+          risk_reward_ratio: number | null
+          session: string | null
+          setup_description: string | null
+          setup_type: string | null
+          stop_loss: number | null
+          tags: string[] | null
+          take_profit: number | null
+          title: string
+          trade_rationale: string | null
+          updated_at: string
+          user_id: string
+          webhook_data: Json | null
+          win_rate: number | null
+        }
+        Insert: {
+          chart_screenshot_url?: string | null
+          chart_screenshot_urls?: string[] | null
+          created_at?: string
+          direction?: string | null
+          emotions?: string | null
+          entry_date?: string
+          entry_price?: number | null
+          entry_time?: string | null
+          exit_price?: number | null
+          external_id?: string | null
+          id?: string
+          instrument?: string | null
+          is_draft?: boolean
+          is_shared?: boolean
+          lessons_learned?: string | null
+          market_analysis?: string | null
+          outcome?: string | null
+          pnl?: number | null
+          quantity?: number | null
+          risk_reward_ratio?: number | null
+          session?: string | null
+          setup_description?: string | null
+          setup_type?: string | null
+          stop_loss?: number | null
+          tags?: string[] | null
+          take_profit?: number | null
+          title: string
+          trade_rationale?: string | null
+          updated_at?: string
+          user_id: string
+          webhook_data?: Json | null
+          win_rate?: number | null
+        }
+        Update: {
+          chart_screenshot_url?: string | null
+          chart_screenshot_urls?: string[] | null
+          created_at?: string
+          direction?: string | null
+          emotions?: string | null
+          entry_date?: string
+          entry_price?: number | null
+          entry_time?: string | null
+          exit_price?: number | null
+          external_id?: string | null
+          id?: string
+          instrument?: string | null
+          is_draft?: boolean
+          is_shared?: boolean
+          lessons_learned?: string | null
+          market_analysis?: string | null
+          outcome?: string | null
+          pnl?: number | null
+          quantity?: number | null
+          risk_reward_ratio?: number | null
+          session?: string | null
+          setup_description?: string | null
+          setup_type?: string | null
+          stop_loss?: number | null
+          tags?: string[] | null
+          take_profit?: number | null
+          title?: string
+          trade_rationale?: string | null
+          updated_at?: string
+          user_id?: string
+          webhook_data?: Json | null
+          win_rate?: number | null
         }
         Relationships: []
       }
