@@ -7,6 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +26,14 @@ import {
   Share2,
   X,
   Upload,
-  Tag
+  Tag,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Brain,
+  Target,
+  Settings,
+  HelpCircle
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -52,6 +63,22 @@ interface JournalEntry {
   session?: string;
   pnl?: number;
   risk_reward_ratio?: number;
+  // New fields
+  commission?: number;
+  swap?: number;
+  hold_time_minutes?: number;
+  execution_method?: string;
+  confidence_level?: number;
+  emotional_state?: string;
+  stress_level?: string;
+  what_went_well?: string;
+  what_to_improve?: string;
+  post_screenshots_urls?: string[];
+  trade_rating?: number;
+  market_volatility?: string;
+  auto_review_enabled?: boolean;
+  review_date?: string;
+  related_entry_ids?: string[];
   is_draft: boolean;
   is_shared: boolean;
   created_at: string;
@@ -66,6 +93,22 @@ const SESSIONS = [
   'London', 'New York', 'Asia', 'London-NY Overlap', 'Asia-London Overlap'
 ];
 
+const EMOTIONAL_STATES = [
+  'Calm', 'Anxious', 'Overconfident', 'Frustrated', 'Excited', 'Fearful', 'Neutral'
+];
+
+const STRESS_LEVELS = [
+  'Low', 'Medium', 'High'
+];
+
+const EXECUTION_METHODS = [
+  'Manual', 'Automated'
+];
+
+const MARKET_VOLATILITY = [
+  'Low', 'Medium', 'High'
+];
+
 export default function Journal() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -78,6 +121,14 @@ export default function Journal() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOutcome, setFilterOutcome] = useState("all");
   const [filterTag, setFilterTag] = useState("");
+
+  // Collapsible sections state
+  const [openSections, setOpenSections] = useState({
+    execution: false,
+    psychology: false,
+    reflection: false,
+    automation: false
+  });
 
   // Form state
   const [formData, setFormData] = useState<Partial<JournalEntry>>({
@@ -100,11 +151,27 @@ export default function Journal() {
     tags: [],
     setup_type: '',
     session: '',
-    pnl: undefined,
-    risk_reward_ratio: undefined,
-    is_draft: false,
-    is_shared: false
-  });
+      pnl: undefined,
+      risk_reward_ratio: undefined,
+      // New fields
+      commission: undefined,
+      swap: undefined,
+      hold_time_minutes: undefined,
+      execution_method: '',
+      confidence_level: undefined,
+      emotional_state: '',
+      stress_level: '',
+      what_went_well: '',
+      what_to_improve: '',
+      post_screenshots_urls: [],
+      trade_rating: undefined,
+      market_volatility: '',
+      auto_review_enabled: false,
+      review_date: '',
+      related_entry_ids: [],
+      is_draft: false,
+      is_shared: false
+    });
 
   const [newTag, setNewTag] = useState("");
 
@@ -180,7 +247,23 @@ export default function Journal() {
         stop_loss: formData.stop_loss || null,
         take_profit: formData.take_profit || null,
         pnl: formData.pnl || null,
-        risk_reward_ratio: formData.risk_reward_ratio || null
+        risk_reward_ratio: formData.risk_reward_ratio || null,
+        // New fields
+        commission: formData.commission || null,
+        swap: formData.swap || null,
+        hold_time_minutes: formData.hold_time_minutes || null,
+        execution_method: formData.execution_method || null,
+        confidence_level: formData.confidence_level || null,
+        emotional_state: formData.emotional_state || null,
+        stress_level: formData.stress_level || null,
+        what_went_well: formData.what_went_well || null,
+        what_to_improve: formData.what_to_improve || null,
+        post_screenshots_urls: formData.post_screenshots_urls || null,
+        trade_rating: formData.trade_rating || null,
+        market_volatility: formData.market_volatility || null,
+        auto_review_enabled: formData.auto_review_enabled || false,
+        review_date: formData.review_date || null,
+        related_entry_ids: formData.related_entry_ids || null
       };
 
       if (editingEntry) {
@@ -236,6 +319,22 @@ export default function Journal() {
       session: '',
       pnl: undefined,
       risk_reward_ratio: undefined,
+      // Reset new fields
+      commission: undefined,
+      swap: undefined,
+      hold_time_minutes: undefined,
+      execution_method: '',
+      confidence_level: undefined,
+      emotional_state: '',
+      stress_level: '',
+      what_went_well: '',
+      what_to_improve: '',
+      post_screenshots_urls: [],
+      trade_rating: undefined,
+      market_volatility: '',
+      auto_review_enabled: false,
+      review_date: '',
+      related_entry_ids: [],
       is_draft: false,
       is_shared: false
     });
@@ -257,6 +356,13 @@ export default function Journal() {
     setFormData(prev => ({
       ...prev,
       tags: prev.tags?.filter(tag => tag !== tagToRemove) || []
+    }));
+  };
+
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
     }));
   };
 
@@ -485,7 +591,7 @@ export default function Journal() {
       {/* Entry Form Modal */}
       {showEntryForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <Card className="w-full max-w-5xl max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>
@@ -497,6 +603,7 @@ export default function Journal() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
+              <TooltipProvider>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">Title *</Label>
@@ -606,6 +713,236 @@ export default function Journal() {
                 )}
               </div>
 
+              {/* Execution & Metrics Section */}
+              <Collapsible open={openSections.execution} onOpenChange={() => toggleSection('execution')}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-5 h-5" />
+                      <span className="font-medium">Execution & Metrics</span>
+                    </div>
+                    {openSections.execution ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 px-4 pb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="commission">Commission</Label>
+                      <Input
+                        id="commission"
+                        type="number"
+                        step="0.01"
+                        value={formData.commission || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, commission: parseFloat(e.target.value) || undefined }))}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="swap">Swap</Label>
+                      <Input
+                        id="swap"
+                        type="number"
+                        step="0.01"
+                        value={formData.swap || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, swap: parseFloat(e.target.value) || undefined }))}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="hold_time_minutes">Hold Time (minutes)</Label>
+                      <Input
+                        id="hold_time_minutes"
+                        type="number"
+                        value={formData.hold_time_minutes || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, hold_time_minutes: parseInt(e.target.value) || undefined }))}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="execution_method">Execution Method</Label>
+                    <Select value={formData.execution_method} onValueChange={(value) => setFormData(prev => ({ ...prev, execution_method: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select execution method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EXECUTION_METHODS.map((method) => (
+                          <SelectItem key={method} value={method.toLowerCase()}>{method}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Trader Psychology Section */}
+              <Collapsible open={openSections.psychology} onOpenChange={() => toggleSection('psychology')}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                    <div className="flex items-center gap-2">
+                      <Brain className="w-5 h-5" />
+                      <span className="font-medium">Trader Psychology</span>
+                    </div>
+                    {openSections.psychology ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 px-4 pb-4">
+                  <div className="space-y-2">
+                    <Label>Confidence Level: {formData.confidence_level || 1}</Label>
+                    <Slider
+                      value={[formData.confidence_level || 1]}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, confidence_level: value[0] }))}
+                      max={5}
+                      min={1}
+                      step={1}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Low</span>
+                      <span>High</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="emotional_state">Emotional State</Label>
+                      <Select value={formData.emotional_state} onValueChange={(value) => setFormData(prev => ({ ...prev, emotional_state: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select emotional state" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EMOTIONAL_STATES.map((state) => (
+                            <SelectItem key={state} value={state.toLowerCase()}>{state}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="stress_level">Stress Level</Label>
+                      <Select value={formData.stress_level} onValueChange={(value) => setFormData(prev => ({ ...prev, stress_level: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select stress level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STRESS_LEVELS.map((level) => (
+                            <SelectItem key={level} value={level.toLowerCase()}>{level}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Post-Trade Reflection Section */}
+              <Collapsible open={openSections.reflection} onOpenChange={() => toggleSection('reflection')}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      <span className="font-medium">Post-Trade Reflection</span>
+                    </div>
+                    {openSections.reflection ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 px-4 pb-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="what_went_well">What Went Well</Label>
+                    <Textarea
+                      id="what_went_well"
+                      value={formData.what_went_well}
+                      onChange={(e) => setFormData(prev => ({ ...prev, what_went_well: e.target.value }))}
+                      placeholder="Describe what you did right in this trade..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="what_to_improve">What to Improve</Label>
+                    <Textarea
+                      id="what_to_improve"
+                      value={formData.what_to_improve}
+                      onChange={(e) => setFormData(prev => ({ ...prev, what_to_improve: e.target.value }))}
+                      placeholder="Areas for improvement in future trades..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Trade Rating: {formData.trade_rating || 1} ⭐</Label>
+                    <Slider
+                      value={[formData.trade_rating || 1]}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, trade_rating: value[0] }))}
+                      max={5}
+                      min={1}
+                      step={1}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Poor</span>
+                      <span>Excellent</span>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Advanced Tagging Section */}
+              <Collapsible open={openSections.automation} onOpenChange={() => toggleSection('automation')}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                    <div className="flex items-center gap-2">
+                      <Settings className="w-5 h-5" />
+                      <span className="font-medium">Advanced Settings</span>
+                    </div>
+                    {openSections.automation ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 px-4 pb-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="market_volatility">Market Volatility</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-2">
+                          <Select value={formData.market_volatility} onValueChange={(value) => setFormData(prev => ({ ...prev, market_volatility: value }))}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select market volatility" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MARKET_VOLATILITY.map((volatility) => (
+                                <SelectItem key={volatility} value={volatility.toLowerCase()}>{volatility}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <HelpCircle className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Helps track performance in different market conditions</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="auto_review_enabled">Auto Review</Label>
+                      <p className="text-sm text-muted-foreground">Enable automatic review reminders</p>
+                    </div>
+                    <Switch
+                      id="auto_review_enabled"
+                      checked={formData.auto_review_enabled}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, auto_review_enabled: checked }))}
+                    />
+                  </div>
+                  {formData.auto_review_enabled && (
+                    <div className="space-y-2">
+                      <Label htmlFor="review_date">Review Date</Label>
+                      <Input
+                        id="review_date"
+                        type="date"
+                        value={formData.review_date}
+                        onChange={(e) => setFormData(prev => ({ ...prev, review_date: e.target.value }))}
+                      />
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => handleSubmit(true)}>
                   <Save className="w-4 h-4 mr-2" />
@@ -616,6 +953,7 @@ export default function Journal() {
                   Publish Entry
                 </Button>
               </div>
+              </TooltipProvider>
             </CardContent>
           </Card>
         </div>

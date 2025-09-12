@@ -262,105 +262,150 @@ export type Database = {
       }
       journal_entries: {
         Row: {
+          auto_review_enabled: boolean | null
           chart_screenshot_url: string | null
           chart_screenshot_urls: string[] | null
+          commission: number | null
+          confidence_level: number | null
           created_at: string
           direction: string | null
+          emotional_state: string | null
           emotions: string | null
           entry_date: string
           entry_price: number | null
           entry_time: string | null
+          execution_method: string | null
           exit_price: number | null
           external_id: string | null
+          hold_time_minutes: number | null
           id: string
           instrument: string | null
           is_draft: boolean
           is_shared: boolean
           lessons_learned: string | null
           market_analysis: string | null
+          market_volatility: string | null
           outcome: string | null
           pnl: number | null
+          post_screenshots_urls: string[] | null
           quantity: number | null
+          related_entry_ids: string[] | null
+          review_date: string | null
           risk_reward_ratio: number | null
           session: string | null
           setup_description: string | null
           setup_type: string | null
           stop_loss: number | null
+          stress_level: string | null
+          swap: number | null
           tags: string[] | null
           take_profit: number | null
           title: string
+          trade_rating: number | null
           trade_rationale: string | null
           updated_at: string
           user_id: string
           webhook_data: Json | null
+          what_to_improve: string | null
+          what_went_well: string | null
           win_rate: number | null
         }
         Insert: {
+          auto_review_enabled?: boolean | null
           chart_screenshot_url?: string | null
           chart_screenshot_urls?: string[] | null
+          commission?: number | null
+          confidence_level?: number | null
           created_at?: string
           direction?: string | null
+          emotional_state?: string | null
           emotions?: string | null
           entry_date?: string
           entry_price?: number | null
           entry_time?: string | null
+          execution_method?: string | null
           exit_price?: number | null
           external_id?: string | null
+          hold_time_minutes?: number | null
           id?: string
           instrument?: string | null
           is_draft?: boolean
           is_shared?: boolean
           lessons_learned?: string | null
           market_analysis?: string | null
+          market_volatility?: string | null
           outcome?: string | null
           pnl?: number | null
+          post_screenshots_urls?: string[] | null
           quantity?: number | null
+          related_entry_ids?: string[] | null
+          review_date?: string | null
           risk_reward_ratio?: number | null
           session?: string | null
           setup_description?: string | null
           setup_type?: string | null
           stop_loss?: number | null
+          stress_level?: string | null
+          swap?: number | null
           tags?: string[] | null
           take_profit?: number | null
           title: string
+          trade_rating?: number | null
           trade_rationale?: string | null
           updated_at?: string
           user_id: string
           webhook_data?: Json | null
+          what_to_improve?: string | null
+          what_went_well?: string | null
           win_rate?: number | null
         }
         Update: {
+          auto_review_enabled?: boolean | null
           chart_screenshot_url?: string | null
           chart_screenshot_urls?: string[] | null
+          commission?: number | null
+          confidence_level?: number | null
           created_at?: string
           direction?: string | null
+          emotional_state?: string | null
           emotions?: string | null
           entry_date?: string
           entry_price?: number | null
           entry_time?: string | null
+          execution_method?: string | null
           exit_price?: number | null
           external_id?: string | null
+          hold_time_minutes?: number | null
           id?: string
           instrument?: string | null
           is_draft?: boolean
           is_shared?: boolean
           lessons_learned?: string | null
           market_analysis?: string | null
+          market_volatility?: string | null
           outcome?: string | null
           pnl?: number | null
+          post_screenshots_urls?: string[] | null
           quantity?: number | null
+          related_entry_ids?: string[] | null
+          review_date?: string | null
           risk_reward_ratio?: number | null
           session?: string | null
           setup_description?: string | null
           setup_type?: string | null
           stop_loss?: number | null
+          stress_level?: string | null
+          swap?: number | null
           tags?: string[] | null
           take_profit?: number | null
           title?: string
+          trade_rating?: number | null
           trade_rationale?: string | null
           updated_at?: string
           user_id?: string
           webhook_data?: Json | null
+          what_to_improve?: string | null
+          what_went_well?: string | null
           win_rate?: number | null
         }
         Relationships: []
