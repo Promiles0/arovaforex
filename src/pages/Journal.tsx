@@ -506,6 +506,128 @@ export default function Journal() {
                       {entry.setup_description}
                     </p>
                   )}
+
+                  {/* Execution & Metrics */}
+                  {(entry.commission || entry.swap || entry.hold_time_minutes || entry.execution_method) && (
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Execution & Metrics</h4>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {entry.commission && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Commission:</span>
+                            <span>${entry.commission}</span>
+                          </div>
+                        )}
+                        {entry.swap && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Swap:</span>
+                            <span>${entry.swap}</span>
+                          </div>
+                        )}
+                        {entry.hold_time_minutes && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Hold Time:</span>
+                            <span>{entry.hold_time_minutes}m</span>
+                          </div>
+                        )}
+                        {entry.execution_method && (
+                          <div className="flex justify-between col-span-2">
+                            <span className="text-muted-foreground">Method:</span>
+                            <span className="capitalize">{entry.execution_method}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Psychology */}
+                  {(entry.confidence_level || entry.emotional_state || entry.stress_level) && (
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Psychology</h4>
+                      <div className="grid grid-cols-1 gap-2 text-xs">
+                        {entry.confidence_level && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Confidence:</span>
+                            <span>{entry.confidence_level}/5</span>
+                          </div>
+                        )}
+                        {entry.emotional_state && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Emotional State:</span>
+                            <span className="capitalize">{entry.emotional_state}</span>
+                          </div>
+                        )}
+                        {entry.stress_level && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Stress Level:</span>
+                            <span className="capitalize">{entry.stress_level}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Post-Trade Reflection */}
+                  {(entry.what_went_well || entry.what_to_improve || entry.trade_rating) && (
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reflection</h4>
+                      <div className="space-y-1 text-xs">
+                        {entry.what_went_well && (
+                          <div>
+                            <span className="text-muted-foreground">What went well:</span>
+                            <p className="line-clamp-2">{entry.what_went_well}</p>
+                          </div>
+                        )}
+                        {entry.what_to_improve && (
+                          <div>
+                            <span className="text-muted-foreground">To improve:</span>
+                            <p className="line-clamp-2">{entry.what_to_improve}</p>
+                          </div>
+                        )}
+                        {entry.trade_rating && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Rating:</span>
+                            <span>{entry.trade_rating}/5 ⭐</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Advanced Settings */}
+                  {(entry.setup_type || entry.session || entry.market_volatility) && (
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Advanced</h4>
+                      <div className="grid grid-cols-1 gap-2 text-xs">
+                        {entry.setup_type && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Setup Type:</span>
+                            <span className="capitalize">{entry.setup_type}</span>
+                          </div>
+                        )}
+                        {entry.session && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Session:</span>
+                            <span className="capitalize">{entry.session}</span>
+                          </div>
+                        )}
+                        {entry.market_volatility && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Volatility:</span>
+                            <span className="capitalize">{entry.market_volatility}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Market Analysis */}
+                  {entry.market_analysis && (
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Analysis</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{entry.market_analysis}</p>
+                    </div>
+                  )}
                   
                   {entry.tags && entry.tags.length > 0 && (
                     <div className="flex gap-1 flex-wrap">
@@ -522,7 +644,7 @@ export default function Journal() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
                     <span>
                       {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
                     </span>
