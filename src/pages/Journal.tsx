@@ -172,7 +172,15 @@ export default function Journal() {
         ...formData,
         user_id: user.id,
         is_draft: isDraft,
-        title: formData.title || 'Untitled Entry'
+        title: formData.title || 'Untitled Entry',
+        entry_time: formData.entry_time || null, // Convert empty string to null
+        entry_price: formData.entry_price || null,
+        exit_price: formData.exit_price || null,
+        quantity: formData.quantity || null,
+        stop_loss: formData.stop_loss || null,
+        take_profit: formData.take_profit || null,
+        pnl: formData.pnl || null,
+        risk_reward_ratio: formData.risk_reward_ratio || null
       };
 
       if (editingEntry) {
