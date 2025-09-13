@@ -430,9 +430,9 @@ export default function Journal() {
 
         <TabsContent value="entries" className="space-y-4">
           {/* Filters */}
-          <Card>
+          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 shadow-journal">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-primary">
                 <Filter className="w-5 h-5" />
                 Filters & Search
               </CardTitle>
@@ -479,7 +479,7 @@ export default function Journal() {
           {/* Entries Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredEntries.map((entry) => (
-              <Card key={entry.id} className="hover:shadow-md transition-shadow cursor-pointer">
+              <Card key={entry.id} className="hover:shadow-hover transition-all duration-300 cursor-pointer bg-gradient-to-br from-card to-card/80 border-border/40 hover:border-primary/30 hover:scale-[1.02]">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -712,14 +712,15 @@ export default function Journal() {
 
       {/* Entry Form Modal */}
       {showEntryForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-5xl max-h-[90vh] overflow-y-auto">
-            <CardHeader>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-card to-card/90 shadow-2xl border border-primary/20">
+            <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20">
               <div className="flex items-center justify-between">
-                <CardTitle>
+                <CardTitle className="text-primary flex items-center gap-2">
+                  <BookOpen className="w-5 h-5" />
                   {editingEntry ? 'Edit Journal Entry' : 'New Journal Entry'}
                 </CardTitle>
-                <Button variant="ghost" size="sm" onClick={resetForm}>
+                <Button variant="ghost" size="sm" onClick={resetForm} className="hover:bg-destructive/10 hover:text-destructive">
                   <X className="w-4 h-4" />
                 </Button>
               </div>
@@ -838,15 +839,15 @@ export default function Journal() {
               {/* Execution & Metrics Section */}
               <Collapsible open={openSections.execution} onOpenChange={() => toggleSection('execution')}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                  <Button variant="ghost" className="w-full justify-between p-4 h-auto bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/20 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Target className="w-5 h-5" />
-                      <span className="font-medium">Execution & Metrics</span>
+                      <Target className="w-5 h-5 text-primary" />
+                      <span className="font-medium text-primary">Execution & Metrics</span>
                     </div>
-                    {openSections.execution ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    {openSections.execution ? <ChevronDown className="w-4 h-4 text-primary" /> : <ChevronRight className="w-4 h-4 text-primary" />}
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 px-4 pb-4">
+                <CollapsibleContent className="space-y-4 px-4 pb-4 bg-gradient-to-br from-primary/5 to-transparent border-l border-r border-b border-primary/20 rounded-b-lg">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="commission">Commission</Label>
@@ -900,15 +901,15 @@ export default function Journal() {
               {/* Trader Psychology Section */}
               <Collapsible open={openSections.psychology} onOpenChange={() => toggleSection('psychology')}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                  <Button variant="ghost" className="w-full justify-between p-4 h-auto bg-gradient-to-r from-warning/5 to-warning/10 border border-warning/20 hover:bg-gradient-to-r hover:from-warning/10 hover:to-warning/20 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Brain className="w-5 h-5" />
-                      <span className="font-medium">Trader Psychology</span>
+                      <Brain className="w-5 h-5 text-warning" />
+                      <span className="font-medium text-warning">Trader Psychology</span>
                     </div>
-                    {openSections.psychology ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    {openSections.psychology ? <ChevronDown className="w-4 h-4 text-warning" /> : <ChevronRight className="w-4 h-4 text-warning" />}
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 px-4 pb-4">
+                <CollapsibleContent className="space-y-4 px-4 pb-4 bg-gradient-to-br from-warning/5 to-transparent border-l border-r border-b border-warning/20 rounded-b-lg">
                   <div className="space-y-2">
                     <Label>Confidence Level: {formData.confidence_level || 1}</Label>
                     <Slider
@@ -958,15 +959,15 @@ export default function Journal() {
               {/* Post-Trade Reflection Section */}
               <Collapsible open={openSections.reflection} onOpenChange={() => toggleSection('reflection')}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                  <Button variant="ghost" className="w-full justify-between p-4 h-auto bg-gradient-to-r from-success/5 to-success/10 border border-success/20 hover:bg-gradient-to-r hover:from-success/10 hover:to-success/20 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5" />
-                      <span className="font-medium">Post-Trade Reflection</span>
+                      <Clock className="w-5 h-5 text-success" />
+                      <span className="font-medium text-success">Post-Trade Reflection</span>
                     </div>
-                    {openSections.reflection ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    {openSections.reflection ? <ChevronDown className="w-4 h-4 text-success" /> : <ChevronRight className="w-4 h-4 text-success" />}
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 px-4 pb-4">
+                <CollapsibleContent className="space-y-4 px-4 pb-4 bg-gradient-to-br from-success/5 to-transparent border-l border-r border-b border-success/20 rounded-b-lg">
                   <div className="space-y-2">
                     <Label htmlFor="what_went_well">What Went Well</Label>
                     <Textarea
@@ -1008,15 +1009,15 @@ export default function Journal() {
               {/* Advanced Tagging Section */}
               <Collapsible open={openSections.automation} onOpenChange={() => toggleSection('automation')}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                  <Button variant="ghost" className="w-full justify-between p-4 h-auto bg-gradient-to-r from-secondary/20 to-secondary/30 border border-secondary/30 hover:bg-gradient-to-r hover:from-secondary/30 hover:to-secondary/40 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Settings className="w-5 h-5" />
-                      <span className="font-medium">Advanced Settings</span>
+                      <Settings className="w-5 h-5 text-secondary-foreground" />
+                      <span className="font-medium text-secondary-foreground">Advanced Settings</span>
                     </div>
-                    {openSections.automation ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    {openSections.automation ? <ChevronDown className="w-4 h-4 text-secondary-foreground" /> : <ChevronRight className="w-4 h-4 text-secondary-foreground" />}
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 px-4 pb-4">
+                <CollapsibleContent className="space-y-4 px-4 pb-4 bg-gradient-to-br from-secondary/10 to-transparent border-l border-r border-b border-secondary/30 rounded-b-lg">
                   <div className="space-y-2">
                     <Label htmlFor="market_volatility">Market Volatility</Label>
                     <Tooltip>
@@ -1065,12 +1066,12 @@ export default function Journal() {
                 </CollapsibleContent>
               </Collapsible>
 
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => handleSubmit(true)}>
+              <div className="flex gap-2 justify-end pt-4 border-t border-border/50">
+                <Button variant="outline" onClick={() => handleSubmit(true)} className="hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-muted/20 to-muted/30 border-muted/40">
                   <Save className="w-4 h-4 mr-2" />
                   Save as Draft
                 </Button>
-                <Button onClick={() => handleSubmit(false)}>
+                <Button onClick={() => handleSubmit(false)} className="hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-primary to-primary/90">
                   <BookOpen className="w-4 h-4 mr-2" />
                   Publish Entry
                 </Button>

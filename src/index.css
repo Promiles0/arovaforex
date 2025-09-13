@@ -60,12 +60,21 @@
     --gradient-premium: linear-gradient(135deg, hsl(45 93% 58%), hsl(45 93% 68%));
     --gradient-card: linear-gradient(145deg, hsl(240 3.7% 15.9% / 0.8), hsl(240 3.7% 18% / 0.8));
     --gradient-brand: linear-gradient(135deg, hsl(154 89% 16%), hsl(154 60% 25%));
+    --gradient-journal: linear-gradient(135deg, hsl(154 89% 16% / 0.05), hsl(154 60% 25% / 0.1));
+    --gradient-success: linear-gradient(135deg, hsl(142 71% 45% / 0.1), hsl(142 71% 55% / 0.05));
+    --gradient-danger: linear-gradient(135deg, hsl(0 84.2% 60.2% / 0.1), hsl(0 84.2% 70% / 0.05));
+    --gradient-warning: linear-gradient(135deg, hsl(47 96% 53% / 0.1), hsl(47 96% 63% / 0.05));
+    --gradient-section: linear-gradient(135deg, hsl(240 3.7% 15.9% / 0.3), hsl(240 3.7% 18% / 0.1));
     
     /* Shadows */
     --shadow-premium: 0 10px 30px -10px hsl(45 93% 58% / 0.3);
     --shadow-card: 0 4px 20px -4px hsl(0 0% 0% / 0.25);
     --shadow-glow: 0 0 40px hsl(154 89% 16% / 0.15);
     --shadow-brand: 0 4px 16px -4px hsl(154 89% 16% / 0.2);
+    --shadow-journal: 0 8px 32px -8px hsl(154 89% 16% / 0.1);
+    --shadow-hover: 0 12px 40px -8px hsl(154 89% 16% / 0.15);
+    --shadow-success: 0 4px 16px -4px hsl(142 71% 45% / 0.2);
+    --shadow-danger: 0 4px 16px -4px hsl(0 84.2% 60.2% / 0.2);
 
     /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
