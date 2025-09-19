@@ -25,42 +25,57 @@ export const Header = () => {
   };
 
   return (
-    <header className="bg-card border-b border-border px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+    <header className="sticky top-0 z-40 w-full bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-b border-border">
+      <div className="w-full h-14 px-2 sm:px-4 lg:px-6 flex items-center justify-between">
+        {/* Mobile Logo - Only show on mobile when sidebar is collapsed */}
+        <div className="flex items-center lg:hidden">
           <Link 
             to="/" 
-            className="flex items-center space-x-2 group transition-all duration-300 hover:scale-105 lg:hidden"
+            className="flex items-center gap-2 group transition-all duration-300 hover:scale-105"
           >
-            <span className="font-bold text-lg group-hover:animate-pulse">
-              <img  src="https://raw.githubusercontent.com/Promiles0/assets/main/apple-touch-icon.png"
-      alt="ArovaForex Logo"
-      className="w-12 h-12 sm:w-10 sm:h-10 rounde.d-xl object-contain mb-2 sm:mb-0"
-    />
-              <span className="text-foreground group-hover:text-white transition-colors duration-300">Arova</span>
-              <span className="text-brand-green group-hover:text-brand-green/80 transition-colors duration-300">Forex</span>
-            </span>
+            <img 
+              src="https://raw.githubusercontent.com/Promiles0/assets/main/apple-touch-icon.png"
+              alt="ArovaForex Logo"
+              className="w-8 h-8 rounded-lg object-contain"
+            />
+            <div className="font-bold text-base">
+              <span className="text-foreground">Arova</span>
+              <span className="text-primary">Forex</span>
+            </div>
           </Link>
         </div>
 
-        <div className="flex items-center space-x-4">
+        {/* Desktop Spacer */}
+        <div className="hidden lg:block flex-1"></div>
+
+        {/* Action Items - Always visible, properly spaced */}
+        <div className="flex items-center gap-1 sm:gap-2 lg:gap-3">
           {/* Bookmarked Forecasts */}
-          <BookmarkedForecasts onForecastClick={(forecast) => {
-            // Navigate to forecasts page and show the selected forecast
-            window.location.href = `/dashboard/forecasts#forecast-${forecast.id}`;
-          }} />
+          <div className="flex-shrink-0">
+            <BookmarkedForecasts onForecastClick={(forecast) => {
+              window.location.href = `/dashboard/forecasts#forecast-${forecast.id}`;
+            }} />
+          </div>
 
           {/* Notifications */}
-          <NotificationsBell />
+          <div className="flex-shrink-0">
+            <NotificationsBell />
+          </div>
 
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-primary" />
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="flex items-center gap-2 h-8 px-2 sm:px-3 min-w-0 max-w-[200px] sm:max-w-none"
+              >
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                  <User className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                 </div>
-                <span className="text-sm font-medium">{user?.user_metadata?.full_name || user?.email || "Trader"}</span>
+                <span className="text-xs sm:text-sm font-medium truncate hidden sm:inline-block">
+                  {user?.user_metadata?.full_name || user?.email || "Trader"}
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
