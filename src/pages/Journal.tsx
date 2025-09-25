@@ -121,6 +121,7 @@ export default function Journal() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOutcome, setFilterOutcome] = useState("all");
   const [filterTag, setFilterTag] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "timeline">("grid");
 
   // Collapsible sections state
   const [openSections, setOpenSections] = useState({
@@ -401,55 +402,97 @@ export default function Journal() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <BookOpen className="w-8 h-8 text-primary" />
-            My Trading Journal
-          </h1>
-          <p className="text-muted-foreground">
-            Track your trades, reflect on your decisions, and improve your performance.
-          </p>
+    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="journal-header rounded-xl p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-3">
+              <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
+              My Trading Journal
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm sm:text-base">
+              Track your trades, reflect on your decisions, and improve your performance.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === "grid" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className="flex items-center gap-2"
+            >
+              <div className="w-4 h-4 grid grid-cols-2 gap-0.5">
+                <div className="bg-current rounded-[1px]"></div>
+                <div className="bg-current rounded-[1px]"></div>
+                <div className="bg-current rounded-[1px]"></div>
+                <div className="bg-current rounded-[1px]"></div>
+              </div>
+              <span className="hidden sm:inline">Grid</span>
+            </Button>
+            <Button
+              variant={viewMode === "timeline" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("timeline")}
+              className="flex items-center gap-2"
+            >
+              <Clock className="w-4 h-4" />
+              <span className="hidden sm:inline">Timeline</span>
+            </Button>
+          </div>
         </div>
-        <Button 
-          onClick={() => setShowEntryForm(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          New Entry
-        </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="entries">All Entries</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+      {/* Floating Action Button for Mobile */}
+      <Button 
+        onClick={() => setShowEntryForm(true)}
+        className="journal-fab rounded-full w-14 h-14 sm:hidden shadow-lg"
+        size="lg"
+      >
+        <Plus className="w-6 h-6" />
+      </Button>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6 journal-glassmorphism">
+          <TabsTrigger value="entries" className="text-xs sm:text-sm">All Entries ({entries.length})</TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs sm:text-sm">Analytics</TabsTrigger>
+          <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="entries" className="space-y-4">
-          {/* Filters */}
-          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 shadow-journal">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary">
+        <TabsContent value="entries" className="space-y-6">
+          {/* Desktop New Entry Button */}
+          <div className="hidden sm:flex justify-start">
+            <Button 
+              onClick={() => setShowEntryForm(true)}
+              className="flex items-center gap-2 shadow-md"
+              size="lg"
+            >
+              <Plus className="w-5 h-5" />
+              New Entry
+            </Button>
+          </div>
+
+          {/* Enhanced Filters */}
+          <Card className="journal-card">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-primary text-lg">
                 <Filter className="w-5 h-5" />
                 Filters & Search
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
                     placeholder="Search entries..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 form-input"
                   />
                 </div>
                 <Select value={filterOutcome} onValueChange={setFilterOutcome}>
-                  <SelectTrigger>
+                  <SelectTrigger className="form-input">
                     <SelectValue placeholder="Filter by outcome" />
                   </SelectTrigger>
                   <SelectContent>
@@ -464,215 +507,317 @@ export default function Journal() {
                   placeholder="Filter by tag..."
                   value={filterTag}
                   onChange={(e) => setFilterTag(e.target.value)}
+                  className="form-input"
                 />
-                <Button variant="outline" onClick={() => {
-                  setSearchTerm("");
-                  setFilterOutcome("all");
-                  setFilterTag("");
-                }}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterOutcome("all");
+                    setFilterTag("");
+                  }}
+                  className="w-full"
+                >
                   Clear Filters
                 </Button>
+              </div>
+              
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-border/30">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-success">{entries.filter(e => e.outcome === 'win').length}</div>
+                  <div className="text-xs text-muted-foreground">Wins</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-destructive">{entries.filter(e => e.outcome === 'loss').length}</div>
+                  <div className="text-xs text-muted-foreground">Losses</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-warning">{entries.filter(e => e.outcome === 'breakeven').length}</div>
+                  <div className="text-xs text-muted-foreground">Breakeven</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{entries.filter(e => e.outcome === 'open').length}</div>
+                  <div className="text-xs text-muted-foreground">Open</div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Entries Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredEntries.map((entry) => (
-              <Card key={entry.id} className="hover:shadow-hover transition-all duration-300 cursor-pointer bg-gradient-to-br from-card to-card/80 border-border/40 hover:border-primary/30 hover:scale-[1.02]">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      {getDirectionIcon(entry.direction)}
-                      <CardTitle className="text-base">{entry.title}</CardTitle>
-                    </div>
-                    <Badge 
-                      variant="outline" 
-                      className={cn("text-xs", getOutcomeColor(entry.outcome))}
-                    >
-                      {entry.outcome || 'Open'}
-                    </Badge>
-                  </div>
-                  {entry.instrument && (
-                    <CardDescription className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      {entry.instrument} • {new Date(entry.entry_date).toLocaleDateString()}
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {entry.setup_description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {entry.setup_description}
-                    </p>
-                  )}
-
-                  {/* Execution & Metrics */}
-                  {(entry.commission || entry.swap || entry.hold_time_minutes || entry.execution_method) && (
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Execution & Metrics</h4>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        {entry.commission && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Commission:</span>
-                            <span>${entry.commission}</span>
-                          </div>
-                        )}
-                        {entry.swap && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Swap:</span>
-                            <span>${entry.swap}</span>
-                          </div>
-                        )}
-                        {entry.hold_time_minutes && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Hold Time:</span>
-                            <span>{entry.hold_time_minutes}m</span>
-                          </div>
-                        )}
-                        {entry.execution_method && (
-                          <div className="flex justify-between col-span-2">
-                            <span className="text-muted-foreground">Method:</span>
-                            <span className="capitalize">{entry.execution_method}</span>
-                          </div>
-                        )}
+          {/* Entries Display */}
+          {viewMode === "grid" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+              {filteredEntries.map((entry) => (
+                <Card key={entry.id} className="journal-entry-card cursor-pointer group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {getDirectionIcon(entry.direction)}
+                        <CardTitle className="text-base truncate">{entry.title}</CardTitle>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Psychology */}
-                  {(entry.confidence_level || entry.emotional_state || entry.stress_level) && (
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Psychology</h4>
-                      <div className="grid grid-cols-1 gap-2 text-xs">
-                        {entry.confidence_level && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Confidence:</span>
-                            <span>{entry.confidence_level}/5</span>
-                          </div>
-                        )}
-                        {entry.emotional_state && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Emotional State:</span>
-                            <span className="capitalize">{entry.emotional_state}</span>
-                          </div>
-                        )}
-                        {entry.stress_level && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Stress Level:</span>
-                            <span className="capitalize">{entry.stress_level}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Post-Trade Reflection */}
-                  {(entry.what_went_well || entry.what_to_improve || entry.trade_rating) && (
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reflection</h4>
-                      <div className="space-y-1 text-xs">
-                        {entry.what_went_well && (
-                          <div>
-                            <span className="text-muted-foreground">What went well:</span>
-                            <p className="line-clamp-2">{entry.what_went_well}</p>
-                          </div>
-                        )}
-                        {entry.what_to_improve && (
-                          <div>
-                            <span className="text-muted-foreground">To improve:</span>
-                            <p className="line-clamp-2">{entry.what_to_improve}</p>
-                          </div>
-                        )}
-                        {entry.trade_rating && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Rating:</span>
-                            <span>{entry.trade_rating}/5 ⭐</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Advanced Settings */}
-                  {(entry.setup_type || entry.session || entry.market_volatility) && (
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Advanced</h4>
-                      <div className="grid grid-cols-1 gap-2 text-xs">
-                        {entry.setup_type && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Setup Type:</span>
-                            <span className="capitalize">{entry.setup_type}</span>
-                          </div>
-                        )}
-                        {entry.session && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Session:</span>
-                            <span className="capitalize">{entry.session}</span>
-                          </div>
-                        )}
-                        {entry.market_volatility && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Volatility:</span>
-                            <span className="capitalize">{entry.market_volatility}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Market Analysis */}
-                  {entry.market_analysis && (
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Analysis</h4>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{entry.market_analysis}</p>
-                    </div>
-                  )}
-                  
-                  {entry.tags && entry.tags.length > 0 && (
-                    <div className="flex gap-1 flex-wrap">
-                      {entry.tags.slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {entry.tags.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{entry.tags.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
-                    <span>
-                      {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
-                    </span>
-                    {entry.is_draft && (
-                      <Badge variant="outline" className="text-xs">
-                        Draft
+                      <Badge 
+                        variant="outline" 
+                        className={cn("text-xs whitespace-nowrap", getOutcomeColor(entry.outcome))}
+                      >
+                        {entry.outcome || 'Open'}
                       </Badge>
+                    </div>
+                    {entry.instrument && (
+                      <CardDescription className="flex items-center gap-2 text-xs">
+                        <Calendar className="w-3 h-3" />
+                        {entry.instrument} • {new Date(entry.entry_date).toLocaleDateString()}
+                      </CardDescription>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      {entry.setup_description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {entry.setup_description}
+                        </p>
+                      )}
+
+                      {/* Execution & Metrics */}
+                      {(entry.commission || entry.swap || entry.hold_time_minutes || entry.execution_method) && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Execution & Metrics</h4>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {entry.commission && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Commission:</span>
+                                <span>${entry.commission}</span>
+                              </div>
+                            )}
+                            {entry.swap && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Swap:</span>
+                                <span>${entry.swap}</span>
+                              </div>
+                            )}
+                            {entry.hold_time_minutes && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Hold Time:</span>
+                                <span>{entry.hold_time_minutes}m</span>
+                              </div>
+                            )}
+                            {entry.execution_method && (
+                              <div className="flex justify-between col-span-2">
+                                <span className="text-muted-foreground">Method:</span>
+                                <span className="capitalize">{entry.execution_method}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Psychology */}
+                      {(entry.confidence_level || entry.emotional_state || entry.stress_level) && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Psychology</h4>
+                          <div className="grid grid-cols-1 gap-2 text-xs">
+                            {entry.confidence_level && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Confidence:</span>
+                                <span>{entry.confidence_level}/5</span>
+                              </div>
+                            )}
+                            {entry.emotional_state && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Emotional State:</span>
+                                <span className="capitalize">{entry.emotional_state}</span>
+                              </div>
+                            )}
+                            {entry.stress_level && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Stress Level:</span>
+                                <span className="capitalize">{entry.stress_level}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Post-Trade Reflection */}
+                      {(entry.what_went_well || entry.what_to_improve || entry.trade_rating) && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reflection</h4>
+                          <div className="space-y-1 text-xs">
+                            {entry.what_went_well && (
+                              <div>
+                                <span className="text-muted-foreground">What went well:</span>
+                                <p className="line-clamp-2">{entry.what_went_well}</p>
+                              </div>
+                            )}
+                            {entry.what_to_improve && (
+                              <div>
+                                <span className="text-muted-foreground">To improve:</span>
+                                <p className="line-clamp-2">{entry.what_to_improve}</p>
+                              </div>
+                            )}
+                            {entry.trade_rating && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Rating:</span>
+                                <span>{entry.trade_rating}/5 ⭐</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Advanced Settings */}
+                      {(entry.setup_type || entry.session || entry.market_volatility) && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Advanced</h4>
+                          <div className="grid grid-cols-1 gap-2 text-xs">
+                            {entry.setup_type && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Setup Type:</span>
+                                <span className="capitalize">{entry.setup_type}</span>
+                              </div>
+                            )}
+                            {entry.session && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Session:</span>
+                                <span className="capitalize">{entry.session}</span>
+                              </div>
+                            )}
+                            {entry.market_volatility && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Volatility:</span>
+                                <span className="capitalize">{entry.market_volatility}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Market Analysis */}
+                      {entry.market_analysis && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Analysis</h4>
+                          <p className="text-xs text-muted-foreground line-clamp-2">{entry.market_analysis}</p>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-4">
+                          {entry.pnl !== undefined && (
+                            <span className={cn(
+                              "font-medium",
+                              entry.pnl >= 0 ? "text-success" : "text-destructive"
+                            )}>
+                              {entry.pnl >= 0 ? '+' : ''}{entry.pnl}
+                            </span>
+                          )}
+                          {entry.risk_reward_ratio && (
+                            <span className="text-muted-foreground">
+                              RR: {entry.risk_reward_ratio}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-muted-foreground">
+                          {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                      
+                      {entry.tags && entry.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {entry.tags.slice(0, 3).map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs px-2 py-0">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {entry.tags.length > 3 && (
+                            <Badge variant="secondary" className="text-xs px-2 py-0">
+                              +{entry.tags.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
+                        <span>
+                          {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
+                        </span>
+                        {entry.is_draft && (
+                          <Badge variant="outline" className="text-xs">
+                            Draft
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            /* Timeline View */
+            <div className="journal-timeline relative pl-8">
+              {filteredEntries.map((entry, index) => (
+                <div key={entry.id} className="journal-timeline-item mb-8">
+                  <Card className="journal-entry-card">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {getDirectionIcon(entry.direction)}
+                          <CardTitle className="text-base">{entry.title}</CardTitle>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(entry.entry_date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {entry.instrument && (
+                            <Badge variant="outline" className="text-xs">
+                              {entry.instrument}
+                            </Badge>
+                          )}
+                          <Badge 
+                            variant="outline" 
+                            className={cn("text-xs", getOutcomeColor(entry.outcome))}
+                          >
+                            {entry.outcome || 'Open'}
+                          </Badge>
+                        </div>
+                        {entry.pnl !== undefined && (
+                          <span className={cn(
+                            "text-sm font-medium",
+                            entry.pnl >= 0 ? "text-success" : "text-destructive"
+                          )}>
+                            {entry.pnl >= 0 ? '+' : ''}{entry.pnl}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
+            </div>
+          )}
 
           {filteredEntries.length === 0 && !loading && (
-            <Card className="p-12 text-center">
-              <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No entries found</h3>
-              <p className="text-muted-foreground mb-4">
-                {entries.length === 0 
-                  ? "Start by creating your first journal entry to track your trading journey."
-                  : "No entries match your current filters."
-                }
-              </p>
-              <Button onClick={() => setShowEntryForm(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Your First Entry
-              </Button>
+            <Card className="journal-glassmorphism">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <BookOpen className="w-16 h-16 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-center mb-2">
+                  {entries.length === 0 ? "Start Your Trading Journey" : "No Entries Found"}
+                </h3>
+                <p className="text-muted-foreground text-center mb-4 max-w-md">
+                  {entries.length === 0 
+                    ? "Create your first journal entry to begin tracking your trades and improving your performance."
+                    : "Try adjusting your filters or search terms to find specific entries."
+                  }
+                </p>
+                {entries.length === 0 && (
+                  <Button onClick={() => setShowEntryForm(true)} className="mt-2">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create First Entry
+                  </Button>
+                )}
+              </CardContent>
             </Card>
           )}
         </TabsContent>
