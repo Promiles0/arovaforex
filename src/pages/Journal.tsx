@@ -2,15 +2,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -19,24 +13,14 @@ import {
   Plus, 
   Search, 
   Filter, 
-  Calendar,
-  TrendingUp,
-  TrendingDown,
-  Save,
-  Share2,
-  X,
-  Upload,
-  Tag,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  Brain,
-  Target,
-  Settings,
-  HelpCircle
+  Grid3x3,
+  List,
+  X
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import JournalEntryForm from "@/components/journal/JournalEntryForm";
+import JournalEntryCard from "@/components/journal/JournalEntryCard";
+import JournalEntryModal from "@/components/journal/JournalEntryModal";
 
 interface JournalEntry {
   id: string;
@@ -63,7 +47,6 @@ interface JournalEntry {
   session?: string;
   pnl?: number;
   risk_reward_ratio?: number;
-  // New fields
   commission?: number;
   swap?: number;
   hold_time_minutes?: number;
@@ -83,109 +66,62 @@ interface JournalEntry {
   is_shared: boolean;
   created_at: string;
   updated_at: string;
+  user_id: string;
 }
-
-const SETUP_TYPES = [
-  'Breakout', 'Trendline Bounce', 'Support/Resistance', 'Pattern', 'News Event', 'Scalp', 'Swing', 'Other'
-];
-
-const SESSIONS = [
-  'London', 'New York', 'Asia', 'London-NY Overlap', 'Asia-London Overlap'
-];
-
-const EMOTIONAL_STATES = [
-  'Calm', 'Anxious', 'Overconfident', 'Frustrated', 'Excited', 'Fearful', 'Neutral'
-];
-
-const STRESS_LEVELS = [
-  'Low', 'Medium', 'High'
-];
-
-const EXECUTION_METHODS = [
-  'Manual', 'Automated'
-];
-
-const MARKET_VOLATILITY = [
-  'Low', 'Medium', 'High'
-];
 
 export default function Journal() {
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // State
   const [activeTab, setActiveTab] = useState("entries");
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "timeline">("grid");
+  
+  // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOutcome, setFilterOutcome] = useState("all");
   const [filterTag, setFilterTag] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "timeline">("grid");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Collapsible sections state
-  const [openSections, setOpenSections] = useState({
-    execution: false,
-    psychology: false,
-    reflection: false,
-    automation: false
-  });
-
-  // Form state
-  const [formData, setFormData] = useState<Partial<JournalEntry>>({
-    title: '',
-    entry_date: new Date().toISOString().split('T')[0],
-    entry_time: '',
-    instrument: '',
-    direction: undefined,
-    entry_price: undefined,
-    exit_price: undefined,
-    quantity: undefined,
-    stop_loss: undefined,
-    take_profit: undefined,
-    setup_description: '',
-    market_analysis: '',
-    trade_rationale: '',
-    outcome: undefined,
-    lessons_learned: '',
-    emotions: '',
-    tags: [],
-    setup_type: '',
-    session: '',
-      pnl: undefined,
-      risk_reward_ratio: undefined,
-      // New fields
-      commission: undefined,
-      swap: undefined,
-      hold_time_minutes: undefined,
-      execution_method: '',
-      confidence_level: undefined,
-      emotional_state: '',
-      stress_level: '',
-      what_went_well: '',
-      what_to_improve: '',
-      post_screenshots_urls: [],
-      trade_rating: undefined,
-      market_volatility: '',
-      auto_review_enabled: false,
-      review_date: '',
-      related_entry_ids: [],
-      is_draft: false,
-      is_shared: false
-    });
-
-  const [newTag, setNewTag] = useState("");
-
+  // Fetch entries
   useEffect(() => {
-    fetchJournalEntries();
-  }, [user?.id]);
+    if (user?.id) {
+      fetchEntries();
+    }
+  }, [user]);
 
+  // Apply filters
   useEffect(() => {
-    filterEntries();
+    let filtered = [...entries];
+
+    if (searchTerm) {
+      filtered = filtered.filter(entry =>
+        entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entry.setup_description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entry.instrument?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (filterOutcome !== "all") {
+      filtered = filtered.filter(entry => entry.outcome === filterOutcome);
+    }
+
+    if (filterTag) {
+      filtered = filtered.filter(entry => entry.tags?.includes(filterTag));
+    }
+
+    setFilteredEntries(filtered);
   }, [entries, searchTerm, filterOutcome, filterTag]);
 
-  const fetchJournalEntries = async () => {
+  const fetchEntries = async () => {
     try {
+      setLoading(true);
       if (!user?.id) return;
 
       const { data, error } = await supabase
@@ -208,63 +144,26 @@ export default function Journal() {
     }
   };
 
-  const filterEntries = () => {
-    let filtered = entries;
-
-    if (searchTerm) {
-      filtered = filtered.filter(entry => 
-        entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.instrument?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.setup_description?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (filterOutcome !== "all") {
-      filtered = filtered.filter(entry => entry.outcome === filterOutcome);
-    }
-
-    if (filterTag) {
-      filtered = filtered.filter(entry => 
-        entry.tags?.some(tag => tag.toLowerCase().includes(filterTag.toLowerCase()))
-      );
-    }
-
-    setFilteredEntries(filtered);
-  };
-
-  const handleSubmit = async (isDraft = false) => {
+  const handleSubmit = async (formData: Partial<JournalEntry>) => {
     try {
+      setIsSubmitting(true);
       if (!user?.id) return;
+
+      if (!formData.title || !formData.entry_date) {
+        toast({
+          title: "Validation Error",
+          description: "Title and date are required",
+          variant: "destructive"
+        });
+        return;
+      }
 
       const entryData = {
         ...formData,
         user_id: user.id,
-        is_draft: isDraft,
-        title: formData.title || 'Untitled Entry',
-        entry_time: formData.entry_time || null, // Convert empty string to null
-        entry_price: formData.entry_price || null,
-        exit_price: formData.exit_price || null,
-        quantity: formData.quantity || null,
-        stop_loss: formData.stop_loss || null,
-        take_profit: formData.take_profit || null,
-        pnl: formData.pnl || null,
-        risk_reward_ratio: formData.risk_reward_ratio || null,
-        // New fields
-        commission: formData.commission || null,
-        swap: formData.swap || null,
-        hold_time_minutes: formData.hold_time_minutes || null,
-        execution_method: formData.execution_method || null,
-        confidence_level: formData.confidence_level || null,
-        emotional_state: formData.emotional_state || null,
-        stress_level: formData.stress_level || null,
-        what_went_well: formData.what_went_well || null,
-        what_to_improve: formData.what_to_improve || null,
-        post_screenshots_urls: formData.post_screenshots_urls || null,
-        trade_rating: formData.trade_rating || null,
-        market_volatility: formData.market_volatility || null,
-        auto_review_enabled: formData.auto_review_enabled || false,
-        review_date: formData.review_date || null,
-        related_entry_ids: formData.related_entry_ids || null
+        updated_at: new Date().toISOString(),
+        is_draft: false,
+        is_shared: false
       };
 
       if (editingEntry) {
@@ -275,18 +174,32 @@ export default function Journal() {
           .eq('user_id', user.id);
 
         if (error) throw error;
-        toast({ title: "Success", description: "Journal entry updated!" });
+
+        toast({
+          title: "Success",
+          description: "Journal entry updated successfully"
+        });
       } else {
         const { error } = await supabase
           .from('journal_entries')
-          .insert([entryData]);
+          .insert([{
+            ...entryData,
+            title: formData.title,
+            entry_date: formData.entry_date,
+            created_at: new Date().toISOString()
+          }]);
 
         if (error) throw error;
-        toast({ title: "Success", description: `Journal entry ${isDraft ? 'saved as draft' : 'created'}!` });
+
+        toast({
+          title: "Success",
+          description: "Journal entry created successfully"
+        });
       }
 
-      await fetchJournalEntries();
-      resetForm();
+      setShowEntryForm(false);
+      setEditingEntry(null);
+      fetchEntries();
     } catch (error) {
       console.error('Error saving journal entry:', error);
       toast({
@@ -294,206 +207,135 @@ export default function Journal() {
         description: "Failed to save journal entry",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleDelete = async (entryId: string) => {
+    if (!confirm("Are you sure you want to delete this entry?")) return;
+
+    try {
+      const { error } = await supabase
+        .from('journal_entries')
+        .delete()
+        .eq('id', entryId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Journal entry deleted successfully"
+      });
+
+      setSelectedEntry(null);
+      fetchEntries();
+    } catch (error) {
+      console.error('Error deleting journal entry:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete journal entry",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEdit = (entry: JournalEntry) => {
+    setEditingEntry(entry);
+    setSelectedEntry(null);
+    setShowEntryForm(true);
   };
 
   const resetForm = () => {
-    setFormData({
-      title: '',
-      entry_date: new Date().toISOString().split('T')[0],
-      entry_time: '',
-      instrument: '',
-      direction: undefined,
-      entry_price: undefined,
-      exit_price: undefined,
-      quantity: undefined,
-      stop_loss: undefined,
-      take_profit: undefined,
-      setup_description: '',
-      market_analysis: '',
-      trade_rationale: '',
-      outcome: undefined,
-      lessons_learned: '',
-      emotions: '',
-      tags: [],
-      setup_type: '',
-      session: '',
-      pnl: undefined,
-      risk_reward_ratio: undefined,
-      // Reset new fields
-      commission: undefined,
-      swap: undefined,
-      hold_time_minutes: undefined,
-      execution_method: '',
-      confidence_level: undefined,
-      emotional_state: '',
-      stress_level: '',
-      what_went_well: '',
-      what_to_improve: '',
-      post_screenshots_urls: [],
-      trade_rating: undefined,
-      market_volatility: '',
-      auto_review_enabled: false,
-      review_date: '',
-      related_entry_ids: [],
-      is_draft: false,
-      is_shared: false
-    });
-    setEditingEntry(null);
     setShowEntryForm(false);
+    setEditingEntry(null);
   };
 
-  const addTag = () => {
-    if (newTag.trim() && !formData.tags?.includes(newTag.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...(prev.tags || []), newTag.trim()]
-      }));
-      setNewTag("");
+  const getSelectedEntryIndex = () => {
+    if (!selectedEntry) return -1;
+    return filteredEntries.findIndex(e => e.id === selectedEntry.id);
+  };
+
+  const handlePrevious = () => {
+    const index = getSelectedEntryIndex();
+    if (index > 0) {
+      setSelectedEntry(filteredEntries[index - 1]);
     }
   };
 
-  const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags?.filter(tag => tag !== tagToRemove) || []
-    }));
-  };
-
-  const toggleSection = (section: keyof typeof openSections) => {
-    setOpenSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  const getOutcomeColor = (outcome?: string) => {
-    switch (outcome) {
-      case 'win':
-        return 'bg-success/10 text-success border-success/20';
-      case 'loss':
-        return 'bg-destructive/10 text-destructive border-destructive/20';
-      case 'breakeven':
-        return 'bg-warning/10 text-warning border-warning/20';
-      case 'open':
-        return 'bg-primary/10 text-primary border-primary/20';
-      default:
-        return 'bg-muted text-muted-foreground border-border';
+  const handleNext = () => {
+    const index = getSelectedEntryIndex();
+    if (index < filteredEntries.length - 1) {
+      setSelectedEntry(filteredEntries[index + 1]);
     }
   };
 
-  const getDirectionIcon = (direction?: string) => {
-    switch (direction) {
-      case 'long':
-        return <TrendingUp className="w-4 h-4 text-success" />;
-      case 'short':
-        return <TrendingDown className="w-4 h-4 text-destructive" />;
-      default:
-        return null;
-    }
-  };
+  // Get all unique tags for filter
+  const allTags = Array.from(new Set(entries.flatMap(e => e.tags || [])));
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading journal entries...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="container mx-auto p-4 sm:p-6 space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="journal-header rounded-xl p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-3">
-              <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
-              My Trading Journal
-            </h1>
-            <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-              Track your trades, reflect on your decisions, and improve your performance.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-              className="flex items-center gap-2"
-            >
-              <div className="w-4 h-4 grid grid-cols-2 gap-0.5">
-                <div className="bg-current rounded-[1px]"></div>
-                <div className="bg-current rounded-[1px]"></div>
-                <div className="bg-current rounded-[1px]"></div>
-                <div className="bg-current rounded-[1px]"></div>
-              </div>
-              <span className="hidden sm:inline">Grid</span>
-            </Button>
-            <Button
-              variant={viewMode === "timeline" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("timeline")}
-              className="flex items-center gap-2"
-            >
-              <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">Timeline</span>
-            </Button>
-          </div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-bold flex items-center gap-3">
+            <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
+            Trading Journal
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Track your trades, analyze performance, and improve your strategy
+          </p>
         </div>
+        <Button
+          onClick={() => setShowEntryForm(true)}
+          size="lg"
+          className="journal-submit-btn w-full sm:w-auto"
+        >
+          <Plus className="w-5 h-5 mr-2" />
+          New Entry
+        </Button>
       </div>
 
-      {/* Floating Action Button for Mobile */}
-      <Button 
-        onClick={() => setShowEntryForm(true)}
-        className="journal-fab rounded-full w-14 h-14 sm:hidden shadow-lg"
-        size="lg"
-      >
-        <Plus className="w-6 h-6" />
-      </Button>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6 journal-glassmorphism">
-          <TabsTrigger value="entries" className="text-xs sm:text-sm">All Entries ({entries.length})</TabsTrigger>
-          <TabsTrigger value="analytics" className="text-xs sm:text-sm">Analytics</TabsTrigger>
-          <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsTrigger value="entries">Entries</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="entries" className="space-y-6">
-          {/* Desktop New Entry Button */}
-          <div className="hidden sm:flex justify-start">
-            <Button 
-              onClick={() => setShowEntryForm(true)}
-              className="flex items-center gap-2 shadow-md"
-              size="lg"
-            >
-              <Plus className="w-5 h-5" />
-              New Entry
-            </Button>
-          </div>
-
-          {/* Enhanced Filters */}
-          <Card className="journal-card">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-primary text-lg">
-                <Filter className="w-5 h-5" />
-                Filters & Search
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <TabsContent value="entries" className="space-y-6 mt-6">
+          {/* Filters */}
+          <Card className="journal-glassmorphism">
+            <CardContent className="p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Search */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     placeholder="Search entries..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 form-input"
+                    className="pl-10 journal-input"
                   />
                 </div>
+
+                {/* Outcome Filter */}
                 <Select value={filterOutcome} onValueChange={setFilterOutcome}>
-                  <SelectTrigger className="form-input">
-                    <SelectValue placeholder="Filter by outcome" />
+                  <SelectTrigger className="journal-input">
+                    <SelectValue placeholder="All Outcomes" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Outcomes</SelectItem>
@@ -503,317 +345,106 @@ export default function Journal() {
                     <SelectItem value="open">Open</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input
-                  placeholder="Filter by tag..."
-                  value={filterTag}
-                  onChange={(e) => setFilterTag(e.target.value)}
-                  className="form-input"
-                />
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setSearchTerm("");
-                    setFilterOutcome("all");
-                    setFilterTag("");
-                  }}
-                  className="w-full"
-                >
-                  Clear Filters
-                </Button>
-              </div>
-              
-              {/* Quick Stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-border/30">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-success">{entries.filter(e => e.outcome === 'win').length}</div>
-                  <div className="text-xs text-muted-foreground">Wins</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-destructive">{entries.filter(e => e.outcome === 'loss').length}</div>
-                  <div className="text-xs text-muted-foreground">Losses</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-warning">{entries.filter(e => e.outcome === 'breakeven').length}</div>
-                  <div className="text-xs text-muted-foreground">Breakeven</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{entries.filter(e => e.outcome === 'open').length}</div>
-                  <div className="text-xs text-muted-foreground">Open</div>
+
+                {/* Tag Filter */}
+                <Select value={filterTag} onValueChange={setFilterTag}>
+                  <SelectTrigger className="journal-input">
+                    <SelectValue placeholder="All Tags" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Tags</SelectItem>
+                    {allTags.map(tag => (
+                      <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* View Mode */}
+                <div className="flex gap-2">
+                  <Button
+                    variant={viewMode === "grid" ? "default" : "outline"}
+                    size="icon"
+                    onClick={() => setViewMode("grid")}
+                    className="flex-1"
+                  >
+                    <Grid3x3 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "timeline" ? "default" : "outline"}
+                    size="icon"
+                    onClick={() => setViewMode("timeline")}
+                    className="flex-1"
+                  >
+                    <List className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
+
+              {/* Active Filters */}
+              {(searchTerm || filterOutcome !== "all" || filterTag) && (
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Active filters:</span>
+                  {searchTerm && (
+                    <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs flex items-center gap-1">
+                      Search: {searchTerm}
+                      <button onClick={() => setSearchTerm("")}>
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {filterOutcome !== "all" && (
+                    <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs flex items-center gap-1">
+                      Outcome: {filterOutcome}
+                      <button onClick={() => setFilterOutcome("all")}>
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {filterTag && (
+                    <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs flex items-center gap-1">
+                      Tag: {filterTag}
+                      <button onClick={() => setFilterTag("")}>
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* Entries Display */}
-          {viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-              {filteredEntries.map((entry) => (
-                <Card key={entry.id} className="journal-entry-card cursor-pointer group">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        {getDirectionIcon(entry.direction)}
-                        <CardTitle className="text-base truncate">{entry.title}</CardTitle>
-                      </div>
-                      <Badge 
-                        variant="outline" 
-                        className={cn("text-xs whitespace-nowrap", getOutcomeColor(entry.outcome))}
-                      >
-                        {entry.outcome || 'Open'}
-                      </Badge>
-                    </div>
-                    {entry.instrument && (
-                      <CardDescription className="flex items-center gap-2 text-xs">
-                        <Calendar className="w-3 h-3" />
-                        {entry.instrument} • {new Date(entry.entry_date).toLocaleDateString()}
-                      </CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      {entry.setup_description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {entry.setup_description}
-                        </p>
-                      )}
-
-                      {/* Execution & Metrics */}
-                      {(entry.commission || entry.swap || entry.hold_time_minutes || entry.execution_method) && (
-                        <div className="space-y-2">
-                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Execution & Metrics</h4>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            {entry.commission && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Commission:</span>
-                                <span>${entry.commission}</span>
-                              </div>
-                            )}
-                            {entry.swap && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Swap:</span>
-                                <span>${entry.swap}</span>
-                              </div>
-                            )}
-                            {entry.hold_time_minutes && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Hold Time:</span>
-                                <span>{entry.hold_time_minutes}m</span>
-                              </div>
-                            )}
-                            {entry.execution_method && (
-                              <div className="flex justify-between col-span-2">
-                                <span className="text-muted-foreground">Method:</span>
-                                <span className="capitalize">{entry.execution_method}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Psychology */}
-                      {(entry.confidence_level || entry.emotional_state || entry.stress_level) && (
-                        <div className="space-y-2">
-                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Psychology</h4>
-                          <div className="grid grid-cols-1 gap-2 text-xs">
-                            {entry.confidence_level && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Confidence:</span>
-                                <span>{entry.confidence_level}/5</span>
-                              </div>
-                            )}
-                            {entry.emotional_state && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Emotional State:</span>
-                                <span className="capitalize">{entry.emotional_state}</span>
-                              </div>
-                            )}
-                            {entry.stress_level && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Stress Level:</span>
-                                <span className="capitalize">{entry.stress_level}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Post-Trade Reflection */}
-                      {(entry.what_went_well || entry.what_to_improve || entry.trade_rating) && (
-                        <div className="space-y-2">
-                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reflection</h4>
-                          <div className="space-y-1 text-xs">
-                            {entry.what_went_well && (
-                              <div>
-                                <span className="text-muted-foreground">What went well:</span>
-                                <p className="line-clamp-2">{entry.what_went_well}</p>
-                              </div>
-                            )}
-                            {entry.what_to_improve && (
-                              <div>
-                                <span className="text-muted-foreground">To improve:</span>
-                                <p className="line-clamp-2">{entry.what_to_improve}</p>
-                              </div>
-                            )}
-                            {entry.trade_rating && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Rating:</span>
-                                <span>{entry.trade_rating}/5 ⭐</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Advanced Settings */}
-                      {(entry.setup_type || entry.session || entry.market_volatility) && (
-                        <div className="space-y-2">
-                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Advanced</h4>
-                          <div className="grid grid-cols-1 gap-2 text-xs">
-                            {entry.setup_type && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Setup Type:</span>
-                                <span className="capitalize">{entry.setup_type}</span>
-                              </div>
-                            )}
-                            {entry.session && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Session:</span>
-                                <span className="capitalize">{entry.session}</span>
-                              </div>
-                            )}
-                            {entry.market_volatility && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Volatility:</span>
-                                <span className="capitalize">{entry.market_volatility}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Market Analysis */}
-                      {entry.market_analysis && (
-                        <div className="space-y-2">
-                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Analysis</h4>
-                          <p className="text-xs text-muted-foreground line-clamp-2">{entry.market_analysis}</p>
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-4">
-                          {entry.pnl !== undefined && (
-                            <span className={cn(
-                              "font-medium",
-                              entry.pnl >= 0 ? "text-success" : "text-destructive"
-                            )}>
-                              {entry.pnl >= 0 ? '+' : ''}{entry.pnl}
-                            </span>
-                          )}
-                          {entry.risk_reward_ratio && (
-                            <span className="text-muted-foreground">
-                              RR: {entry.risk_reward_ratio}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-muted-foreground">
-                          {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
-                        </span>
-                      </div>
-                      
-                      {entry.tags && entry.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {entry.tags.slice(0, 3).map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs px-2 py-0">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {entry.tags.length > 3 && (
-                            <Badge variant="secondary" className="text-xs px-2 py-0">
-                              +{entry.tags.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
-                        <span>
-                          {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
-                        </span>
-                        {entry.is_draft && (
-                          <Badge variant="outline" className="text-xs">
-                            Draft
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+          {filteredEntries.length > 0 ? (
+            <div className={cn(
+              viewMode === "grid" 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" 
+                : "space-y-4"
+            )}>
+              {filteredEntries.map(entry => (
+                <JournalEntryCard
+                  key={entry.id}
+                  entry={entry}
+                  onClick={() => setSelectedEntry(entry)}
+                />
               ))}
             </div>
           ) : (
-            /* Timeline View */
-            <div className="journal-timeline relative pl-8">
-              {filteredEntries.map((entry, index) => (
-                <div key={entry.id} className="journal-timeline-item mb-8">
-                  <Card className="journal-entry-card">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {getDirectionIcon(entry.direction)}
-                          <CardTitle className="text-base">{entry.title}</CardTitle>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(entry.entry_date).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {entry.instrument && (
-                            <Badge variant="outline" className="text-xs">
-                              {entry.instrument}
-                            </Badge>
-                          )}
-                          <Badge 
-                            variant="outline" 
-                            className={cn("text-xs", getOutcomeColor(entry.outcome))}
-                          >
-                            {entry.outcome || 'Open'}
-                          </Badge>
-                        </div>
-                        {entry.pnl !== undefined && (
-                          <span className={cn(
-                            "text-sm font-medium",
-                            entry.pnl >= 0 ? "text-success" : "text-destructive"
-                          )}>
-                            {entry.pnl >= 0 ? '+' : ''}{entry.pnl}
-                          </span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {filteredEntries.length === 0 && !loading && (
             <Card className="journal-glassmorphism">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <BookOpen className="w-16 h-16 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold text-center mb-2">
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <BookOpen className="w-20 h-20 text-muted-foreground mb-4 opacity-50" />
+                <h3 className="text-xl font-semibold mb-2">
                   {entries.length === 0 ? "Start Your Trading Journey" : "No Entries Found"}
                 </h3>
-                <p className="text-muted-foreground text-center mb-4 max-w-md">
+                <p className="text-muted-foreground text-center mb-6 max-w-md">
                   {entries.length === 0 
                     ? "Create your first journal entry to begin tracking your trades and improving your performance."
                     : "Try adjusting your filters or search terms to find specific entries."
                   }
                 </p>
                 {entries.length === 0 && (
-                  <Button onClick={() => setShowEntryForm(true)} className="mt-2">
-                    <Plus className="w-4 h-4 mr-2" />
+                  <Button onClick={() => setShowEntryForm(true)} size="lg" className="journal-submit-btn">
+                    <Plus className="w-5 h-5 mr-2" />
                     Create First Entry
                   </Button>
                 )}
@@ -823,23 +454,25 @@ export default function Journal() {
         </TabsContent>
 
         <TabsContent value="analytics">
-          <Card>
+          <Card className="journal-glassmorphism">
             <CardHeader>
               <CardTitle>Performance Analytics</CardTitle>
               <CardDescription>
-                Coming soon: Detailed analytics and performance metrics
+                Detailed analytics and performance metrics coming soon
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                This section will include win rate, P&L charts, risk-reward analysis, and more.
-              </p>
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  This section will include win rate, P&L charts, risk-reward analysis, and more.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="settings">
-          <Card>
+          <Card className="journal-glassmorphism">
             <CardHeader>
               <CardTitle>Journal Settings</CardTitle>
               <CardDescription>
@@ -847,385 +480,57 @@ export default function Journal() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Settings panel coming soon.
-              </p>
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  Settings panel coming soon.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
       {/* Entry Form Modal */}
-      {showEntryForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-card to-card/90 shadow-2xl border border-primary/20">
-            <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-primary flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" />
-                  {editingEntry ? 'Edit Journal Entry' : 'New Journal Entry'}
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={resetForm} className="hover:bg-destructive/10 hover:text-destructive">
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <TooltipProvider>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter entry title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="entry_date">Date *</Label>
-                  <Input
-                    id="entry_date"
-                    type="date"
-                    value={formData.entry_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, entry_date: e.target.value }))}
-                  />
-                </div>
-              </div>
+      <Dialog open={showEntryForm} onOpenChange={(open) => !open && resetForm()}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="p-6 pb-4 border-b bg-gradient-to-r from-primary/10 to-primary/5">
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <BookOpen className="w-6 h-6 text-primary" />
+              {editingEntry ? 'Edit Journal Entry' : 'New Journal Entry'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto p-6">
+            <JournalEntryForm
+              initialData={editingEntry || undefined}
+              onSubmit={handleSubmit}
+              onCancel={resetForm}
+              isSubmitting={isSubmitting}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="instrument">Instrument</Label>
-                  <Input
-                    id="instrument"
-                    value={formData.instrument}
-                    onChange={(e) => setFormData(prev => ({ ...prev, instrument: e.target.value }))}
-                    placeholder="e.g., EUR/USD"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="direction">Direction</Label>
-                  <Select value={formData.direction} onValueChange={(value: any) => setFormData(prev => ({ ...prev, direction: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select direction" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="long">Long</SelectItem>
-                      <SelectItem value="short">Short</SelectItem>
-                      <SelectItem value="neutral">Neutral</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="outcome">Outcome</Label>
-                  <Select value={formData.outcome} onValueChange={(value: any) => setFormData(prev => ({ ...prev, outcome: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select outcome" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="win">Win</SelectItem>
-                      <SelectItem value="loss">Loss</SelectItem>
-                      <SelectItem value="breakeven">Breakeven</SelectItem>
-                      <SelectItem value="open">Open</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+      {/* Entry Detail Modal */}
+      <JournalEntryModal
+        entry={selectedEntry}
+        open={!!selectedEntry}
+        onClose={() => setSelectedEntry(null)}
+        onEdit={() => handleEdit(selectedEntry!)}
+        onDelete={() => handleDelete(selectedEntry!.id)}
+        onPrevious={handlePrevious}
+        onNext={handleNext}
+        hasPrevious={getSelectedEntryIndex() > 0}
+        hasNext={getSelectedEntryIndex() < filteredEntries.length - 1}
+      />
 
-              <div className="space-y-2">
-                <Label htmlFor="setup_description">Setup Description</Label>
-                <Textarea
-                  id="setup_description"
-                  value={formData.setup_description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, setup_description: e.target.value }))}
-                  placeholder="Describe your trading setup..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="market_analysis">Market Analysis</Label>
-                <Textarea
-                  id="market_analysis"
-                  value={formData.market_analysis}
-                  onChange={(e) => setFormData(prev => ({ ...prev, market_analysis: e.target.value }))}
-                  placeholder="Your market analysis and reasoning..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tags</Label>
-                <div className="flex gap-2 mb-2">
-                  <Input
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="Add a tag..."
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  />
-                  <Button type="button" variant="outline" onClick={addTag}>
-                    <Tag className="w-4 h-4" />
-                  </Button>
-                </div>
-                {formData.tags && formData.tags.length > 0 && (
-                  <div className="flex gap-1 flex-wrap">
-                    {formData.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                        {tag}
-                        <button onClick={() => removeTag(tag)}>
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Execution & Metrics Section */}
-              <Collapsible open={openSections.execution} onOpenChange={() => toggleSection('execution')}>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-between p-4 h-auto bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/20 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Target className="w-5 h-5 text-primary" />
-                      <span className="font-medium text-primary">Execution & Metrics</span>
-                    </div>
-                    {openSections.execution ? <ChevronDown className="w-4 h-4 text-primary" /> : <ChevronRight className="w-4 h-4 text-primary" />}
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 px-4 pb-4 bg-gradient-to-br from-primary/5 to-transparent border-l border-r border-b border-primary/20 rounded-b-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="commission">Commission</Label>
-                      <Input
-                        id="commission"
-                        type="number"
-                        step="0.01"
-                        value={formData.commission || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, commission: parseFloat(e.target.value) || undefined }))}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="swap">Swap</Label>
-                      <Input
-                        id="swap"
-                        type="number"
-                        step="0.01"
-                        value={formData.swap || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, swap: parseFloat(e.target.value) || undefined }))}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="hold_time_minutes">Hold Time (minutes)</Label>
-                      <Input
-                        id="hold_time_minutes"
-                        type="number"
-                        value={formData.hold_time_minutes || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, hold_time_minutes: parseInt(e.target.value) || undefined }))}
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="execution_method">Execution Method</Label>
-                    <Select value={formData.execution_method} onValueChange={(value) => setFormData(prev => ({ ...prev, execution_method: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select execution method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EXECUTION_METHODS.map((method) => (
-                          <SelectItem key={method} value={method.toLowerCase()}>{method}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              {/* Trader Psychology Section */}
-              <Collapsible open={openSections.psychology} onOpenChange={() => toggleSection('psychology')}>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-between p-4 h-auto bg-gradient-to-r from-warning/5 to-warning/10 border border-warning/20 hover:bg-gradient-to-r hover:from-warning/10 hover:to-warning/20 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Brain className="w-5 h-5 text-warning" />
-                      <span className="font-medium text-warning">Trader Psychology</span>
-                    </div>
-                    {openSections.psychology ? <ChevronDown className="w-4 h-4 text-warning" /> : <ChevronRight className="w-4 h-4 text-warning" />}
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 px-4 pb-4 bg-gradient-to-br from-warning/5 to-transparent border-l border-r border-b border-warning/20 rounded-b-lg">
-                  <div className="space-y-2">
-                    <Label>Confidence Level: {formData.confidence_level || 1}</Label>
-                    <Slider
-                      value={[formData.confidence_level || 1]}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, confidence_level: value[0] }))}
-                      max={5}
-                      min={1}
-                      step={1}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Low</span>
-                      <span>High</span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="emotional_state">Emotional State</Label>
-                      <Select value={formData.emotional_state} onValueChange={(value) => setFormData(prev => ({ ...prev, emotional_state: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select emotional state" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {EMOTIONAL_STATES.map((state) => (
-                            <SelectItem key={state} value={state.toLowerCase()}>{state}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="stress_level">Stress Level</Label>
-                      <Select value={formData.stress_level} onValueChange={(value) => setFormData(prev => ({ ...prev, stress_level: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select stress level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STRESS_LEVELS.map((level) => (
-                            <SelectItem key={level} value={level.toLowerCase()}>{level}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              {/* Post-Trade Reflection Section */}
-              <Collapsible open={openSections.reflection} onOpenChange={() => toggleSection('reflection')}>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-between p-4 h-auto bg-gradient-to-r from-success/5 to-success/10 border border-success/20 hover:bg-gradient-to-r hover:from-success/10 hover:to-success/20 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-success" />
-                      <span className="font-medium text-success">Post-Trade Reflection</span>
-                    </div>
-                    {openSections.reflection ? <ChevronDown className="w-4 h-4 text-success" /> : <ChevronRight className="w-4 h-4 text-success" />}
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 px-4 pb-4 bg-gradient-to-br from-success/5 to-transparent border-l border-r border-b border-success/20 rounded-b-lg">
-                  <div className="space-y-2">
-                    <Label htmlFor="what_went_well">What Went Well</Label>
-                    <Textarea
-                      id="what_went_well"
-                      value={formData.what_went_well}
-                      onChange={(e) => setFormData(prev => ({ ...prev, what_went_well: e.target.value }))}
-                      placeholder="Describe what you did right in this trade..."
-                      rows={3}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="what_to_improve">What to Improve</Label>
-                    <Textarea
-                      id="what_to_improve"
-                      value={formData.what_to_improve}
-                      onChange={(e) => setFormData(prev => ({ ...prev, what_to_improve: e.target.value }))}
-                      placeholder="Areas for improvement in future trades..."
-                      rows={3}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Trade Rating: {formData.trade_rating || 1} ⭐</Label>
-                    <Slider
-                      value={[formData.trade_rating || 1]}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, trade_rating: value[0] }))}
-                      max={5}
-                      min={1}
-                      step={1}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Poor</span>
-                      <span>Excellent</span>
-                    </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              {/* Advanced Tagging Section */}
-              <Collapsible open={openSections.automation} onOpenChange={() => toggleSection('automation')}>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-between p-4 h-auto bg-gradient-to-r from-secondary/20 to-secondary/30 border border-secondary/30 hover:bg-gradient-to-r hover:from-secondary/30 hover:to-secondary/40 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Settings className="w-5 h-5 text-secondary-foreground" />
-                      <span className="font-medium text-secondary-foreground">Advanced Settings</span>
-                    </div>
-                    {openSections.automation ? <ChevronDown className="w-4 h-4 text-secondary-foreground" /> : <ChevronRight className="w-4 h-4 text-secondary-foreground" />}
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 px-4 pb-4 bg-gradient-to-br from-secondary/10 to-transparent border-l border-r border-b border-secondary/30 rounded-b-lg">
-                  <div className="space-y-2">
-                    <Label htmlFor="market_volatility">Market Volatility</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2">
-                          <Select value={formData.market_volatility} onValueChange={(value) => setFormData(prev => ({ ...prev, market_volatility: value }))}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select market volatility" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {MARKET_VOLATILITY.map((volatility) => (
-                                <SelectItem key={volatility} value={volatility.toLowerCase()}>{volatility}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <HelpCircle className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Helps track performance in different market conditions</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="auto_review_enabled">Auto Review</Label>
-                      <p className="text-sm text-muted-foreground">Enable automatic review reminders</p>
-                    </div>
-                    <Switch
-                      id="auto_review_enabled"
-                      checked={formData.auto_review_enabled}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, auto_review_enabled: checked }))}
-                    />
-                  </div>
-                  {formData.auto_review_enabled && (
-                    <div className="space-y-2">
-                      <Label htmlFor="review_date">Review Date</Label>
-                      <Input
-                        id="review_date"
-                        type="date"
-                        value={formData.review_date}
-                        onChange={(e) => setFormData(prev => ({ ...prev, review_date: e.target.value }))}
-                      />
-                    </div>
-                  )}
-                </CollapsibleContent>
-              </Collapsible>
-
-              <div className="flex gap-2 justify-end pt-4 border-t border-border/50">
-                <Button variant="outline" onClick={() => handleSubmit(true)} className="hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-muted/20 to-muted/30 border-muted/40">
-                  <Save className="w-4 h-4 mr-2" />
-                  Save as Draft
-                </Button>
-                <Button onClick={() => handleSubmit(false)} className="hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-primary to-primary/90">
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Publish Entry
-                </Button>
-              </div>
-              </TooltipProvider>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Floating Action Button (Mobile) */}
+      <Button
+        onClick={() => setShowEntryForm(true)}
+        size="lg"
+        className="journal-fab fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-2xl md:hidden z-40"
+      >
+        <Plus className="w-6 h-6" />
+      </Button>
     </div>
   );
 }
