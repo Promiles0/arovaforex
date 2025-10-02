@@ -86,7 +86,7 @@ export default function Journal() {
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOutcome, setFilterOutcome] = useState("all");
-  const [filterTag, setFilterTag] = useState("");
+  const [filterTag, setFilterTag] = useState("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch entries
@@ -112,7 +112,7 @@ export default function Journal() {
       filtered = filtered.filter(entry => entry.outcome === filterOutcome);
     }
 
-    if (filterTag) {
+    if (filterTag && filterTag !== "all") {
       filtered = filtered.filter(entry => entry.tags?.includes(filterTag));
     }
 
@@ -352,7 +352,7 @@ export default function Journal() {
                     <SelectValue placeholder="All Tags" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Tags</SelectItem>
+                    <SelectItem value="all">All Tags</SelectItem>
                     {allTags.map(tag => (
                       <SelectItem key={tag} value={tag}>{tag}</SelectItem>
                     ))}
@@ -381,7 +381,7 @@ export default function Journal() {
               </div>
 
               {/* Active Filters */}
-              {(searchTerm || filterOutcome !== "all" || filterTag) && (
+              {(searchTerm || filterOutcome !== "all" || (filterTag && filterTag !== "all")) && (
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t">
                   <Filter className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Active filters:</span>
@@ -401,10 +401,10 @@ export default function Journal() {
                       </button>
                     </span>
                   )}
-                  {filterTag && (
+                  {filterTag && filterTag !== "all" && (
                     <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs flex items-center gap-1">
                       Tag: {filterTag}
-                      <button onClick={() => setFilterTag("")}>
+                      <button onClick={() => setFilterTag("all")}>
                         <X className="w-3 h-3" />
                       </button>
                     </span>
