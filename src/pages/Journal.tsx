@@ -21,6 +21,11 @@ import { cn } from "@/lib/utils";
 import JournalEntryForm from "@/components/journal/JournalEntryForm";
 import JournalEntryCard from "@/components/journal/JournalEntryCard";
 import JournalEntryModal from "@/components/journal/JournalEntryModal";
+import AnalyticsStats from "@/components/journal/analytics/AnalyticsStats";
+import PnLChart from "@/components/journal/analytics/PnLChart";
+import WinRateChart from "@/components/journal/analytics/WinRateChart";
+import TimePeriodFilter, { TimePeriod } from "@/components/journal/analytics/TimePeriodFilter";
+import { useJournalAnalytics } from "@/hooks/useJournalAnalytics";
 
 interface JournalEntry {
   id: string;
@@ -88,6 +93,11 @@ export default function Journal() {
   const [filterOutcome, setFilterOutcome] = useState("all");
   const [filterTag, setFilterTag] = useState("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Analytics filters
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<TimePeriod>('month');
+  const [analyticsStartDate, setAnalyticsStartDate] = useState<Date | undefined>();
+  const [analyticsEndDate, setAnalyticsEndDate] = useState<Date | undefined>();
 
   // Fetch entries
   useEffect(() => {
@@ -274,6 +284,51 @@ export default function Journal() {
   // Get all unique tags for filter
   const allTags = Array.from(new Set(entries.flatMap(e => e.tags || [])));
 
+  // Calculate date range for analytics
+  const getDateRange = (): { start?: Date; end?: Date } => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    switch (analyticsPeriod) {
+      case 'today':
+        return { start: today, end: now };
+      case 'week': {
+        const weekStart = new Date(today);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        return { start: weekStart, end: now };
+      }
+      case 'month': {
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return { start: monthStart, end: now };
+      }
+      case 'year': {
+        const yearStart = new Date(now.getFullYear(), 0, 1);
+        return { start: yearStart, end: now };
+      }
+      case 'custom':
+        return { start: analyticsStartDate, end: analyticsEndDate };
+      case 'all':
+      default:
+        return {};
+    }
+  };
+
+  const dateRange = getDateRange();
+  const analytics = useJournalAnalytics(entries, dateRange.start, dateRange.end);
+
+  const handlePeriodChange = (period: TimePeriod) => {
+    setAnalyticsPeriod(period);
+    if (period !== 'custom') {
+      setAnalyticsStartDate(undefined);
+      setAnalyticsEndDate(undefined);
+    }
+  };
+
+  const handleDateChange = (start?: Date, end?: Date) => {
+    setAnalyticsStartDate(start);
+    setAnalyticsEndDate(end);
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
@@ -453,22 +508,46 @@ export default function Journal() {
           )}
         </TabsContent>
 
-        <TabsContent value="analytics">
+        <TabsContent value="analytics" className="space-y-6 mt-6">
+          {/* Time Period Filter */}
           <Card className="journal-glassmorphism">
-            <CardHeader>
-              <CardTitle>Performance Analytics</CardTitle>
-              <CardDescription>
-                Detailed analytics and performance metrics coming soon
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">
-                  This section will include win rate, P&L charts, risk-reward analysis, and more.
-                </p>
-              </div>
+            <CardContent className="p-4">
+              <TimePeriodFilter
+                period={analyticsPeriod}
+                onPeriodChange={handlePeriodChange}
+                startDate={analyticsStartDate}
+                endDate={analyticsEndDate}
+                onDateChange={handleDateChange}
+              />
             </CardContent>
           </Card>
+
+          {/* Stats Cards */}
+          {entries.length > 0 ? (
+            <>
+              <AnalyticsStats metrics={analytics} />
+              
+              {/* Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PnLChart metrics={analytics} />
+                <WinRateChart metrics={analytics} />
+              </div>
+            </>
+          ) : (
+            <Card className="journal-glassmorphism">
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <BookOpen className="w-20 h-20 text-muted-foreground mb-4 opacity-50" />
+                <h3 className="text-xl font-semibold mb-2">No Data Yet</h3>
+                <p className="text-muted-foreground text-center mb-6 max-w-md">
+                  Start creating journal entries to see your performance analytics
+                </p>
+                <Button onClick={() => setShowEntryForm(true)} size="lg" className="journal-submit-btn">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Create First Entry
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="settings">
