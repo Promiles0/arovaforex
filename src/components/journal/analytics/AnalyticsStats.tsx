@@ -13,30 +13,30 @@ export default function AnalyticsStats({ metrics }: AnalyticsStatsProps) {
   const statCards = [
     {
       title: 'Total P&L',
-      value: metrics.totalPnL >= 0 ? `+$${metrics.totalPnL.toFixed(2)}` : `-$${Math.abs(metrics.totalPnL).toFixed(2)}`,
-      icon: metrics.totalPnL >= 0 ? TrendingUp : TrendingDown,
-      subtitle: `Avg: ${metrics.averagePnL >= 0 ? '+' : ''}$${metrics.averagePnL.toFixed(2)}`,
-      color: metrics.totalPnL >= 0 ? 'text-bull' : 'text-bear',
-      bgColor: metrics.totalPnL >= 0 ? 'bg-bull/10' : 'bg-bear/10',
+      value: (metrics.totalPnL ?? 0) >= 0 ? `+$${(metrics.totalPnL ?? 0).toFixed(2)}` : `-$${Math.abs(metrics.totalPnL ?? 0).toFixed(2)}`,
+      icon: (metrics.totalPnL ?? 0) >= 0 ? TrendingUp : TrendingDown,
+      subtitle: `Avg: ${(metrics.averagePnL ?? 0) >= 0 ? '+' : ''}$${(metrics.averagePnL ?? 0).toFixed(2)}`,
+      color: (metrics.totalPnL ?? 0) >= 0 ? 'text-bull' : 'text-bear',
+      bgColor: (metrics.totalPnL ?? 0) >= 0 ? 'bg-bull/10' : 'bg-bear/10',
       delay: 0,
       type: 'pnl'
     },
     {
       title: 'Win Rate',
-      value: `${metrics.winRate.toFixed(1)}%`,
+      value: `${(metrics.winRate ?? 0).toFixed(1)}%`,
       icon: Target,
-      subtitle: `${metrics.winningTrades} wins / ${metrics.totalTrades} trades`,
-      color: metrics.winRate >= 60 ? 'text-bull' : metrics.winRate >= 40 ? 'text-yellow-500' : 'text-bear',
-      bgColor: metrics.winRate >= 60 ? 'bg-bull/10' : metrics.winRate >= 40 ? 'bg-yellow-500/10' : 'bg-bear/10',
-      progress: metrics.winRate,
+      subtitle: `${metrics.winningTrades ?? 0} wins / ${metrics.totalTrades ?? 0} trades`,
+      color: (metrics.winRate ?? 0) >= 60 ? 'text-bull' : (metrics.winRate ?? 0) >= 40 ? 'text-yellow-500' : 'text-bear',
+      bgColor: (metrics.winRate ?? 0) >= 60 ? 'bg-bull/10' : (metrics.winRate ?? 0) >= 40 ? 'bg-yellow-500/10' : 'bg-bear/10',
+      progress: metrics.winRate ?? 0,
       delay: 0.1,
       type: 'winrate'
     },
     {
       title: 'Total Trades',
-      value: metrics.totalTrades.toString(),
+      value: (metrics.totalTrades ?? 0).toString(),
       icon: BarChart3,
-      subtitle: `${metrics.winningTrades}W • ${metrics.losingTrades}L • ${metrics.breakevenTrades}BE`,
+      subtitle: `${metrics.winningTrades ?? 0}W • ${metrics.losingTrades ?? 0}L • ${metrics.breakevenTrades ?? 0}BE`,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
       delay: 0.2,
@@ -44,11 +44,11 @@ export default function AnalyticsStats({ metrics }: AnalyticsStatsProps) {
     },
     {
       title: 'Risk/Reward Ratio',
-      value: `1:${metrics.averageRiskReward.toFixed(2)}`,
+      value: `1:${(metrics.averageRiskReward ?? 0).toFixed(2)}`,
       icon: BarChart3,
-      subtitle: metrics.averageRiskReward >= 2 ? 'Excellent' : metrics.averageRiskReward >= 1 ? 'Good' : 'Needs improvement',
-      color: metrics.averageRiskReward >= 2 ? 'text-bull' : metrics.averageRiskReward >= 1 ? 'text-yellow-500' : 'text-bear',
-      bgColor: metrics.averageRiskReward >= 2 ? 'bg-bull/10' : metrics.averageRiskReward >= 1 ? 'bg-yellow-500/10' : 'bg-bear/10',
+      subtitle: (metrics.averageRiskReward ?? 0) >= 2 ? 'Excellent' : (metrics.averageRiskReward ?? 0) >= 1 ? 'Good' : 'Needs improvement',
+      color: (metrics.averageRiskReward ?? 0) >= 2 ? 'text-bull' : (metrics.averageRiskReward ?? 0) >= 1 ? 'text-yellow-500' : 'text-bear',
+      bgColor: (metrics.averageRiskReward ?? 0) >= 2 ? 'bg-bull/10' : (metrics.averageRiskReward ?? 0) >= 1 ? 'bg-yellow-500/10' : 'bg-bear/10',
       delay: 0.3,
       type: 'rr'
     }
