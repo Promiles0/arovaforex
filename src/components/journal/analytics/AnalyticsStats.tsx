@@ -94,7 +94,7 @@ export default function AnalyticsStats({ metrics }: AnalyticsStatsProps) {
               </div>
 
               {/* Sparkline for P&L */}
-              {stat.type === 'pnl' && metrics.pnlByDate.length > 0 && (
+              {stat.type === 'pnl' && metrics.pnlByDate && metrics.pnlByDate.length > 0 && (
                 <div className="mt-4 h-8 flex items-end justify-between gap-1">
                   {metrics.pnlByDate.slice(-10).map((day, i) => (
                     <motion.div
@@ -105,7 +105,7 @@ export default function AnalyticsStats({ metrics }: AnalyticsStatsProps) {
                       )}
                       initial={{ height: 0 }}
                       animate={{ 
-                        height: `${Math.abs(day.pnl) / Math.max(...metrics.pnlByDate.map(d => Math.abs(d.pnl))) * 100}%` 
+                        height: `${Math.abs(day.pnl) / Math.max(...metrics.pnlByDate.map(d => Math.abs(d.pnl)), 1) * 100}%` 
                       }}
                       transition={{ delay: stat.delay + 0.4 + (i * 0.05), duration: 0.3 }}
                     />
@@ -146,25 +146,25 @@ export default function AnalyticsStats({ metrics }: AnalyticsStatsProps) {
               )}
 
               {/* Donut chart for Total Trades */}
-              {stat.type === 'trades' && metrics.totalTrades > 0 && (
+              {stat.type === 'trades' && (metrics.totalTrades ?? 0) > 0 && (
                 <div className="mt-4 flex items-center gap-2">
                   <div className="flex-1 h-2 bg-muted/20 rounded-full overflow-hidden flex">
                     <motion.div
                       className="bg-bull h-full"
                       initial={{ width: 0 }}
-                      animate={{ width: `${(metrics.winningTrades / metrics.totalTrades) * 100}%` }}
+                      animate={{ width: `${((metrics.winningTrades ?? 0) / (metrics.totalTrades ?? 1)) * 100}%` }}
                       transition={{ delay: stat.delay + 0.4, duration: 0.8, ease: "easeOut" }}
                     />
                     <motion.div
                       className="bg-bear h-full"
                       initial={{ width: 0 }}
-                      animate={{ width: `${(metrics.losingTrades / metrics.totalTrades) * 100}%` }}
+                      animate={{ width: `${((metrics.losingTrades ?? 0) / (metrics.totalTrades ?? 1)) * 100}%` }}
                       transition={{ delay: stat.delay + 0.5, duration: 0.8, ease: "easeOut" }}
                     />
                     <motion.div
                       className="bg-yellow-500 h-full"
                       initial={{ width: 0 }}
-                      animate={{ width: `${(metrics.breakevenTrades / metrics.totalTrades) * 100}%` }}
+                      animate={{ width: `${((metrics.breakevenTrades ?? 0) / (metrics.totalTrades ?? 1)) * 100}%` }}
                       transition={{ delay: stat.delay + 0.6, duration: 0.8, ease: "easeOut" }}
                     />
                   </div>
@@ -180,7 +180,7 @@ export default function AnalyticsStats({ metrics }: AnalyticsStatsProps) {
                       <motion.div
                         className={cn("h-full rounded-full", stat.color.replace('text-', 'bg-'))}
                         initial={{ width: 0 }}
-                        animate={{ width: `${Math.min((metrics.averageRiskReward / 3) * 100, 100)}%` }}
+                        animate={{ width: `${Math.min(((metrics.averageRiskReward ?? 0) / 3) * 100, 100)}%` }}
                         transition={{ delay: stat.delay + 0.4, duration: 0.8, ease: "easeOut" }}
                       />
                     </div>
