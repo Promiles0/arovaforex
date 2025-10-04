@@ -8,29 +8,34 @@ interface PnLChartProps {
 }
 
 export default function PnLChart({ metrics }: PnLChartProps) {
-  const chartData = metrics.pnlByDate.map(item => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    pnl: item.pnl,
-    cumulative: item.cumulative
-  }));
+  const chartData = Array.isArray(metrics.pnlByDate)
+    ? metrics.pnlByDate.map(item => ({
+        date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        pnl: Number(item.pnl ?? 0),
+        cumulative: Number(item.cumulative ?? 0)
+      }))
+    : [];
+
 
   const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
-          <p className="text-sm font-medium mb-1">{payload[0].payload.date}</p>
-          <p className={`text-sm ${payload[0].value >= 0 ? 'text-bull' : 'text-bear'}`}>
-            Daily P&L: {payload[0].value >= 0 ? '+' : ''}${payload[0].value.toFixed(2)}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Cumulative: ${payload[1].value.toFixed(2)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+    if (!active || !payload || payload.length === 0) return null;
+    const p = payload[0]?.payload ?? {};
+    const date: string = p.date ?? '';
+    const daily: number = typeof p.pnl === 'number' ? p.pnl : Number(p.pnl ?? 0);
+    const cumulative: number = typeof p.cumulative === 'number' ? p.cumulative : Number(p.cumulative ?? 0);
 
+    return (
+      <div className="bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
+        <p className="text-sm font-medium mb-1">{date}</p>
+        <p className={`text-sm ${daily >= 0 ? 'text-bull' : 'text-bear'}`}>
+          Daily P&L: {daily >= 0 ? '+' : ''}${daily.toFixed(2)}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Cumulative: ${cumulative.toFixed(2)}
+        </p>
+      </div>
+    );
+  };
   if (chartData.length === 0) {
     return (
       <Card className="journal-glassmorphism">
