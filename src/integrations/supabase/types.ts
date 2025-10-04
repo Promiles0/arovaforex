@@ -50,6 +50,36 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           category: string
@@ -217,6 +247,7 @@ export type Database = {
           currency_pair: string | null
           description: string | null
           forecast_type: string
+          hidden: boolean | null
           id: string
           image_url: string
           likes_count: number | null
@@ -233,6 +264,7 @@ export type Database = {
           currency_pair?: string | null
           description?: string | null
           forecast_type: string
+          hidden?: boolean | null
           id?: string
           image_url: string
           likes_count?: number | null
@@ -249,6 +281,7 @@ export type Database = {
           currency_pair?: string | null
           description?: string | null
           forecast_type?: string
+          hidden?: boolean | null
           id?: string
           image_url?: string
           likes_count?: number | null
@@ -593,6 +626,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_admin_action: {
+        Args: {
+          p_action: string
+          p_details?: Json
+          p_target_id: string
+          p_target_type: string
+        }
+        Returns: string
       }
     }
     Enums: {

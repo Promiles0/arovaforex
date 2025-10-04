@@ -22,6 +22,7 @@ interface Forecast {
   currency_pair: string | null;
   trade_bias: 'long' | 'short' | 'neutral' | null;
   commentary: string | null;
+  hidden: boolean;
 }
 
 interface Profile {
@@ -291,6 +292,7 @@ export default function Forecasts() {
                 onBookmark={handleBookmark}
                 onImageClick={setSelectedImageForecast}
                 onCardClick={setSelectedDetailForecast}
+                onRefresh={fetchForecasts}
               />
             ))}
           </div>
@@ -334,6 +336,7 @@ export default function Forecasts() {
                 onBookmark={handleBookmark}
                 onImageClick={setSelectedImageForecast}
                 onCardClick={setSelectedDetailForecast}
+                onRefresh={fetchForecasts}
               />
             ))}
           </div>
@@ -376,6 +379,7 @@ export default function Forecasts() {
           onLike={handleLike}
           onBookmark={handleBookmark}
           onImageClick={setSelectedImageForecast}
+          onRefresh={fetchForecasts}
         />
       )}
     </div>

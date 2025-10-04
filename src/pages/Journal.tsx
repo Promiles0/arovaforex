@@ -24,6 +24,10 @@ import JournalEntryModal from "@/components/journal/JournalEntryModal";
 import AnalyticsStats from "@/components/journal/analytics/AnalyticsStats";
 import PnLChart from "@/components/journal/analytics/PnLChart";
 import WinRateChart from "@/components/journal/analytics/WinRateChart";
+import InstrumentPerformanceChart from "@/components/journal/analytics/InstrumentPerformanceChart";
+import TimeHeatmap from "@/components/journal/analytics/TimeHeatmap";
+import RiskRewardScatter from "@/components/journal/analytics/RiskRewardScatter";
+import DrawdownChart from "@/components/journal/analytics/DrawdownChart";
 import TimePeriodFilter, { TimePeriod } from "@/components/journal/analytics/TimePeriodFilter";
 import { useJournalAnalytics } from "@/hooks/useJournalAnalytics";
 
@@ -531,6 +535,17 @@ export default function Journal() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <PnLChart metrics={analytics} />
                 <WinRateChart metrics={analytics} />
+              </div>
+
+              {/* Advanced Analytics */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <InstrumentPerformanceChart metrics={analytics} />
+                <TimeHeatmap metrics={analytics} />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <RiskRewardScatter metrics={analytics} />
+                <DrawdownChart metrics={analytics} />
               </div>
             </>
           ) : (

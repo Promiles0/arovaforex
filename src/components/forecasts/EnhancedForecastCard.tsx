@@ -2,8 +2,21 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Bookmark, TrendingUp, TrendingDown, Minus, MessageCircle, Share2, Eye, User } from "lucide-react";
+import { Heart, Bookmark, TrendingUp, TrendingDown, Minus, MessageCircle, Share2, Eye, User, Edit, Trash2, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Profile {
   full_name: string | null;
@@ -25,6 +38,7 @@ interface ExtendedForecast {
   currency_pair: string | null;
   trade_bias: 'long' | 'short' | 'neutral' | null;
   commentary: string | null;
+  hidden: boolean;
   user_profile?: Profile;
   is_liked?: boolean;
   is_bookmarked?: boolean;
@@ -36,6 +50,7 @@ interface EnhancedForecastCardProps {
   onBookmark: (forecastId: string) => void;
   onImageClick: (forecast: ExtendedForecast) => void;
   onCardClick: (forecast: ExtendedForecast) => void;
+  onRefresh?: () => void;
 }
 
 export default function EnhancedForecastCard({ 
@@ -43,10 +58,20 @@ export default function EnhancedForecastCard({
   onLike, 
   onBookmark, 
   onImageClick, 
-  onCardClick 
+  onCardClick,
+  onRefresh
 }: EnhancedForecastCardProps) {
   const [showFullComment, setShowFullComment] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showHideDialog, setShowHideDialog] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { isAdmin } = useAdminCheck();
+  
+  const isOwner = user?.id === forecast.user_id;
+  const canEdit = isOwner || isAdmin;
+  const canDelete = isOwner || isAdmin;
+  const canHide = isAdmin;
 
   const getSentimentStyles = (bias: string | null) => {
     switch (bias) {
@@ -118,7 +143,76 @@ export default function EnhancedForecastCard({
 
   const sentiment = getSentimentStyles(forecast.trade_bias);
 
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('forecasts')
+        .delete()
+        .eq('id', forecast.id);
+
+      if (error) throw error;
+
+      if (isAdmin) {
+        await supabase.rpc('log_admin_action', {
+          p_action: 'delete_forecast',
+          p_target_type: 'forecast',
+          p_target_id: forecast.id,
+          p_details: { title: forecast.title, currency_pair: forecast.currency_pair }
+        });
+      }
+
+      toast({
+        title: "Success",
+        description: "Forecast deleted successfully",
+      });
+      
+      onRefresh?.();
+    } catch (error) {
+      console.error('Error deleting forecast:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete forecast",
+        variant: "destructive",
+      });
+    }
+    setShowDeleteDialog(false);
+  };
+
+  const handleHide = async () => {
+    try {
+      const { error } = await supabase
+        .from('forecasts')
+        .update({ hidden: !forecast.hidden })
+        .eq('id', forecast.id);
+
+      if (error) throw error;
+
+      await supabase.rpc('log_admin_action', {
+        p_action: forecast.hidden ? 'unhide_forecast' : 'hide_forecast',
+        p_target_type: 'forecast',
+        p_target_id: forecast.id,
+        p_details: { title: forecast.title }
+      });
+
+      toast({
+        title: "Success",
+        description: forecast.hidden ? "Forecast unhidden" : "Forecast hidden",
+      });
+      
+      onRefresh?.();
+    } catch (error) {
+      console.error('Error toggling forecast visibility:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update forecast visibility",
+        variant: "destructive",
+      });
+    }
+    setShowHideDialog(false);
+  };
+
   return (
+    <>
     <Card 
       className="group relative overflow-hidden bg-card hover:bg-card/80 border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 cursor-pointer animate-fade-in w-full min-h-[280px] lg:min-h-[300px]"
       onClick={() => onCardClick(forecast)}
@@ -173,7 +267,42 @@ export default function EnhancedForecastCard({
                   </div>
                 </div>
                 
-                
+                {/* Admin/Owner Controls */}
+                {(canEdit || canDelete || canHide) && (
+                  <div className="flex items-center gap-1">
+                    {isAdmin && (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                        ADMIN
+                      </Badge>
+                    )}
+                    {canHide && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowHideDialog(true);
+                        }}
+                        className="h-8 w-8 p-0 text-warning hover:text-warning hover:bg-warning/10"
+                      >
+                        <EyeOff className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDeleteDialog(true);
+                        }}
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Title/Description */}
@@ -281,6 +410,47 @@ export default function EnhancedForecastCard({
           </div>
         </div>
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Forecast</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete this forecast? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Hide/Unhide Confirmation Dialog */}
+      <AlertDialog open={showHideDialog} onOpenChange={setShowHideDialog}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {forecast.hidden ? 'Unhide' : 'Hide'} Forecast
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {forecast.hidden 
+                ? 'This forecast will become visible to all users again.'
+                : 'This forecast will be hidden from regular users but remain accessible to admins.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleHide}>
+              {forecast.hidden ? 'Unhide' : 'Hide'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
+    </>
   );
 }

@@ -1,8 +1,22 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Bookmark, MessageCircle, Share2, X, TrendingUp, TrendingDown, Minus, ExternalLink } from "lucide-react";
+import { Heart, Bookmark, MessageCircle, Share2, X, TrendingUp, TrendingDown, Minus, ExternalLink, Trash2, EyeOff, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Profile {
   full_name: string | null;
@@ -24,6 +38,7 @@ interface ExtendedForecast {
   currency_pair: string | null;
   trade_bias: 'long' | 'short' | 'neutral' | null;
   commentary: string | null;
+  hidden: boolean;
   user_profile?: Profile;
   is_liked?: boolean;
   is_bookmarked?: boolean;
@@ -36,6 +51,7 @@ interface ForecastDetailModalProps {
   onLike: (forecastId: string) => void;
   onBookmark: (forecastId: string) => void;
   onImageClick: (forecast: ExtendedForecast) => void;
+  onRefresh?: () => void;
 }
 
 export default function ForecastDetailModal({ 
@@ -44,9 +60,18 @@ export default function ForecastDetailModal({
   onClose, 
   onLike, 
   onBookmark, 
-  onImageClick 
+  onImageClick,
+  onRefresh
 }: ForecastDetailModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { isAdmin } = useAdminCheck();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showHideDialog, setShowHideDialog] = useState(false);
+  
+  const isOwner = user?.id === forecast.user_id;
+  const canDelete = isOwner || isAdmin;
+  const canHide = isAdmin;
 
   const getBiasIcon = (bias: string | null) => {
     switch (bias) {
@@ -86,6 +111,76 @@ export default function ForecastDetailModal({
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('forecasts')
+        .delete()
+        .eq('id', forecast.id);
+
+      if (error) throw error;
+
+      if (isAdmin) {
+        await supabase.rpc('log_admin_action', {
+          p_action: 'delete_forecast',
+          p_target_type: 'forecast',
+          p_target_id: forecast.id,
+          p_details: { title: forecast.title, currency_pair: forecast.currency_pair }
+        });
+      }
+
+      toast({
+        title: "Success",
+        description: "Forecast deleted successfully",
+      });
+      
+      onClose();
+      onRefresh?.();
+    } catch (error) {
+      console.error('Error deleting forecast:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete forecast",
+        variant: "destructive",
+      });
+    }
+    setShowDeleteDialog(false);
+  };
+
+  const handleHide = async () => {
+    try {
+      const { error } = await supabase
+        .from('forecasts')
+        .update({ hidden: !forecast.hidden })
+        .eq('id', forecast.id);
+
+      if (error) throw error;
+
+      await supabase.rpc('log_admin_action', {
+        p_action: forecast.hidden ? 'unhide_forecast' : 'hide_forecast',
+        p_target_type: 'forecast',
+        p_target_id: forecast.id,
+        p_details: { title: forecast.title }
+      });
+
+      toast({
+        title: "Success",
+        description: forecast.hidden ? "Forecast unhidden" : "Forecast hidden",
+      });
+      
+      onClose();
+      onRefresh?.();
+    } catch (error) {
+      console.error('Error toggling forecast visibility:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update forecast visibility",
+        variant: "destructive",
+      });
+    }
+    setShowHideDialog(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[95vh] p-0 bg-background/95 backdrop-blur-sm border border-border/50">
@@ -103,11 +198,39 @@ export default function ForecastDetailModal({
                   {forecast.trade_bias?.toUpperCase() || 'NEUTRAL'}
                 </span>
               </div>
+              {isAdmin && (
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                  <Shield className="w-3 h-3 mr-1" />
+                  ADMIN
+                </Badge>
+              )}
             </div>
             
-            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {canHide && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowHideDialog(true)}
+                  className="h-8 w-8 p-0 text-warning hover:text-warning hover:bg-warning/10"
+                >
+                  <EyeOff className="w-4 h-4" />
+                </Button>
+              )}
+              {canDelete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </DialogTitle>
           <DialogDescription>
             <h2 className="text-xl font-bold text-foreground mt-2">
@@ -264,6 +387,46 @@ export default function ForecastDetailModal({
             </Button>
           </div>
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Forecast</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to permanently delete this forecast? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Hide/Unhide Confirmation Dialog */}
+        <AlertDialog open={showHideDialog} onOpenChange={setShowHideDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {forecast.hidden ? 'Unhide' : 'Hide'} Forecast
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {forecast.hidden 
+                  ? 'This forecast will become visible to all users again.'
+                  : 'This forecast will be hidden from regular users but remain accessible to admins.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleHide}>
+                {forecast.hidden ? 'Unhide' : 'Hide'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

@@ -30,6 +30,12 @@ export interface AnalyticsMetrics {
   winRateByDate: { date: string; winRate: number; trades: number }[];
   tradesByOutcome: { outcome: string; count: number; percentage: number }[];
   profitFactor: number;
+  instrumentPerformance: { instrument: string; totalPnL: number; trades: number; wins: number; losses: number; winRate: number; avgPnL: number }[];
+  timeHeatmap: { day: number; hour: number; winRate: number; trades: number; pnl: number }[];
+  riskRewardScatter: { id: string; risk: number; reward: number; outcome: 'win' | 'loss'; pnl: number; date: string; instrument: string }[];
+  drawdownData: { date: string; drawdownPercent: number; daysInDrawdown: number; peak: number }[];
+  maxDrawdown: { percent: number; date: string; recoveryDays: number };
+  avgRecoveryTime: number;
 }
 
 export const useJournalAnalytics = (
@@ -135,6 +141,121 @@ export const useJournalAnalytics = (
     const totalLosses = Math.abs(tradesWithPnL.filter(e => e.outcome === 'loss').reduce((sum, e) => sum + (e.pnl || 0), 0));
     const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
 
+    // Instrument Performance
+    const instrumentMap = new Map<string, { pnl: number; trades: number; wins: number; losses: number }>();
+    closedTrades.forEach(entry => {
+      if (entry.instrument && entry.pnl !== null && entry.pnl !== undefined) {
+        const current = instrumentMap.get(entry.instrument) || { pnl: 0, trades: 0, wins: 0, losses: 0 };
+        instrumentMap.set(entry.instrument, {
+          pnl: current.pnl + entry.pnl,
+          trades: current.trades + 1,
+          wins: current.wins + (entry.outcome === 'win' ? 1 : 0),
+          losses: current.losses + (entry.outcome === 'loss' ? 1 : 0)
+        });
+      }
+    });
+    const instrumentPerformance = Array.from(instrumentMap.entries()).map(([instrument, data]) => ({
+      instrument,
+      totalPnL: data.pnl,
+      trades: data.trades,
+      wins: data.wins,
+      losses: data.losses,
+      winRate: data.trades > 0 ? (data.wins / data.trades) * 100 : 0,
+      avgPnL: data.trades > 0 ? data.pnl / data.trades : 0
+    })).sort((a, b) => b.totalPnL - a.totalPnL);
+
+    // Time-Based Heatmap
+    const timeMap = new Map<string, { wins: number; total: number; pnl: number }>();
+    closedTrades.forEach(entry => {
+      const date = new Date(entry.entry_date);
+      const day = date.getDay();
+      const hour = date.getHours();
+      const key = `${day}-${hour}`;
+      const current = timeMap.get(key) || { wins: 0, total: 0, pnl: 0 };
+      timeMap.set(key, {
+        wins: current.wins + (entry.outcome === 'win' ? 1 : 0),
+        total: current.total + 1,
+        pnl: current.pnl + (entry.pnl || 0)
+      });
+    });
+    const timeHeatmap = Array.from(timeMap.entries()).map(([key, data]) => {
+      const [day, hour] = key.split('-').map(Number);
+      return {
+        day,
+        hour,
+        winRate: data.total > 0 ? (data.wins / data.total) * 100 : 0,
+        trades: data.total,
+        pnl: data.pnl
+      };
+    });
+
+    // Risk/Reward Scatter
+    const riskRewardScatter = closedTrades
+      .filter(e => e.pnl !== null && e.pnl !== undefined)
+      .map(entry => {
+        const risk = Math.abs(entry.pnl || 0) / (entry.risk_reward_ratio || 1);
+        const reward = Math.abs(entry.pnl || 0);
+        return {
+          id: entry.id,
+          risk,
+          reward,
+          outcome: entry.outcome as 'win' | 'loss',
+          pnl: entry.pnl || 0,
+          date: entry.entry_date,
+          instrument: entry.instrument || 'Unknown'
+        };
+      });
+
+    // Drawdown Analysis
+    let peak = 0;
+    let currentDrawdown = 0;
+    let drawdownStartDate = '';
+    let maxDrawdownPercent = 0;
+    let maxDrawdownDate = '';
+    let maxDrawdownRecoveryDays = 0;
+    const drawdownPeriods: { start: string; end: string; days: number }[] = [];
+    
+    const drawdownData = pnlByDate.map((item, index) => {
+      if (item.cumulative > peak) {
+        if (currentDrawdown < 0 && drawdownStartDate) {
+          drawdownPeriods.push({
+            start: drawdownStartDate,
+            end: pnlByDate[index - 1]?.date || item.date,
+            days: index - pnlByDate.findIndex(d => d.date === drawdownStartDate)
+          });
+        }
+        peak = item.cumulative;
+        currentDrawdown = 0;
+        drawdownStartDate = '';
+      } else {
+        if (currentDrawdown === 0) {
+          drawdownStartDate = item.date;
+        }
+        currentDrawdown = peak - item.cumulative;
+        const drawdownPercent = peak > 0 ? (currentDrawdown / peak) * 100 : 0;
+        
+        if (drawdownPercent > maxDrawdownPercent) {
+          maxDrawdownPercent = drawdownPercent;
+          maxDrawdownDate = item.date;
+          maxDrawdownRecoveryDays = index - pnlByDate.findIndex(d => d.date === drawdownStartDate);
+        }
+      }
+      
+      const drawdownPercent = peak > 0 ? -(currentDrawdown / peak) * 100 : 0;
+      const daysInDrawdown = drawdownStartDate ? index - pnlByDate.findIndex(d => d.date === drawdownStartDate) : 0;
+      
+      return {
+        date: item.date,
+        drawdownPercent,
+        daysInDrawdown,
+        peak
+      };
+    });
+
+    const avgRecoveryTime = drawdownPeriods.length > 0 
+      ? drawdownPeriods.reduce((sum, p) => sum + p.days, 0) / drawdownPeriods.length 
+      : 0;
+
     return {
       totalTrades,
       winningTrades,
@@ -153,7 +274,13 @@ export const useJournalAnalytics = (
       pnlByDate,
       winRateByDate,
       tradesByOutcome,
-      profitFactor
+      profitFactor,
+      instrumentPerformance,
+      timeHeatmap,
+      riskRewardScatter,
+      drawdownData,
+      maxDrawdown: { percent: maxDrawdownPercent, date: maxDrawdownDate, recoveryDays: maxDrawdownRecoveryDays },
+      avgRecoveryTime
     };
   }, [entries, startDate, endDate]);
 };
