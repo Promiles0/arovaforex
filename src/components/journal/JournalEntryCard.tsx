@@ -127,7 +127,7 @@ export default function JournalEntryCard({ entry, onClick }: JournalEntryCardPro
           {/* Footer - Stats & Tags */}
           <div className="flex items-center justify-between pt-2 border-t border-border/50">
             <div className="flex items-center gap-3 text-xs">
-              {entry.pnl !== undefined && (
+              {entry.pnl !== undefined && entry.pnl !== null && (
                 <div className={cn(
                   "flex items-center gap-1 font-semibold",
                   entry.pnl > 0 ? "text-success" : entry.pnl < 0 ? "text-destructive" : "text-muted-foreground"
@@ -137,7 +137,7 @@ export default function JournalEntryCard({ entry, onClick }: JournalEntryCardPro
                 </div>
               )}
               
-              {entry.risk_reward_ratio !== undefined && (
+              {entry.risk_reward_ratio !== undefined && entry.risk_reward_ratio !== null && (
                 <div className="text-muted-foreground">
                   R/R: <span className="font-medium">{entry.risk_reward_ratio.toFixed(2)}</span>
                 </div>
