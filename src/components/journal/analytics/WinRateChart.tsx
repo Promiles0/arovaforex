@@ -15,7 +15,7 @@ export default function WinRateChart({ metrics }: WinRateChartProps) {
   }));
 
   const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length && payload[0].value != null) {
       return (
         <div className="bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
           <p className="text-sm font-medium mb-1">{payload[0].payload.date}</p>

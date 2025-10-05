@@ -88,7 +88,7 @@ export default function JournalEntryModal({
                     {entry.outcome}
                   </Badge>
                 )}
-                {entry.pnl !== undefined && (
+                {entry.pnl !== undefined && entry.pnl !== null && (
                   <span className={cn(
                     "font-semibold text-base",
                     entry.pnl > 0 ? "text-success" : entry.pnl < 0 ? "text-destructive" : "text-muted-foreground"
@@ -176,7 +176,7 @@ export default function JournalEntryModal({
                         <p className="font-semibold">{entry.quantity}</p>
                       </div>
                     )}
-                    {entry.risk_reward_ratio && (
+                    {entry.risk_reward_ratio !== undefined && entry.risk_reward_ratio !== null && (
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Risk/Reward</p>
                         <p className="font-semibold">{entry.risk_reward_ratio.toFixed(2)}</p>

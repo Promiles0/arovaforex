@@ -134,9 +134,9 @@ export default function TimeHeatmap({ metrics }: TimeHeatmapProps) {
                         key={`${dayIndex}-${hour}`}
                         className={`w-8 h-4 rounded ${getColor(value)} transition-all duration-200 hover:scale-150 hover:z-10 cursor-pointer relative group`}
                         title={value !== null ? `${days[dayIndex]} ${hour}:00\n${
-                          activeMetric === 'winRate' ? `${value.toFixed(1)}% win rate` :
-                          activeMetric === 'pnl' ? `$${value.toFixed(2)} P&L` :
-                          `${value} trades`
+                          activeMetric === 'winRate' ? `${(value ?? 0).toFixed(1)}% win rate` :
+                          activeMetric === 'pnl' ? `$${(value ?? 0).toFixed(2)} P&L` :
+                          `${value ?? 0} trades`
                         }` : 'No data'}
                       >
                         {cell && (
