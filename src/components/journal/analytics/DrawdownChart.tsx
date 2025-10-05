@@ -43,13 +43,13 @@ export default function DrawdownChart({ metrics }: DrawdownChartProps) {
         <p className="font-semibold mb-2">{new Date(data.date).toLocaleDateString()}</p>
         <div className="space-y-1 text-sm">
           <p className="text-destructive">
-            Drawdown: {Math.abs(data.drawdownPercent).toFixed(2)}%
+            Drawdown: {Math.abs(data.drawdownPercent ?? 0).toFixed(2)}%
           </p>
           <p className="text-muted-foreground">
-            Days in drawdown: {data.daysInDrawdown}
+            Days in drawdown: {data.daysInDrawdown ?? 0}
           </p>
           <p className="text-muted-foreground">
-            Peak: ${data.peak.toFixed(2)}
+            Peak: ${(data.peak ?? 0).toFixed(2)}
           </p>
         </div>
       </div>
@@ -82,10 +82,10 @@ export default function DrawdownChart({ metrics }: DrawdownChartProps) {
               <p className="text-xs text-muted-foreground">Max Drawdown</p>
             </div>
             <p className="text-lg font-bold text-destructive">
-              {metrics.maxDrawdown.percent.toFixed(2)}%
+              {(metrics.maxDrawdown?.percent ?? 0).toFixed(2)}%
             </p>
             <p className="text-xs text-muted-foreground">
-              {new Date(metrics.maxDrawdown.date).toLocaleDateString()}
+              {metrics.maxDrawdown?.date ? new Date(metrics.maxDrawdown.date).toLocaleDateString() : 'N/A'}
             </p>
           </div>
 
@@ -95,7 +95,7 @@ export default function DrawdownChart({ metrics }: DrawdownChartProps) {
               <p className="text-xs text-muted-foreground">Avg Recovery</p>
             </div>
             <p className="text-lg font-bold">
-              {metrics.avgRecoveryTime.toFixed(0)} days
+              {(metrics.avgRecoveryTime ?? 0).toFixed(0)} days
             </p>
             <p className="text-xs text-muted-foreground">
               Current: {currentDaysInDrawdown} days
@@ -108,7 +108,7 @@ export default function DrawdownChart({ metrics }: DrawdownChartProps) {
               <p className="text-xs text-muted-foreground">Recovery Time</p>
             </div>
             <p className="text-lg font-bold">
-              {metrics.maxDrawdown.recoveryDays} days
+              {metrics.maxDrawdown?.recoveryDays ?? 0} days
             </p>
             <p className="text-xs text-muted-foreground">For max DD</p>
           </div>

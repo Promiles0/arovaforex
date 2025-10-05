@@ -55,21 +55,21 @@ export default function RiskRewardScatter({ metrics }: RiskRewardScatterProps) {
   const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload || payload.length === 0) return null;
     const data = payload[0].payload;
-    const rr = (data.reward / (data.risk || 1)).toFixed(2);
+    const rr = ((data.reward ?? 0) / ((data.risk || 1) || 1)).toFixed(2);
     
     return (
       <div className="bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
         <p className="font-semibold mb-2">{data.instrument}</p>
         <div className="space-y-1 text-sm">
           <p className="text-muted-foreground">Date: {new Date(data.date).toLocaleDateString()}</p>
-          <p className="text-muted-foreground">Risk: ${data.risk.toFixed(2)}</p>
-          <p className="text-muted-foreground">Reward: ${data.reward.toFixed(2)}</p>
+          <p className="text-muted-foreground">Risk: ${(data.risk ?? 0).toFixed(2)}</p>
+          <p className="text-muted-foreground">Reward: ${(data.reward ?? 0).toFixed(2)}</p>
           <p className="font-semibold">R:R Ratio: 1:{rr}</p>
-          <p className={data.pnl >= 0 ? 'text-success' : 'text-destructive'}>
-            P&L: ${data.pnl.toFixed(2)}
+          <p className={(data.pnl ?? 0) >= 0 ? 'text-success' : 'text-destructive'}>
+            P&L: ${(data.pnl ?? 0).toFixed(2)}
           </p>
           <p className={data.outcome === 'win' ? 'text-success' : 'text-destructive'}>
-            Outcome: {data.outcome.toUpperCase()}
+            Outcome: {data.outcome?.toUpperCase() ?? 'UNKNOWN'}
           </p>
         </div>
       </div>

@@ -143,9 +143,9 @@ export default function TimeHeatmap({ metrics }: TimeHeatmapProps) {
                           <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background/95 backdrop-blur-sm border rounded-lg p-2 shadow-lg text-xs whitespace-nowrap z-20">
                             <p className="font-semibold">{days[dayIndex]} {hour}:00</p>
                             <p className="text-muted-foreground">
-                              {activeMetric === 'winRate' && `${cell.winRate.toFixed(1)}% win rate`}
-                              {activeMetric === 'pnl' && `$${cell.pnl.toFixed(2)} P&L`}
-                              {activeMetric === 'trades' && `${cell.trades} trades`}
+                              {activeMetric === 'winRate' && `${(cell.winRate ?? 0).toFixed(1)}% win rate`}
+                              {activeMetric === 'pnl' && `$${(cell.pnl ?? 0).toFixed(2)} P&L`}
+                              {activeMetric === 'trades' && `${cell.trades ?? 0} trades`}
                             </p>
                           </div>
                         )}
@@ -163,13 +163,13 @@ export default function TimeHeatmap({ metrics }: TimeHeatmapProps) {
           <div>
             <p className="text-xs text-muted-foreground mb-1">✨ Best Time</p>
             <p className="font-semibold text-sm">
-              {days[bestTime.day]} {bestTime.hour}:00 ({bestTime.winRate.toFixed(1)}% win rate)
+              {days[bestTime.day]} {bestTime.hour}:00 ({(bestTime.winRate ?? 0).toFixed(1)}% win rate)
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">⚠️ Avoid</p>
             <p className="font-semibold text-sm">
-              {days[worstTime.day]} {worstTime.hour}:00 ({worstTime.winRate.toFixed(1)}% win rate)
+              {days[worstTime.day]} {worstTime.hour}:00 ({(worstTime.winRate ?? 0).toFixed(1)}% win rate)
             </p>
           </div>
         </div>

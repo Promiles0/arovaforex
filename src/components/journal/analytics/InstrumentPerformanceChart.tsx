@@ -47,16 +47,16 @@ export default function InstrumentPerformanceChart({ metrics }: InstrumentPerfor
         <p className="font-semibold mb-2">{data.instrument}</p>
         <div className="space-y-1 text-sm">
           <p className={data.totalPnL >= 0 ? 'text-success' : 'text-destructive'}>
-            P&L: ${data.totalPnL.toFixed(2)} ({((data.totalPnL / (metrics.totalPnL || 1)) * 100).toFixed(1)}%)
+            P&L: ${(data.totalPnL ?? 0).toFixed(2)} ({((data.totalPnL ?? 0) / (metrics.totalPnL || 1) * 100).toFixed(1)}%)
           </p>
           <p className="text-muted-foreground">
-            Win Rate: {data.winRate.toFixed(1)}%
+            Win Rate: {(data.winRate ?? 0).toFixed(1)}%
           </p>
           <p className="text-muted-foreground">
-            Trades: {data.trades} ({data.wins}W / {data.losses}L)
+            Trades: {data.trades ?? 0} ({data.wins ?? 0}W / {data.losses ?? 0}L)
           </p>
           <p className="text-muted-foreground">
-            Avg P&L: ${data.avgPnL.toFixed(2)}
+            Avg P&L: ${(data.avgPnL ?? 0).toFixed(2)}
           </p>
         </div>
       </div>
