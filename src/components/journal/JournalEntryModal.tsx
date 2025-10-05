@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,6 +70,9 @@ export default function JournalEntryModal({
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0 space-y-2">
               <DialogTitle className="text-2xl font-bold pr-8">{entry.title}</DialogTitle>
+              <DialogDescription className="sr-only">
+                Detailed view of journal entry including trade details, analysis, and performance metrics
+              </DialogDescription>
               <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-4 h-4" />
