@@ -192,29 +192,9 @@
   .xs\:inline-block { display: inline-block; }
 }
 
-/* Mobile responsive adjustments */
-@media (max-width: 480px) {
-  .dashboard-layout {
-    margin-left: 0 !important;
-  }
-}
-
-@media (min-width: 481px) and (max-width: 768px) {
-  .dashboard-layout {
-    margin-left: 0 !important;
-  }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-  .dashboard-layout {
-    margin-left: 0 !important;
-  }
-}
-
-@media (min-width: 1025px) {
-  .dashboard-layout {
-    margin-left: 16rem;
-  }
+/* Prevent body scroll when mobile menu is open */
+body.menu-open {
+  overflow: hidden;
 }
 
 /* Enhanced Journal Design */
