@@ -1,8 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Signal, Wallet, BookOpen, Bell, ArrowRight } from "lucide-react";
+import { TrendingUp, Signal, Bell, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { WelcomeCard } from "@/components/dashboard/WelcomeCard";
+import { HeroStats } from "@/components/dashboard/HeroStats";
+import { PerformanceOverview } from "@/components/dashboard/PerformanceOverview";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { SmartInsights } from "@/components/dashboard/SmartInsights";
+import { TopInstruments } from "@/components/dashboard/TopInstruments";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -12,11 +17,13 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [latestForecast, setLatestForecast] = useState<any>(null);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [journalEntries, setJournalEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchLatestForecast();
     fetchRecentActivity();
+    fetchJournalEntries();
     
     // Real-time subscriptions
     const notificationsChannel = supabase
@@ -86,6 +93,23 @@ export default function Dashboard() {
       setRecentActivity(notifications || []);
     } catch (error) {
       console.error('Error fetching recent activity:', error);
+    }
+  };
+
+  const fetchJournalEntries = async () => {
+    try {
+      if (!user?.id) return;
+
+      const { data: entries, error } = await supabase
+        .from('journal_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('entry_date', { ascending: false });
+
+      if (error) throw error;
+      setJournalEntries(entries || []);
+    } catch (error) {
+      console.error('Error fetching journal entries:', error);
     } finally {
       setLoading(false);
     }
@@ -113,82 +137,27 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-3 xs:space-y-4 sm:space-y-5 md:space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Welcome Section */}
       <WelcomeCard />
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2 xs:gap-3 sm:gap-4">
-        <Link to="/dashboard/academy" className="block">
-          <Card className="h-full hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 cursor-pointer group">
-            <CardHeader className="pb-2 p-3 xs:p-4 sm:p-6">
-              <CardTitle className="text-xs xs:text-sm sm:text-base font-medium flex items-center gap-2 group-hover:text-primary transition-colors">
-                <BookOpen className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 text-premium flex-shrink-0" />
-                <span className="truncate">Academy</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 xs:p-4 sm:p-6 pt-0">
-              <p className="text-xs xs:text-sm text-muted-foreground hidden sm:block">Access premium courses</p>
-            </CardContent>
-          </Card>
-        </Link>
+      {/* Hero Stats */}
+      <HeroStats entries={journalEntries} />
 
-        <Link to="/dashboard/journal" className="block">
-          <Card className="h-full hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 cursor-pointer group">
-            <CardHeader className="pb-2 p-3 xs:p-4 sm:p-6">
-              <CardTitle className="text-xs xs:text-sm sm:text-base font-medium group-hover:text-primary transition-colors">
-                <span className="truncate">My Journal</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 xs:p-4 sm:p-6 pt-0">
-              <p className="text-xs xs:text-sm text-muted-foreground hidden sm:block">Track trades & reflection</p>
-            </CardContent>
-          </Card>
-        </Link>
+      {/* Performance Overview */}
+      <PerformanceOverview entries={journalEntries} />
 
-        <Link to="/dashboard/support" className="block">
-          <Card className="h-full hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 cursor-pointer group">
-            <CardHeader className="pb-2 p-3 xs:p-4 sm:p-6">
-              <CardTitle className="text-xs xs:text-sm sm:text-base font-medium group-hover:text-primary transition-colors">
-                <span className="truncate">Support</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 xs:p-4 sm:p-6 pt-0">
-              <p className="text-xs xs:text-sm text-muted-foreground hidden sm:block">Get help when you need it</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/dashboard/wallet" className="block">
-          <Card className="h-full hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 cursor-pointer group">
-            <CardHeader className="pb-2 p-3 xs:p-4 sm:p-6">
-              <CardTitle className="text-xs xs:text-sm sm:text-base font-medium flex items-center gap-2 group-hover:text-primary transition-colors">
-                <Wallet className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
-                <span className="truncate">Wallet</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 xs:p-4 sm:p-6 pt-0">
-              <p className="text-xs xs:text-sm text-muted-foreground hidden sm:block">Manage subscription</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/dashboard/calendar" className="block col-span-2 xs:col-span-1">
-          <Card className="h-full hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 cursor-pointer group">
-            <CardHeader className="pb-2 p-3 xs:p-4 sm:p-6">
-              <CardTitle className="text-xs xs:text-sm sm:text-base font-medium group-hover:text-primary transition-colors">
-                <span className="truncate">Calendar</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 xs:p-4 sm:p-6 pt-0">
-              <p className="text-xs xs:text-sm text-muted-foreground hidden sm:block">Trading events & news</p>
-            </CardContent>
-          </Card>
-        </Link>
+      {/* Quick Actions & Smart Insights */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <QuickActions />
+        <SmartInsights entries={journalEntries} />
       </div>
 
+      {/* Top Instruments */}
+      <TopInstruments entries={journalEntries} />
+
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 xs:gap-4 sm:gap-5 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Latest Forecast */}
         <Card className="border-border/50">
           <CardHeader className="pb-3 xs:pb-4 sm:pb-6">
