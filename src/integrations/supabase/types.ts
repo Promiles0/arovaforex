@@ -486,10 +486,14 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
+          bio: string | null
           country: string | null
           created_at: string
           email: string | null
           email_notifications_enabled: boolean
+          experience_level: string | null
+          favorite_instruments: string[] | null
           full_name: string | null
           id: string
           is_suspended: boolean
@@ -500,16 +504,23 @@ export type Database = {
           notify_system: boolean
           phone_number: string | null
           push_notifications_enabled: boolean
+          risk_tolerance: string | null
           telegram_handle: string | null
+          trading_goals: string | null
+          trading_style: string | null
           updated_at: string
           user_id: string
           whatsapp_handle: string | null
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string | null
           country?: string | null
           created_at?: string
           email?: string | null
           email_notifications_enabled?: boolean
+          experience_level?: string | null
+          favorite_instruments?: string[] | null
           full_name?: string | null
           id?: string
           is_suspended?: boolean
@@ -520,16 +531,23 @@ export type Database = {
           notify_system?: boolean
           phone_number?: string | null
           push_notifications_enabled?: boolean
+          risk_tolerance?: string | null
           telegram_handle?: string | null
+          trading_goals?: string | null
+          trading_style?: string | null
           updated_at?: string
           user_id: string
           whatsapp_handle?: string | null
         }
         Update: {
+          avatar_url?: string | null
+          bio?: string | null
           country?: string | null
           created_at?: string
           email?: string | null
           email_notifications_enabled?: boolean
+          experience_level?: string | null
+          favorite_instruments?: string[] | null
           full_name?: string | null
           id?: string
           is_suspended?: boolean
@@ -540,7 +558,10 @@ export type Database = {
           notify_system?: boolean
           phone_number?: string | null
           push_notifications_enabled?: boolean
+          risk_tolerance?: string | null
           telegram_handle?: string | null
+          trading_goals?: string | null
+          trading_style?: string | null
           updated_at?: string
           user_id?: string
           whatsapp_handle?: string | null
