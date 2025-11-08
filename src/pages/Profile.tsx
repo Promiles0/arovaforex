@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, TrendingUp, Settings } from 'lucide-react';
+import { User, TrendingUp, Settings, Eye, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -8,8 +9,11 @@ import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { PersonalInfoTab } from '@/components/profile/PersonalInfoTab';
 import { TradingProfileTab } from '@/components/profile/TradingProfileTab';
 import { PreferencesTab } from '@/components/profile/PreferencesTab';
+import { ProfilePreviewModal } from '@/components/profile/ProfilePreviewModal';
 import { SEO } from '@/components/seo/SEO';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface Profile {
   id: string;
@@ -37,9 +41,11 @@ interface Profile {
 }
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -82,6 +88,17 @@ const Profile = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success('Logged out successfully');
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast.error('Failed to log out');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -112,11 +129,31 @@ const Profile = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-text mb-2">Profile Settings</h1>
-            <p className="text-muted-foreground">
-              Complete your profile to unlock all features and personalize your experience
-            </p>
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-text mb-2">Profile Settings</h1>
+              <p className="text-muted-foreground">
+                Complete your profile to unlock all features and personalize your experience
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsPreviewOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Eye size={16} />
+                <span className="hidden sm:inline">Preview</span>
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <LogOut size={16} />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </div>
           </div>
 
           <ProfileHeader profile={profile} onAvatarUpdate={handleAvatarUpdate} />
@@ -153,6 +190,14 @@ const Profile = () => {
           </Tabs>
         </motion.div>
       </div>
+
+      {profile && (
+        <ProfilePreviewModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          profile={profile}
+        />
+      )}
     </>
   );
 };
