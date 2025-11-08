@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+import { UserDisplayName } from "@/components/common/UserDisplayName";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +21,8 @@ import {
 
 interface Profile {
   full_name: string | null;
+  telegram_handle: string | null;
+  email: string | null;
   country: string | null;
   phone_number: string | null;
 }
@@ -250,7 +253,8 @@ export default function ForecastDetailModal({
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-foreground">
-                  {forecast.user_profile?.full_name || "Unknown"}
+                  <UserDisplayName profile={forecast.user_profile} userId={forecast.user_id} showFallback={false} />
+                  {!forecast.user_profile?.telegram_handle && !forecast.user_profile?.full_name && "Unknown"}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   Published {new Date(forecast.created_at).toLocaleDateString('en-US', { 

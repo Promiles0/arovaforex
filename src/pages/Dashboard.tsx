@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Signal, Bell, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { WelcomeCard } from "@/components/dashboard/WelcomeCard";
+import WelcomeCard from "@/components/dashboard/WelcomeCard";
 import { HeroStats } from "@/components/dashboard/HeroStats";
 import { PerformanceOverview } from "@/components/dashboard/PerformanceOverview";
 import { QuickActions } from "@/components/dashboard/QuickActions";

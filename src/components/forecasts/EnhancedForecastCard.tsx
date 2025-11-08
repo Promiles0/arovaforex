@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { supabase } from "@/integrations/supabase/client";
+import { UserDisplayName } from "@/components/common/UserDisplayName";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +21,8 @@ import {
 
 interface Profile {
   full_name: string | null;
+  telegram_handle: string | null;
+  email: string | null;
   country: string | null;
   phone_number: string | null;
 }
@@ -349,7 +352,8 @@ export default function EnhancedForecastCard({
                 </div>
                 <div>
                   <div className="font-semibold text-foreground text-sm">
-                    {forecast.user_profile?.full_name || "Analyst"}
+                    <UserDisplayName profile={forecast.user_profile} userId={forecast.user_id} showFallback={false} />
+                    {!forecast.user_profile?.telegram_handle && !forecast.user_profile?.full_name && "Analyst"}
                   </div>
                   <div className="text-muted-foreground text-xs">
                     {getTimeAgo(forecast.created_at)}

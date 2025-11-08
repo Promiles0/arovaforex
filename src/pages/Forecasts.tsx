@@ -27,6 +27,8 @@ interface Forecast {
 
 interface Profile {
   full_name: string | null;
+  telegram_handle: string | null;
+  email: string | null;
   country: string | null;
   phone_number: string | null;
 }
@@ -62,7 +64,7 @@ export default function Forecasts() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, country, phone_number')
+        .select('full_name, telegram_handle, email, country, phone_number')
         .eq('user_id', user.id)
         .maybeSingle();
 

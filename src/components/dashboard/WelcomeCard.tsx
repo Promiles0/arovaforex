@@ -1,63 +1,61 @@
 import { useAuth } from "@/hooks/useAuth";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, ArrowRight } from "lucide-react";
+import { TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
+import { UserDisplayName } from "@/components/common/UserDisplayName";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-export const WelcomeCard = () => {
+const WelcomeCard = () => {
   const { user } = useAuth();
-  
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name, telegram_handle, email')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (data) {
+      setProfile(data);
+    }
+  };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
+    if (hour < 18) return "Good afternoon";
     return "Good evening";
   };
 
-  const getUserName = () => {
-    return user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Trader";
-  };
-
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-xl p-6 border border-primary/20 shadow-brand animate-fade-in">
-      {/* Top brand accent bar */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-brand" />
-      
-      {/* Background animation elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-4 -right-4 w-24 h-24 bg-primary/5 rounded-full animate-pulse" />
-        <div className="absolute top-1/2 -left-8 w-16 h-16 bg-primary/10 rounded-full animate-bounce" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-0 right-1/3 w-12 h-12 bg-primary/5 rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
-      </div>
-      
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-8 border border-primary/20 shadow-lg">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5" />
       <div className="relative z-10">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-primary flex items-center gap-2">
-              {getGreeting()}, {getUserName()} 
-              <span className="animate-bounce">👋</span>
-            </h1>
-            <p className="text-muted-foreground max-w-md">
-              Ready to explore today's market opportunities? Check out the latest forecasts and signals.
-            </p>
-            <div className="flex items-center text-sm text-primary/80 animate-fade-in" style={{ animationDelay: '0.5s' }}>
-              <TrendingUp className="w-4 h-4 mr-1 text-primary" />
-              Market is active • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-            </div>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link to="/dashboard/forecasts">
-              <Button 
-                variant="brand" 
-                className="transition-all duration-300 hover:scale-105 shadow-brand"
-              >
-                View Today's Forecasts
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </div>
-        </div>
+        <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-text">
+          {getGreeting()}, <UserDisplayName profile={profile} userId={user?.id} />! 👋
+        </h2>
+        <p className="text-muted-foreground mb-6">
+          Ready to analyze the markets? Check out the latest forecasts and insights.
+        </p>
+        <Link to="/forecasts">
+          <Button className="gap-2">
+            <TrendingUp className="w-4 h-4" />
+            View Market Forecasts
+          </Button>
+        </Link>
       </div>
     </div>
   );
 };
+
+export default WelcomeCard;
