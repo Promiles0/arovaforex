@@ -1,51 +1,62 @@
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Mail, 
+  Clock, 
+  CheckCircle, 
+  X, 
+  Send, 
+  Loader2,
+  Search 
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { SEO } from "@/components/seo/SEO";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Mail, Eye, CheckCircle, Clock, ExternalLink, Search, Filter } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { formatDistanceToNow } from 'date-fns';
 
 interface ContactMessage {
   id: string;
   user_id: string;
+  name?: string;
   email: string;
   subject: string;
+  category?: string;
   message: string;
   status: string;
+  admin_response?: string;
+  responded_at?: string;
   created_at: string;
   updated_at: string;
-  profiles?: {
-    full_name: string;
-  } | null;
 }
 
 export default function AdminContact() {
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'resolved'>('all');
-  const { toast } = useToast();
+  const [replyText, setReplyText] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     loadMessages();
-    
-    // Set up realtime subscription
-    const channel = supabase.channel('contact-messages')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'contact_messages' 
-      }, () => {
-        loadMessages();
-      })
+
+    const channel = supabase
+      .channel('contact-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contact_messages'
+        },
+        () => {
+          loadMessages();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -57,376 +68,360 @@ export default function AdminContact() {
     try {
       let query = supabase
         .from('contact_messages')
-        .select(`
-          *,
-          profiles (
-            full_name
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (statusFilter !== 'all') {
+      if (statusFilter !== "all") {
         query = query.eq('status', statusFilter);
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
-      if (data) setMessages(data as ContactMessage[]);
+      if (data) setMessages(data);
     } catch (error) {
       console.error('Error loading contact messages:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load contact messages",
-        variant: "destructive"
-      });
+      toast.error('Failed to load contact messages');
     }
     setLoading(false);
   };
 
-  const handleStatusUpdate = async (messageId: string, newStatus: string) => {
+  const handleReply = async () => {
+    if (!selectedMessage || !replyText.trim()) return;
+
+    setIsSending(true);
     try {
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('contact_messages')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
+        .update({
+          admin_response: replyText,
+          status: 'resolved',
+          responded_at: new Date().toISOString()
         })
-        .eq('id', messageId);
+        .eq('id', selectedMessage.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
-      toast({
-        title: "Success",
-        description: `Message marked as ${newStatus}`,
-      });
-
-      // Update local state
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === messageId 
-            ? { ...msg, status: newStatus, updated_at: new Date().toISOString() }
-            : msg
-        )
-      );
-
-      if (selectedMessage?.id === messageId) {
-        setSelectedMessage(prev => prev ? { ...prev, status: newStatus } : null);
+      // Create notification for user
+      if (selectedMessage.user_id) {
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: selectedMessage.user_id,
+            type: 'system',
+            content: `Admin responded to your message: "${selectedMessage.subject}"`,
+            link: '/support'
+          });
       }
+
+      toast.success('Reply sent successfully!');
+      setSelectedMessage(null);
+      setReplyText("");
+      loadMessages();
     } catch (error) {
-      console.error('Error updating message status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update message status",
-        variant: "destructive"
-      });
+      console.error('Error sending reply:', error);
+      toast.error('Failed to send reply');
+    } finally {
+      setIsSending(false);
     }
   };
 
   const filteredMessages = messages.filter(message => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      message.subject?.toLowerCase().includes(searchLower) ||
-      message.email?.toLowerCase().includes(searchLower) ||
-      message.profiles?.full_name?.toLowerCase().includes(searchLower) ||
-      message.message?.toLowerCase().includes(searchLower)
-    );
+    const matchesSearch = message.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         message.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         message.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         message.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || message.status === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      open: 'destructive',
-      resolved: 'default',
-    } as const;
-    
-    return (
-      <Badge variant={variants[status as keyof typeof variants] || 'secondary'}>
-        {status}
-      </Badge>
-    );
+  const stats = {
+    total: messages.length,
+    open: messages.filter(m => m.status === 'open').length,
+    resolved: messages.filter(m => m.status === 'resolved').length
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'resolved': return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'open': return <Clock className="w-4 h-4 text-orange-500" />;
-      default: return <Mail className="w-4 h-4" />;
-    }
-  };
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Contact Messages</h1>
+        <p className="text-muted-foreground">Manage user inquiries and support requests</p>
+      </div>
 
-  const MessageDetailDialog = () => (
-    <Dialog open={!!selectedMessage} onOpenChange={() => setSelectedMessage(null)}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <motion.div
+          className="bg-card/50 border border-border rounded-xl p-6 border-l-4 border-l-blue-500"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Total Messages</p>
+              <p className="text-3xl font-bold">{stats.total}</p>
+            </div>
+            <div className="w-14 h-14 bg-blue-500/10 rounded-full flex items-center justify-center">
+              <Mail className="w-7 h-7 text-blue-500" />
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="bg-card/50 border border-border rounded-xl p-6 border-l-4 border-l-orange-500"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Open</p>
+              <p className="text-3xl font-bold text-orange-500">{stats.open}</p>
+            </div>
+            <div className="w-14 h-14 bg-orange-500/10 rounded-full flex items-center justify-center">
+              <Clock className="w-7 h-7 text-orange-500" />
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="bg-card/50 border border-border rounded-xl p-6 border-l-4 border-l-green-500"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Resolved</p>
+              <p className="text-3xl font-bold text-green-500">{stats.resolved}</p>
+            </div>
+            <div className="w-14 h-14 bg-green-500/10 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-7 h-7 text-green-500" />
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Message Inbox */}
+      <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
+        <div className="p-6 border-b border-border">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
             <Mail className="w-5 h-5" />
-            Contact Message Details
-          </DialogTitle>
-          <DialogDescription>
-            View and manage contact message details with status updates.
-          </DialogDescription>
-        </DialogHeader>
-        {selectedMessage && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">From</label>
-                <p className="font-medium">
-                  {selectedMessage.profiles?.full_name || 'Unknown User'}
-                </p>
-                <p className="text-sm text-muted-foreground">{selectedMessage.email}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Status</label>
-                <div className="flex items-center gap-2 mt-1">
-                  {getStatusIcon(selectedMessage.status)}
-                  {getStatusBadge(selectedMessage.status)}
-                </div>
-              </div>
-            </div>
+            Message Inbox
+          </h2>
 
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Subject</label>
-              <p className="font-medium">{selectedMessage.subject || 'No Subject'}</p>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search messages..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Message</label>
-              <div className="mt-1 p-3 bg-muted rounded-lg">
-                <p className="whitespace-pre-wrap">{selectedMessage.message}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
-              <div>
-                <label className="font-medium">Received</label>
-                <p>{new Date(selectedMessage.created_at).toLocaleString()}</p>
-              </div>
-              <div>
-                <label className="font-medium">Last Updated</label>
-                <p>{new Date(selectedMessage.updated_at).toLocaleString()}</p>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-4 border-t">
-              {selectedMessage.status === 'open' ? (
-                <Button
-                  onClick={() => handleStatusUpdate(selectedMessage.id, 'resolved')}
-                  className="flex-1"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Mark as Resolved
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={() => handleStatusUpdate(selectedMessage.id, 'open')}
-                  className="flex-1"
-                >
-                  <Clock className="w-4 h-4 mr-2" />
-                  Reopen
-                </Button>
-              )}
+            <div className="flex gap-2 bg-muted/50 p-1 rounded-lg">
               <Button
-                variant="outline"
-                onClick={() => window.open(`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject}`)}
+                variant={statusFilter === "all" ? "default" : "ghost"}
+                onClick={() => setStatusFilter("all")}
+                size="sm"
               >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Reply via Email
+                All
+              </Button>
+              <Button
+                variant={statusFilter === "open" ? "default" : "ghost"}
+                onClick={() => setStatusFilter("open")}
+                size="sm"
+              >
+                Open
+              </Button>
+              <Button
+                variant={statusFilter === "resolved" ? "default" : "ghost"}
+                onClick={() => setStatusFilter("resolved")}
+                size="sm"
+              >
+                Resolved
               </Button>
             </div>
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-
-  return (
-    <>
-      <SEO title="Admin Contact | Arova" description="Manage user contact submissions with real-time updates and email integration." />
-      <motion.section 
-        initial={{ opacity: 0, y: 8 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        transition={{ duration: 0.25 }}
-      >
-        <h1 className="text-2xl font-semibold mb-6">Contact Messages</h1>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Messages</p>
-                  <p className="text-2xl font-bold">{messages.length}</p>
-                </div>
-                <Mail className="w-8 h-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Open</p>
-                  <p className="text-2xl font-bold text-orange-500">
-                    {messages.filter(m => m.status === 'open').length}
-                  </p>
-                </div>
-                <Clock className="w-8 h-8 text-orange-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Resolved</p>
-                  <p className="text-2xl font-bold text-green-500">
-                    {messages.filter(m => m.status === 'resolved').length}
-                  </p>
-                </div>
-                <CheckCircle className="w-8 h-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Messages Table */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="w-5 h-5" />
-                Message Inbox
-              </CardTitle>
-              
-              {/* Filters */}
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Search messages..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-64"
-                />
-                <Button
-                  variant={statusFilter === 'all' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setStatusFilter('all')}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : filteredMessages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Mail className="w-16 h-16 text-muted-foreground/50 mb-4" />
+            <p className="text-muted-foreground">No contact messages found</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="hidden md:grid grid-cols-[100px,1fr,1fr,2fr,150px,120px] gap-4 px-6 py-3 bg-muted/30 text-xs font-semibold text-muted-foreground uppercase">
+              <div>Status</div>
+              <div>From</div>
+              <div>Email</div>
+              <div>Subject</div>
+              <div>Date</div>
+              <div>Actions</div>
+            </div>
+
+            <div className="divide-y divide-border">
+              {filteredMessages.map((message, i) => (
+                <motion.div
+                  key={message.id}
+                  className="grid md:grid-cols-[100px,1fr,1fr,2fr,150px,120px] gap-4 px-6 py-5 hover:bg-muted/50 cursor-pointer transition-colors"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => setSelectedMessage(message)}
                 >
-                  All
-                </Button>
+                  <div>
+                    <Badge variant={message.status === 'open' ? 'destructive' : 'default'} className={message.status === 'resolved' ? 'bg-green-500 hover:bg-green-600' : ''}>
+                      {message.status}
+                    </Badge>
+                  </div>
+                  <div className="font-medium truncate">{message.name || 'Unknown'}</div>
+                  <div className="text-sm text-muted-foreground truncate">{message.email}</div>
+                  <div className="truncate">{message.subject}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                  </div>
+                  <div>
+                    <Button size="sm" variant="outline">
+                      View
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Message Detail Modal */}
+      <AnimatePresence>
+        {selectedMessage && (
+          <>
+            <motion.div
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedMessage(null)}
+            />
+
+            <motion.div
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-3xl max-h-[90vh] bg-background border border-border rounded-2xl z-50 overflow-y-auto"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <div className="sticky top-0 bg-background border-b border-border p-6 flex items-center justify-between z-10">
+                <h2 className="text-xl font-bold">Message Details</h2>
                 <Button
-                  variant={statusFilter === 'open' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setStatusFilter('open')}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedMessage(null)}
+                  className="rounded-full"
                 >
-                  Open
-                </Button>
-                <Button
-                  variant={statusFilter === 'resolved' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setStatusFilter('resolved')}
-                >
-                  Resolved
+                  <X className="w-5 h-5" />
                 </Button>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Status</TableHead>
-                    <TableHead>From</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}>
-                        {Array.from({ length: 6 }).map((_, j) => (
-                          <TableCell key={j}>
-                            <div className="w-20 h-4 bg-muted animate-pulse rounded" />
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : filteredMessages.length > 0 ? (
-                    filteredMessages.map((message) => (
-                      <TableRow key={message.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(message.status)}
-                            {getStatusBadge(message.status)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {message.profiles?.full_name || 'Unknown User'}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {message.email}
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-md truncate">
-                            {message.subject || 'No Subject'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(message.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedMessage(message)}
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              View
-                            </Button>
-                            {message.status === 'open' ? (
-                              <Button
-                                size="sm"
-                                onClick={() => handleStatusUpdate(message.id, 'resolved')}
-                              >
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Resolve
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleStatusUpdate(message.id, 'open')}
-                              >
-                                <Clock className="w-3 h-3 mr-1" />
-                                Reopen
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
-                        {searchTerm ? 'No messages match your search' : 'No contact messages found'}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
 
-        <MessageDetailDialog />
-      </motion.section>
-    </>
+              <div className="p-6 space-y-6">
+                {/* User Info */}
+                <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center text-2xl">
+                    {selectedMessage.name?.[0]?.toUpperCase() || '?'}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-lg">{selectedMessage.name}</div>
+                    <div className="text-sm text-muted-foreground">{selectedMessage.email}</div>
+                  </div>
+                </div>
+
+                {/* Meta Info */}
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase font-semibold mb-2">Category</div>
+                    {selectedMessage.category && (
+                      <Badge variant="outline" className="capitalize">{selectedMessage.category}</Badge>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase font-semibold mb-2">Date</div>
+                    <div className="text-sm">{new Date(selectedMessage.created_at).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase font-semibold mb-2">Status</div>
+                    <Badge variant={selectedMessage.status === 'open' ? 'destructive' : 'default'} className={selectedMessage.status === 'resolved' ? 'bg-green-500 hover:bg-green-600' : ''}>
+                      {selectedMessage.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Subject */}
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase font-semibold mb-2">Subject</div>
+                  <h3 className="text-lg font-semibold">{selectedMessage.subject}</h3>
+                </div>
+
+                {/* Message */}
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase font-semibold mb-2">Message</div>
+                  <div className="p-4 bg-muted/50 rounded-lg whitespace-pre-wrap leading-relaxed">
+                    {selectedMessage.message}
+                  </div>
+                </div>
+
+                {/* Previous Response */}
+                {selectedMessage.admin_response && (
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase font-semibold mb-2">Your Previous Response</div>
+                    <div className="p-4 bg-green-500/5 border-l-4 border-green-500 rounded-lg">
+                      {selectedMessage.admin_response}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reply Section */}
+                {selectedMessage.status !== 'resolved' && (
+                  <div className="pt-6 border-t border-border">
+                    <div className="text-sm font-semibold mb-3">Reply to {selectedMessage.name}:</div>
+                    <Textarea
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Type your response here..."
+                      rows={6}
+                      className="mb-4"
+                    />
+                    <Button
+                      onClick={handleReply}
+                      disabled={!replyText.trim() || isSending}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {isSending ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5 mr-2" />
+                          Send Reply
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

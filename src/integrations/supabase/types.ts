@@ -136,30 +136,42 @@ export type Database = {
       }
       contact_messages: {
         Row: {
+          admin_response: string | null
+          category: string | null
           created_at: string
           email: string | null
           id: string
           message: string
+          name: string
+          responded_at: string | null
           status: string
           subject: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          admin_response?: string | null
+          category?: string | null
           created_at?: string
           email?: string | null
           id?: string
           message: string
+          name: string
+          responded_at?: string | null
           status?: string
           subject?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          admin_response?: string | null
+          category?: string | null
           created_at?: string
           email?: string | null
           id?: string
           message?: string
+          name?: string
+          responded_at?: string | null
           status?: string
           subject?: string | null
           updated_at?: string
