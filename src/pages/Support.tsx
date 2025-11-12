@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, MessageCircle, Mail, CheckCircle, Loader2 } from "lucide-react";
+import { Send, MessageCircle, Mail, CheckCircle, Loader2, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,6 +60,23 @@ const UserMessagesHistory = ({ userId }: { userId: string }) => {
             <p className="text-sm text-muted-foreground mb-2">
               {new Date(msg.created_at).toLocaleDateString()}
             </p>
+            {msg.attachment_urls && msg.attachment_urls.length > 0 && (
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-muted-foreground">Attachments:</p>
+                {msg.attachment_urls.map((url: string, idx: number) => (
+                  <a
+                    key={idx}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs text-primary hover:underline"
+                  >
+                    <Paperclip className="w-3 h-3" />
+                    Attachment {idx + 1}
+                  </a>
+                ))}
+              </div>
+            )}
             {msg.admin_response && (
               <div className="mt-3 p-3 bg-green-500/5 border-l-4 border-green-500 rounded">
                 <span className="inline-block px-2 py-0.5 bg-green-500 text-white text-xs font-semibold rounded mb-2">
@@ -79,6 +96,8 @@ export default function ContactUs() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -96,11 +115,63 @@ export default function ContactUs() {
     }
   }, [user]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles = files.filter(file => file.size <= 5 * 1024 * 1024); // 5MB limit
+    
+    if (validFiles.length !== files.length) {
+      toast.error("Some files were too large (max 5MB)");
+    }
+    
+    setAttachments(prev => [...prev, ...validFiles].slice(0, 3)); // Max 3 files
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadAttachments = async () => {
+    if (attachments.length === 0) return [];
+
+    const uploadedUrls: string[] = [];
+    setUploadingFiles(true);
+
+    try {
+      for (const file of attachments) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user!.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError, data } = await supabase.storage
+          .from('contact-attachments')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+        
+        if (data) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('contact-attachments')
+            .getPublicUrl(fileName);
+          uploadedUrls.push(publicUrl);
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast.error("Failed to upload some attachments");
+    } finally {
+      setUploadingFiles(false);
+    }
+
+    return uploadedUrls;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Upload attachments first
+      const attachmentUrls = await uploadAttachments();
+
       const { data, error } = await supabase
         .from('contact_messages')
         .insert({
@@ -110,7 +181,8 @@ export default function ContactUs() {
           subject: formData.subject,
           category: formData.category,
           message: formData.message,
-          status: 'open'
+          status: 'open',
+          attachment_urls: attachmentUrls
         })
         .select()
         .single();
@@ -119,6 +191,7 @@ export default function ContactUs() {
 
       toast.success("Message sent successfully! We'll respond within 24 hours.");
       setSubmitted(true);
+      setAttachments([]);
 
       setTimeout(() => {
         setFormData({
@@ -273,16 +346,61 @@ export default function ContactUs() {
                   </div>
                 </div>
 
+                {/* File Attachments */}
+                <div className="space-y-2">
+                  <Label htmlFor="attachments" className="flex items-center gap-2">
+                    <Paperclip className="w-4 h-4" />
+                    Attachments (Optional)
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Upload up to 3 files (max 5MB each). Supported: images, PDFs, documents
+                  </p>
+                  <Input
+                    id="attachments"
+                    type="file"
+                    onChange={handleFileChange}
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx"
+                    className="cursor-pointer"
+                    disabled={attachments.length >= 3}
+                  />
+                  
+                  {attachments.length > 0 && (
+                    <div className="space-y-2 mt-3">
+                      {attachments.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between bg-muted p-2 rounded-lg">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <Paperclip className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm truncate">{file.name}</span>
+                            <span className="text-xs text-muted-foreground flex-shrink-0">
+                              ({(file.size / 1024).toFixed(1)}KB)
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAttachment(index)}
+                            className="flex-shrink-0"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={loading}
+                  disabled={loading || uploadingFiles}
                   size="lg"
                 >
-                  {loading ? (
+                  {loading || uploadingFiles ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Sending...
+                      {uploadingFiles ? "Uploading files..." : "Sending..."}
                     </>
                   ) : (
                     <>

@@ -137,6 +137,7 @@ export type Database = {
       contact_messages: {
         Row: {
           admin_response: string | null
+          attachment_urls: string[] | null
           category: string | null
           created_at: string
           email: string | null
@@ -151,6 +152,7 @@ export type Database = {
         }
         Insert: {
           admin_response?: string | null
+          attachment_urls?: string[] | null
           category?: string | null
           created_at?: string
           email?: string | null
@@ -165,6 +167,7 @@ export type Database = {
         }
         Update: {
           admin_response?: string | null
+          attachment_urls?: string[] | null
           category?: string | null
           created_at?: string
           email?: string | null

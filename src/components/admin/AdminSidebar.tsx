@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, FileText, BarChart2, Bell, Inbox, NotebookPen } from "lucide-react";
+import { LayoutDashboard, Users, FileText, BarChart2, Bell, Inbox, NotebookPen, TrendingUp } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -20,6 +20,7 @@ const items = [
   { title: "Analytics", url: "/admin/analytics", icon: BarChart2 },
   { title: "Notifications", url: "/admin/notifications", icon: Bell },
   { title: "Contact", url: "/admin/contact", icon: Inbox },
+  { title: "Contact Analytics", url: "/admin/contact-analytics", icon: TrendingUp },
   { title: "Journal", url: "/admin/journal", icon: NotebookPen },
 ];
 

@@ -135,6 +135,22 @@ export default function AdminContact() {
           });
       }
 
+      // Send email notification
+      try {
+        await supabase.functions.invoke('send-contact-reply-email', {
+          body: {
+            userEmail: selectedMessage.email,
+            userName: selectedMessage.name,
+            subject: selectedMessage.subject,
+            adminResponse: replyText
+          }
+        });
+        console.log('Email notification sent successfully');
+      } catch (emailError) {
+        console.error('Failed to send email notification:', emailError);
+        // Don't fail the whole operation if email fails
+      }
+
       toast.success('Reply sent successfully!');
       setSelectedMessage(null);
       setReplyText("");

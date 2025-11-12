@@ -29,6 +29,7 @@ import AdminContent from "./pages/admin/Content";
 import AdminAnalytics from "./pages/admin/Analytics";
 import AdminNotifications from "./pages/admin/Notifications";
 import AdminContact from "./pages/admin/Contact";
+import AdminContactAnalytics from "./pages/admin/ContactAnalytics";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ const App = () => (
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="contact" element={<AdminContact />} />
+                <Route path="contact-analytics" element={<AdminContactAnalytics />} />
                 <Route path="journal" element={<Journal />} />
               </Route>
 
