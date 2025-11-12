@@ -41,6 +41,27 @@ export default function AdminContact() {
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (selectedMessage) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [selectedMessage]);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedMessage) {
+        setSelectedMessage(null);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [selectedMessage]);
+
   useEffect(() => {
     loadMessages();
 
@@ -313,10 +334,11 @@ export default function AdminContact() {
             />
 
             <motion.div
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-3xl max-h-[90vh] bg-background border border-border rounded-2xl z-50 overflow-y-auto"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-3xl max-h-[90vh] md:max-h-[85vh] bg-background border border-border rounded-2xl md:rounded-xl mobile:w-full mobile:h-full mobile:max-w-full mobile:max-h-full mobile:rounded-none mobile:top-0 mobile:left-0 mobile:translate-x-0 mobile:translate-y-0 z-50 overflow-y-auto flex flex-col"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             >
               <div className="sticky top-0 bg-background border-b border-border p-6 flex items-center justify-between z-10">
                 <h2 className="text-xl font-bold">Message Details</h2>
@@ -324,13 +346,14 @@ export default function AdminContact() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setSelectedMessage(null)}
-                  className="rounded-full"
+                  className="rounded-full hover:rotate-90 transition-transform duration-200"
+                  aria-label="Close modal"
                 >
                   <X className="w-5 h-5" />
                 </Button>
               </div>
 
-              <div className="p-6 space-y-6">
+              <div className="p-6 md:p-4 space-y-6 flex-1 overflow-y-auto">
                 {/* User Info */}
                 <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
                   <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center text-2xl">
@@ -343,7 +366,7 @@ export default function AdminContact() {
                 </div>
 
                 {/* Meta Info */}
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <div className="text-xs text-muted-foreground uppercase font-semibold mb-2">Category</div>
                     {selectedMessage.category && (
@@ -395,7 +418,8 @@ export default function AdminContact() {
                       onChange={(e) => setReplyText(e.target.value)}
                       placeholder="Type your response here..."
                       rows={6}
-                      className="mb-4"
+                      className="mb-4 text-base"
+                      style={{ fontSize: '16px' }}
                     />
                     <Button
                       onClick={handleReply}
