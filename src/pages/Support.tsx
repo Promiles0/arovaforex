@@ -315,12 +315,15 @@ export default function ContactUs() {
                         whileTap={{ scale: 0.95 }}
                       >
                         <input
+                          id={`category-${cat.value}`}
                           type="radio"
                           name="category"
                           value={cat.value}
                           checked={formData.category === cat.value}
                           onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                           className="sr-only"
+                          title={cat.label}
+                          aria-label={cat.label}
                           required
                         />
                         <span className="text-2xl">{cat.icon}</span>
@@ -450,7 +453,7 @@ export default function ContactUs() {
 
             <div className="space-y-4">
               <motion.a
-                href="https://wa.me/yourphonenumber"
+                href="https://wa.me/message/ORMMHGOZH7GOE1"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-4 p-4 bg-card/50 border border-border rounded-xl hover:bg-primary/10 hover:border-primary/50 transition-all"
@@ -473,6 +476,32 @@ export default function ContactUs() {
                 </motion.div>
               </motion.a>
 
+                {/* telegram */}
+               <motion.a
+                href="https://t.me/AR0VA1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 p-4 bg-card/50 border border-border rounded-xl hover:bg-primary/10 hover:border-primary/50 transition-all"
+                whileHover={{ scale: 1.05, y: -5 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <div className="flex items-center justify-center w-14 h-14 bg-primary/10 rounded-full">
+                  <MessageCircle className="w-8 h-8 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold mb-1">Message Us on Telegram</h3>
+                  <p className="text-sm text-muted-foreground">Get instant support</p>
+                </div>
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="text-2xl"
+                >
+                  →
+                </motion.div>
+              </motion.a>
+
+
               <motion.a
                 href="mailto:support@arovaforex.com"
                 className="flex items-center gap-4 p-4 bg-card/50 border border-border rounded-xl hover:bg-primary/10 hover:border-primary/50 transition-all"
@@ -486,6 +515,7 @@ export default function ContactUs() {
                   <h3 className="font-semibold mb-1">Email Support</h3>
                   <p className="text-sm text-muted-foreground">support@arovaforex.com</p>
                 </div>
+                
               </motion.a>
 
               <div className="flex items-center gap-4 p-4 bg-card/50 border border-border rounded-xl">

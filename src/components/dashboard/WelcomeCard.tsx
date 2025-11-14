@@ -161,7 +161,7 @@ const WelcomeCard = () => {
           transition={{ delay: 0.6 }}
           className="w-full lg:w-auto"
         >
-          <Link to="/forecasts">
+          <Link to="/dashboard/forecasts">
             <motion.button
               className="w-full lg:w-auto flex items-center justify-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all whitespace-nowrap"
               whileHover={{ scale: 1.05, x: 5 }}
