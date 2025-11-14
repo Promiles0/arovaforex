@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Minus, RotateCcw } from "lucide-react";
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +8,8 @@ import EnhancedForecastCard from "@/components/forecasts/EnhancedForecastCard";
 import EnhancedImageModal from "@/components/forecasts/EnhancedImageModal";
 import ForecastDetailModal from "@/components/forecasts/ForecastDetailModal";
 import SentimentFilter from "@/components/forecasts/SentimentFilter";
+import ForecastSkeleton from "@/components/forecasts/ForecastSkeleton";
+import { Plus } from "lucide-react";
 
 interface Forecast {
   id: string;
@@ -48,6 +51,8 @@ export default function Forecasts() {
   const [selectedDetailForecast, setSelectedDetailForecast] = useState<ExtendedForecast | null>(null);
   const [publicSentimentFilter, setPublicSentimentFilter] = useState<string | null>(null);
   const [arovaSentimentFilter, setArovaSentimentFilter] = useState<string | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("public");
 
   const { toast } = useToast();
 
@@ -245,125 +250,223 @@ export default function Forecasts() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="container mx-auto p-4 md:p-6 space-y-6">
+        <div className="text-center md:text-left">
+          <div className="h-9 w-64 bg-muted/50 rounded animate-pulse mb-2" />
+          <div className="h-5 w-96 bg-muted/50 rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+          {[1, 2, 3, 4, 5, 6].map(i => <ForecastSkeleton key={i} />)}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
-      <div className="text-center md:text-left">
-        <h1 className="text-2xl md:text-3xl font-bold text-primary mb-2">Market Forecasts</h1>
+      {/* Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-center md:text-left"
+      >
+        <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent mb-2">
+          Market Forecasts
+        </h1>
         <p className="text-muted-foreground text-sm md:text-base">
           Share your market analysis and explore professional forecasts from the trading community.
         </p>
-      </div>
+      </motion.div>
 
-      <Tabs defaultValue="public" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="public" className="text-xs md:text-sm">Public Forecasts</TabsTrigger>
-          <TabsTrigger value="arova" className="text-xs md:text-sm">Arova Forecasts</TabsTrigger>
-        </TabsList>
+      {/* Tabs with animated indicator */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="relative flex gap-2 p-1 bg-muted/30 rounded-lg mb-8 max-w-md mx-auto md:mx-0 border border-border/30">
+          {/* Animated background indicator */}
+          <motion.div
+            className="absolute h-[calc(100%-8px)] bg-gradient-to-r from-primary to-primary/80 rounded-md shadow-md"
+            animate={{
+              x: activeTab === 'public' ? 4 : 'calc(50% + 2px)',
+              width: 'calc(50% - 8px)'
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+          
+          <TabsTrigger 
+            value="public" 
+            className="relative z-10 flex-1 data-[state=active]:text-primary-foreground data-[state=active]:bg-transparent"
+          >
+            Public Forecasts
+          </TabsTrigger>
+          <TabsTrigger 
+            value="arova"
+            className="relative z-10 flex-1 data-[state=active]:text-primary-foreground data-[state=active]:bg-transparent"
+          >
+            Arova Forecasts
+          </TabsTrigger>
+        </div>
+
+        <AnimatePresence mode="wait">
 
         <TabsContent value="public" className="space-y-6">
-          {/* Upload Button */}
-          <div className="flex justify-center md:justify-start">
-            <ForecastUploadModal 
-              profile={profile} 
-              onUploadSuccess={fetchForecasts}
-            />
-          </div>
-
-          {/* Sentiment Filter */}
-          {publicForecasts.length > 0 && (
-            <SentimentFilter
-              activeFilter={publicSentimentFilter}
-              onFilterChange={setPublicSentimentFilter}
-              counts={publicSentimentCounts}
-            />
-          )}
-
-          {/* Public Forecasts Grid - Large Landscape Cards: 1 per row mobile, 2 per row desktop */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 justify-items-center max-w-[1400px] mx-auto">
-            {filteredPublicForecasts.map((forecast) => (
-              <EnhancedForecastCard 
-                key={forecast.id} 
-                forecast={forecast}
-                onLike={handleLike}
-                onBookmark={handleBookmark}
-                onImageClick={setSelectedImageForecast}
-                onCardClick={setSelectedDetailForecast}
-                onRefresh={fetchForecasts}
+          <motion.div
+            key="public-content"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Sentiment Filter */}
+            {publicForecasts.length > 0 && (
+              <SentimentFilter
+                activeFilter={publicSentimentFilter}
+                onFilterChange={setPublicSentimentFilter}
+                counts={publicSentimentCounts}
               />
-            ))}
-          </div>
+            )}
 
-          {filteredPublicForecasts.length === 0 && publicForecasts.length > 0 && (
-            <div className="text-center py-12">
-              <div className="bg-muted/50 rounded-lg p-8 max-w-md mx-auto">
-                <p className="text-muted-foreground mb-4">No forecasts match your filter.</p>
-                <p className="text-sm text-muted-foreground">Try selecting a different sentiment or clear the filter.</p>
-              </div>
-            </div>
-          )}
-
-          {publicForecasts.length === 0 && !loading && (
-            <div className="text-center py-12">
-              <div className="bg-muted/50 rounded-lg p-8 max-w-md mx-auto">
-                <p className="text-muted-foreground mb-4">No public forecasts available yet.</p>
-                <p className="text-sm text-muted-foreground">Be the first to share your market analysis!</p>
-              </div>
-            </div>
-          )}
+            {/* Forecast Grid */}
+            {filteredPublicForecasts.length > 0 ? (
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  visible: {
+                    transition: {
+                      staggerChildren: 0.1
+                    }
+                  }
+                }}
+              >
+                {filteredPublicForecasts.map((forecast) => (
+                  <motion.div
+                    key={forecast.id}
+                    variants={{
+                      hidden: { opacity: 0, y: 20 },
+                      visible: { opacity: 1, y: 0 }
+                    }}
+                  >
+                    <EnhancedForecastCard
+                      forecast={forecast}
+                      onLike={handleLike}
+                      onBookmark={handleBookmark}
+                      onImageClick={setSelectedImageForecast}
+                      onCardClick={setSelectedDetailForecast}
+                      onRefresh={fetchForecasts}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-12 text-muted-foreground"
+              >
+                <p className="text-lg">
+                  {publicSentimentFilter 
+                    ? `No ${publicSentimentFilter} forecasts found. Try changing the filter.`
+                    : 'No public forecasts yet. Be the first to share your analysis!'
+                  }
+                </p>
+              </motion.div>
+            )}
+          </motion.div>
         </TabsContent>
 
         <TabsContent value="arova" className="space-y-6">
-          {/* Sentiment Filter */}
-          {arovaForecasts.length > 0 && (
-            <SentimentFilter
-              activeFilter={arovaSentimentFilter}
-              onFilterChange={setArovaSentimentFilter}
-              counts={arovaSentimentCounts}
-            />
-          )}
-
-          {/* Arova Forecasts Grid - Large Landscape Cards: 1 per row mobile, 2 per row desktop */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 justify-items-center max-w-[1400px] mx-auto">
-            {filteredArovaForecasts.map((forecast) => (
-              <EnhancedForecastCard 
-                key={forecast.id} 
-                forecast={forecast}
-                onLike={handleLike}
-                onBookmark={handleBookmark}
-                onImageClick={setSelectedImageForecast}
-                onCardClick={setSelectedDetailForecast}
-                onRefresh={fetchForecasts}
+          <motion.div
+            key="arova-content"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {arovaForecasts.length > 0 && (
+              <SentimentFilter
+                activeFilter={arovaSentimentFilter}
+                onFilterChange={setArovaSentimentFilter}
+                counts={arovaSentimentCounts}
               />
-            ))}
-          </div>
+            )}
 
-          {filteredArovaForecasts.length === 0 && arovaForecasts.length > 0 && (
-            <div className="text-center py-12">
-              <div className="bg-muted/50 rounded-lg p-8 max-w-md mx-auto">
-                <p className="text-muted-foreground mb-4">No forecasts match your filter.</p>
-                <p className="text-sm text-muted-foreground">Try selecting a different sentiment or clear the filter.</p>
-              </div>
-            </div>
-          )}
-
-          {arovaForecasts.length === 0 && !loading && (
-            <div className="text-center py-12">
-              <div className="bg-muted/50 rounded-lg p-8 max-w-md mx-auto">
-                <p className="text-muted-foreground mb-4">No Arova forecasts available yet.</p>
-                <p className="text-sm text-muted-foreground">Professional forecasts will appear here.</p>
-              </div>
-            </div>
-          )}
+            {filteredArovaForecasts.length > 0 ? (
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  visible: {
+                    transition: {
+                      staggerChildren: 0.1
+                    }
+                  }
+                }}
+              >
+                {filteredArovaForecasts.map((forecast) => (
+                  <motion.div
+                    key={forecast.id}
+                    variants={{
+                      hidden: { opacity: 0, y: 20 },
+                      visible: { opacity: 1, y: 0 }
+                    }}
+                  >
+                    <EnhancedForecastCard
+                      forecast={forecast}
+                      onLike={handleLike}
+                      onBookmark={handleBookmark}
+                      onImageClick={setSelectedImageForecast}
+                      onCardClick={setSelectedDetailForecast}
+                      onRefresh={fetchForecasts}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-12 text-muted-foreground"
+              >
+                <p className="text-lg">
+                  {arovaSentimentFilter 
+                    ? `No ${arovaSentimentFilter} forecasts found. Try changing the filter.`
+                    : 'No Arova forecasts available at the moment.'
+                  }
+                </p>
+              </motion.div>
+            )}
+          </motion.div>
         </TabsContent>
+      </AnimatePresence>
       </Tabs>
 
-      {/* Enhanced Image Modal */}
+      <motion.button
+        onClick={() => setShowUploadModal(true)}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        initial={{ scale: 0, rotate: -180 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+        className="fixed bottom-8 right-8 z-30 w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-full shadow-2xl shadow-primary/50 flex items-center justify-center text-primary-foreground hover:shadow-primary/70 transition-shadow group"
+      >
+        <Plus className="w-7 h-7" />
+        <span className="absolute right-full mr-3 px-3 py-2 bg-card border border-border text-foreground text-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
+          Submit Forecast
+        </span>
+      </motion.button>
+
+      {showUploadModal && (
+        <ForecastUploadModal 
+          profile={profile} 
+          onUploadSuccess={() => {
+            fetchForecasts();
+            setShowUploadModal(false);
+          }}
+        />
+      )}
+
       {selectedImageForecast && (
         <EnhancedImageModal 
           forecast={selectedImageForecast} 
@@ -372,7 +475,6 @@ export default function Forecasts() {
         />
       )}
 
-      {/* Forecast Detail Modal */}
       {selectedDetailForecast && (
         <ForecastDetailModal 
           forecast={selectedDetailForecast} 
