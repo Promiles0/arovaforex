@@ -1,15 +1,19 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import ForecastUploadModal from "@/components/forecasts/ForecastUploadModal";
 import EnhancedForecastCard from "@/components/forecasts/EnhancedForecastCard";
 import EnhancedImageModal from "@/components/forecasts/EnhancedImageModal";
 import ForecastDetailModal from "@/components/forecasts/ForecastDetailModal";
+import ForecastComparison from "@/components/forecasts/ForecastComparison";
 import SentimentFilter from "@/components/forecasts/SentimentFilter";
 import ForecastSkeleton from "@/components/forecasts/ForecastSkeleton";
-import { Plus } from "lucide-react";
+import { useArovaForecastNotifications } from "@/hooks/useArovaForecastNotifications";
+import { Plus, GitCompare, X } from "lucide-react";
 
 interface Forecast {
   id: string;
@@ -53,34 +57,15 @@ export default function Forecasts() {
   const [arovaSentimentFilter, setArovaSentimentFilter] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [activeTab, setActiveTab] = useState("public");
+  
+  // Comparison feature state
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForComparison, setSelectedForComparison] = useState<ExtendedForecast[]>([]);
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchForecasts();
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name, telegram_handle, email, country, phone_number')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    }
-  };
-
-  const fetchForecasts = async () => {
+  const fetchForecasts = useCallback(async () => {
     try {
       // Fetch public forecasts
       const { data: publicData, error: publicError } = await supabase
@@ -154,6 +139,33 @@ export default function Forecasts() {
     } finally {
       setLoading(false);
     }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchForecasts();
+    fetchProfile();
+  }, [fetchForecasts]);
+
+  // Real-time notifications for new Arova forecasts
+  useArovaForecastNotifications(fetchForecasts);
+
+  const fetchProfile = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, telegram_handle, email, country, phone_number')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
   };
 
   const handleLike = async (forecastId: string) => {
@@ -214,6 +226,30 @@ export default function Forecasts() {
     } catch (error) {
       console.error('Error toggling bookmark:', error);
     }
+  };
+
+  // Handle compare mode selection
+  const handleCompareToggle = (forecast: ExtendedForecast) => {
+    if (!compareMode) {
+      setSelectedDetailForecast(forecast);
+      return;
+    }
+    
+    const isSelected = selectedForComparison.some(f => f.id === forecast.id);
+    if (isSelected) {
+      setSelectedForComparison(prev => prev.filter(f => f.id !== forecast.id));
+    } else if (selectedForComparison.length < 4) {
+      setSelectedForComparison(prev => [...prev, forecast]);
+    } else {
+      toast({
+        title: "Maximum reached",
+        description: "You can compare up to 4 forecasts at a time",
+      });
+    }
+  };
+
+  const isSelectedForComparison = (forecastId: string) => {
+    return selectedForComparison.some(f => f.id === forecastId);
   };
 
   // Filter forecasts based on sentiment
@@ -279,12 +315,66 @@ export default function Forecasts() {
         </p>
       </motion.div>
 
+      {/* Compare Mode Toggle & Selection Bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          variant={compareMode ? "default" : "outline"}
+          size="sm"
+          onClick={() => {
+            setCompareMode(!compareMode);
+            if (compareMode) {
+              setSelectedForComparison([]);
+            }
+          }}
+          className="gap-2"
+        >
+          <GitCompare className="w-4 h-4" />
+          {compareMode ? "Exit Compare" : "Compare Forecasts"}
+        </Button>
+
+        {compareMode && selectedForComparison.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center gap-2"
+          >
+            <Badge variant="secondary" className="gap-1">
+              {selectedForComparison.length} selected
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedForComparison([])}
+              className="h-7 px-2"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+            {selectedForComparison.length >= 2 && (
+              <Button
+                size="sm"
+                onClick={() => setShowComparisonModal(true)}
+                className="gap-1"
+              >
+                <GitCompare className="w-3 h-3" />
+                Compare ({selectedForComparison.length})
+              </Button>
+            )}
+          </motion.div>
+        )}
+
+        {compareMode && (
+          <span className="text-xs text-muted-foreground">
+            Click on forecast cards to select them for comparison (max 4)
+          </span>
+        )}
+      </div>
+
       {/* Tabs with animated indicator */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="relative flex gap-2 p-1 bg-muted/30 rounded-lg mb-8 max-w-md mx-auto md:mx-0 border border-border/30">
+        <TabsList className="relative flex gap-2 p-1 bg-muted/30 rounded-lg mb-8 max-w-md mx-auto md:mx-0 border border-border/30 h-auto">
           {/* Animated background indicator */}
           <motion.div
-            className="absolute h-[calc(100%-8px)] bg-gradient-to-r from-primary to-primary/80 rounded-md shadow-md"
+            className="absolute h-[calc(100%-8px)] bg-gradient-to-r from-primary to-primary/80 rounded-md shadow-md top-1"
             animate={{
               x: activeTab === 'public' ? 4 : 'calc(50% + 2px)',
               width: 'calc(50% - 8px)'
@@ -294,17 +384,17 @@ export default function Forecasts() {
           
           <TabsTrigger 
             value="public" 
-            className="relative z-10 flex-1 data-[state=active]:text-primary-foreground data-[state=active]:bg-transparent"
+            className="relative z-10 flex-1 data-[state=active]:text-primary-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             Public Forecasts
           </TabsTrigger>
           <TabsTrigger 
             value="arova"
-            className="relative z-10 flex-1 data-[state=active]:text-primary-foreground data-[state=active]:bg-transparent"
+            className="relative z-10 flex-1 data-[state=active]:text-primary-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             Arova Forecasts
           </TabsTrigger>
-        </div>
+        </TabsList>
 
         <AnimatePresence mode="wait">
 
@@ -346,13 +436,19 @@ export default function Forecasts() {
                       hidden: { opacity: 0, y: 20 },
                       visible: { opacity: 1, y: 0 }
                     }}
+                    className={`relative ${compareMode && isSelectedForComparison(forecast.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background rounded-xl' : ''}`}
                   >
+                    {compareMode && isSelectedForComparison(forecast.id) && (
+                      <div className="absolute -top-2 -right-2 z-10 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xs font-bold">
+                        {selectedForComparison.findIndex(f => f.id === forecast.id) + 1}
+                      </div>
+                    )}
                     <EnhancedForecastCard
                       forecast={forecast}
                       onLike={handleLike}
                       onBookmark={handleBookmark}
                       onImageClick={setSelectedImageForecast}
-                      onCardClick={setSelectedDetailForecast}
+                      onCardClick={handleCompareToggle}
                       onRefresh={fetchForecasts}
                     />
                   </motion.div>
@@ -411,13 +507,19 @@ export default function Forecasts() {
                       hidden: { opacity: 0, y: 20 },
                       visible: { opacity: 1, y: 0 }
                     }}
+                    className={`relative ${compareMode && isSelectedForComparison(forecast.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background rounded-xl' : ''}`}
                   >
+                    {compareMode && isSelectedForComparison(forecast.id) && (
+                      <div className="absolute -top-2 -right-2 z-10 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xs font-bold">
+                        {selectedForComparison.findIndex(f => f.id === forecast.id) + 1}
+                      </div>
+                    )}
                     <EnhancedForecastCard
                       forecast={forecast}
                       onLike={handleLike}
                       onBookmark={handleBookmark}
                       onImageClick={setSelectedImageForecast}
-                      onCardClick={setSelectedDetailForecast}
+                      onCardClick={handleCompareToggle}
                       onRefresh={fetchForecasts}
                     />
                   </motion.div>
@@ -486,6 +588,14 @@ export default function Forecasts() {
           onRefresh={fetchForecasts}
         />
       )}
+
+      {/* Forecast Comparison Modal */}
+      <ForecastComparison
+        forecasts={selectedForComparison}
+        open={showComparisonModal}
+        onClose={() => setShowComparisonModal(false)}
+        onRemove={(id) => setSelectedForComparison(prev => prev.filter(f => f.id !== id))}
+      />
     </div>
   );
 }
