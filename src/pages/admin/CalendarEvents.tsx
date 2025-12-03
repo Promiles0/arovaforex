@@ -40,7 +40,6 @@ const categoryOptions = [
   { value: 'webinar', label: 'Webinar', icon: Video },
   { value: 'signal', label: 'Signal', icon: Bell },
   { value: 'forecast', label: 'Forecast', icon: Users },
-  { value: 'trading_session', label: 'Trading Session', icon: TrendingUp },
 ];
 
 const impactOptions = [
