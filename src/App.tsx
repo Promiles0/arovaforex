@@ -30,6 +30,7 @@ import AdminAnalytics from "./pages/admin/Analytics";
 import AdminNotifications from "./pages/admin/Notifications";
 import AdminContact from "./pages/admin/Contact";
 import AdminContactAnalytics from "./pages/admin/ContactAnalytics";
+import AdminCalendarEvents from "./pages/admin/CalendarEvents";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => (
                 <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="contact" element={<AdminContact />} />
                 <Route path="contact-analytics" element={<AdminContactAnalytics />} />
+                <Route path="calendar-events" element={<AdminCalendarEvents />} />
                 <Route path="journal" element={<Journal />} />
               </Route>
 
