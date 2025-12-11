@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, TrendingUp, BookOpen, Award } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useUserStats } from '@/hooks/useUserStats';
+import { useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ProfileHeaderProps {
   profile: any;
@@ -13,6 +16,50 @@ interface ProfileHeaderProps {
 export const ProfileHeader = ({ profile, onAvatarUpdate }: ProfileHeaderProps) => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: stats, isLoading: statsLoading } = useUserStats(profile?.user_id);
+
+  // Real-time subscription for stats updates
+  useEffect(() => {
+    if (!profile?.user_id) return;
+
+    const forecastChannel = supabase
+      .channel('profile-forecast-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'forecasts',
+          filter: `user_id=eq.${profile.user_id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['user-stats', profile.user_id] });
+        }
+      )
+      .subscribe();
+
+    const journalChannel = supabase
+      .channel('profile-journal-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'journal_entries',
+          filter: `user_id=eq.${profile.user_id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['user-stats', profile.user_id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(forecastChannel);
+      supabase.removeChannel(journalChannel);
+    };
+  }, [profile?.user_id, queryClient]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -150,7 +197,11 @@ export const ProfileHeader = ({ profile, onAvatarUpdate }: ProfileHeaderProps) =
           <div className="flex items-center justify-center mb-2">
             <TrendingUp className="text-primary" size={24} />
           </div>
-          <p className="text-2xl font-bold">0</p>
+          {statsLoading ? (
+            <Skeleton className="h-8 w-12 mx-auto mb-1" />
+          ) : (
+            <p className="text-2xl font-bold">{stats?.totalForecasts || 0}</p>
+          )}
           <p className="text-sm text-muted-foreground">Forecasts</p>
         </motion.div>
         
@@ -161,7 +212,11 @@ export const ProfileHeader = ({ profile, onAvatarUpdate }: ProfileHeaderProps) =
           <div className="flex items-center justify-center mb-2">
             <BookOpen className="text-primary" size={24} />
           </div>
-          <p className="text-2xl font-bold">0</p>
+          {statsLoading ? (
+            <Skeleton className="h-8 w-12 mx-auto mb-1" />
+          ) : (
+            <p className="text-2xl font-bold">{stats?.totalJournalEntries || 0}</p>
+          )}
           <p className="text-sm text-muted-foreground">Journal Entries</p>
         </motion.div>
         
@@ -172,7 +227,11 @@ export const ProfileHeader = ({ profile, onAvatarUpdate }: ProfileHeaderProps) =
           <div className="flex items-center justify-center mb-2">
             <Award className="text-primary" size={24} />
           </div>
-          <p className="text-2xl font-bold">0%</p>
+          {statsLoading ? (
+            <Skeleton className="h-8 w-12 mx-auto mb-1" />
+          ) : (
+            <p className="text-2xl font-bold">{stats?.winRate || 0}%</p>
+          )}
           <p className="text-sm text-muted-foreground">Win Rate</p>
         </motion.div>
       </div>
