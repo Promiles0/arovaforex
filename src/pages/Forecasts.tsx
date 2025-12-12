@@ -371,26 +371,26 @@ export default function Forecasts() {
 
       {/* Tabs with animated indicator */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="relative flex gap-2 p-1 bg-muted/30 rounded-lg mb-8 max-w-md mx-auto md:mx-0 border border-border/30 h-auto">
+        <TabsList className="relative grid grid-cols-2 p-1 bg-muted/30 rounded-lg mb-8 max-w-md mx-auto md:mx-0 border border-border/30 h-auto">
           {/* Animated background indicator */}
           <motion.div
-            className="absolute h-[calc(100%-8px)] bg-gradient-to-r from-primary to-primary/80 rounded-md shadow-md top-1"
+            className="absolute h-[calc(100%-8px)] bg-gradient-to-r from-primary to-primary/80 rounded-md shadow-md top-1 left-1"
             animate={{
-              x: activeTab === 'public' ? 4 : 'calc(50% + 2px)',
-              width: 'calc(50% - 8px)'
+              x: activeTab === 'public' ? 0 : 'calc(100% + 4px)',
             }}
+            style={{ width: 'calc(50% - 6px)' }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
           
           <TabsTrigger 
             value="public" 
-            className="relative z-10 flex-1 data-[state=active]:text-primary-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            className="relative z-10 data-[state=active]:text-primary-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             Public Forecasts
           </TabsTrigger>
           <TabsTrigger 
             value="arova"
-            className="relative z-10 flex-1 data-[state=active]:text-primary-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            className="relative z-10 data-[state=active]:text-primary-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             Arova Forecasts
           </TabsTrigger>
