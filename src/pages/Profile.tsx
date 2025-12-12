@@ -4,16 +4,19 @@ import { User, TrendingUp, Settings, Eye, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { PersonalInfoTab } from '@/components/profile/PersonalInfoTab';
 import { TradingProfileTab } from '@/components/profile/TradingProfileTab';
 import { PreferencesTab } from '@/components/profile/PreferencesTab';
 import { ProfilePreviewModal } from '@/components/profile/ProfilePreviewModal';
+import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
+import { AchievementBadges } from '@/components/profile/AchievementBadges';
+import { RecentActivity } from '@/components/profile/RecentActivity';
 import { SEO } from '@/components/seo/SEO';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useUserStats } from '@/hooks/useUserStats';
 
 interface Profile {
   id: string;
@@ -46,6 +49,7 @@ const Profile = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const { data: stats, isLoading: statsLoading } = useUserStats(user?.id);
 
   useEffect(() => {
     if (user) {
@@ -156,7 +160,16 @@ const Profile = () => {
             </div>
           </div>
 
+          {/* Profile Completion Banner */}
+          <ProfileCompletionBanner profile={profile} />
+
           <ProfileHeader profile={profile} onAvatarUpdate={handleAvatarUpdate} />
+
+          {/* Achievement Badges */}
+          <AchievementBadges stats={stats} isLoading={statsLoading} />
+
+          {/* Recent Activity */}
+          {user && <RecentActivity userId={user.id} />}
 
           <Tabs defaultValue="personal" className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-8">

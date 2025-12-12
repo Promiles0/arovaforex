@@ -1,40 +1,57 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Bell, Heart, MessageCircle, Bookmark, Megaphone, AlertTriangle, Check, CheckCircle2 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Bell, Check, X, Filter, Trash2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { NotificationCard } from "./NotificationCard";
+import { NotificationDetailModal } from "./NotificationDetailModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { NOTIFICATION_CONFIG } from "@/lib/notificationConfig";
 
 interface NotificationItem {
   id: string;
   user_id: string;
-  type: "like" | "bookmark" | "comment" | "announcement" | "system";
+  type: string;
   content: string;
   link: string | null;
   is_read: boolean;
   created_at: string;
 }
 
-const typeIconMap: Record<NotificationItem["type"], React.ReactNode> = {
-  like: <Heart className="w-4 h-4 text-primary" />,
-  bookmark: <Bookmark className="w-4 h-4 text-primary" />,
-  comment: <MessageCircle className="w-4 h-4 text-primary" />,
-  announcement: <Megaphone className="w-4 h-4 text-primary" />,
-  system: <AlertTriangle className="w-4 h-4 text-primary" />,
-};
+const filterTabs = [
+  { id: 'all', label: 'All', icon: '📥' },
+  { id: 'unread', label: 'Unread', icon: '🔵' },
+  { id: 'like', label: 'Likes', icon: '❤️' },
+  { id: 'comment', label: 'Comments', icon: '💬' },
+  { id: 'announcement', label: 'Announcements', icon: '📢' },
+];
 
 export function NotificationsBell() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [pageSize, setPageSize] = useState(20);
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const unreadCount = useMemo(() => items.filter((n) => !n.is_read).length, [items]);
+
+  const filteredItems = useMemo(() => {
+    if (activeFilter === 'all') return items;
+    if (activeFilter === 'unread') return items.filter(n => !n.is_read);
+    return items.filter(n => n.type === activeFilter);
+  }, [items, activeFilter]);
 
   const fetchNotifications = async (limit = pageSize) => {
     if (!user) return;
@@ -57,7 +74,6 @@ export function NotificationsBell() {
     if (!user) return;
     fetchNotifications();
 
-    // Realtime subscription
     const channel = supabase
       .channel(`notifications-${user.id}`)
       .on(
@@ -66,18 +82,20 @@ export function NotificationsBell() {
         (payload) => {
           const n = payload.new as unknown as NotificationItem;
           setItems((prev) => [n, ...prev].slice(0, pageSize));
+          toast({
+            title: "New Notification",
+            description: n.content.slice(0, 60) + (n.content.length > 60 ? '...' : ''),
+          });
         }
       )
       .subscribe();
 
-    // Fallback polling every 30s
     const interval = setInterval(() => fetchNotifications(), 30000);
 
     return () => {
       supabase.removeChannel(channel);
       clearInterval(interval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, pageSize]);
 
   const markAsRead = async (id: string) => {
@@ -105,11 +123,24 @@ export function NotificationsBell() {
     }
   };
 
-  const onClickItem = async (n: NotificationItem) => {
-    await markAsRead(n.id);
-    if (n.link) {
-      window.location.href = n.link;
+  const deleteNotification = async (id: string) => {
+    const { error } = await supabase.from("notifications").delete().eq("id", id);
+    if (error) {
+      console.error(error);
+      toast({ title: "Error", description: "Failed to delete notification", variant: "destructive" });
+    } else {
+      setItems((prev) => prev.filter((n) => n.id !== id));
+      toast({ title: "Deleted", description: "Notification removed" });
     }
+  };
+
+  const handleCardClick = (notification: NotificationItem) => {
+    setSelectedNotification(notification);
+    setIsModalOpen(true);
+  };
+
+  const handleNavigate = (link: string) => {
+    window.location.href = link;
   };
 
   const loadMore = async () => {
@@ -119,62 +150,145 @@ export function NotificationsBell() {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative" aria-label="Notifications">
-          <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
-            >
-              {unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-96 p-0">
-        <div className="flex items-center justify-between px-3 py-2 border-b">
-          <DropdownMenuLabel className="font-semibold">Notifications</DropdownMenuLabel>
-          <Button variant="ghost" size="sm" onClick={markAllAsRead} disabled={unreadCount === 0}>
-            <Check className="w-4 h-4 mr-1" /> Mark all as read
+    <>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="relative" aria-label="Notifications">
+            <Bell className="w-5 h-5" />
+            <AnimatePresence>
+              {unreadCount > 0 && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  className="absolute -top-1 -right-1"
+                >
+                  <Badge
+                    variant="destructive"
+                    className="h-5 min-w-5 p-0 flex items-center justify-center text-xs animate-pulse"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Badge>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Button>
-        </div>
-        <ScrollArea className="max-h-96">
-          <div className="py-1">
-            {items.length === 0 && (
-              <div className="px-4 py-6 text-center text-muted-foreground">No notifications yet</div>
-            )}
-            {items.map((n) => (
-              <DropdownMenuItem key={n.id} onClick={() => onClickItem(n)} className="gap-3 py-3 cursor-pointer">
-                <div className="relative">
-                  {typeIconMap[n.type]}
-                  {!n.is_read && (
-                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm leading-snug">{n.content}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                  </div>
-                </div>
-                {n.is_read ? (
-                  <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
-                ) : (
-                  <span className="text-xs text-primary">New</span>
-                )}
-              </DropdownMenuItem>
-            ))}
+        </DropdownMenuTrigger>
+        
+        <DropdownMenuContent 
+          align="end" 
+          className="w-[400px] p-0 bg-card/95 backdrop-blur-xl border-border/50"
+          sideOffset={8}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+            <div>
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <Bell className="w-4 h-4 text-primary" />
+                Notifications
+              </h3>
+              <p className="text-xs text-muted-foreground">{unreadCount} unread</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={markAllAsRead} 
+                disabled={unreadCount === 0}
+                className="text-xs h-8"
+              >
+                <Check className="w-3 h-3 mr-1" /> 
+                Mark all read
+              </Button>
+            </div>
           </div>
-        </ScrollArea>
-        <div className="border-t p-2">
-          <Button variant="secondary" className="w-full" onClick={loadMore} disabled={loading}>
-            {loading ? "Loading..." : "Load more"}
-          </Button>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+
+          {/* Filter Tabs */}
+          <div className="flex gap-1 p-2 border-b border-border/50 overflow-x-auto scrollbar-hide">
+            {filterTabs.map((tab) => {
+              const count = tab.id === 'all' 
+                ? items.length 
+                : tab.id === 'unread' 
+                  ? unreadCount 
+                  : items.filter(n => n.type === tab.id).length;
+              
+              return (
+                <Button
+                  key={tab.id}
+                  variant={activeFilter === tab.id ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setActiveFilter(tab.id)}
+                  className={`h-7 text-xs whitespace-nowrap ${
+                    activeFilter === tab.id ? 'bg-primary text-primary-foreground' : ''
+                  }`}
+                >
+                  <span className="mr-1">{tab.icon}</span>
+                  {tab.label}
+                  {count > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                      {count}
+                    </Badge>
+                  )}
+                </Button>
+              );
+            })}
+          </div>
+
+          {/* Notifications List */}
+          <ScrollArea className="max-h-[400px]">
+            <div className="p-2 space-y-2">
+              {filteredItems.length === 0 && (
+                <div className="px-4 py-12 text-center text-muted-foreground">
+                  <div className="text-4xl mb-2">
+                    {activeFilter === 'unread' ? '✅' : '📭'}
+                  </div>
+                  <p className="text-sm">
+                    {activeFilter === 'unread' 
+                      ? 'All caught up!' 
+                      : 'No notifications yet'
+                    }
+                  </p>
+                </div>
+              )}
+              
+              {filteredItems.map((notification, index) => (
+                <NotificationCard
+                  key={notification.id}
+                  notification={notification}
+                  onClick={() => handleCardClick(notification)}
+                  onMarkAsRead={markAsRead}
+                  onDelete={deleteNotification}
+                  index={index}
+                />
+              ))}
+            </div>
+          </ScrollArea>
+
+          {/* Load More */}
+          {filteredItems.length >= pageSize && (
+            <div className="border-t border-border/50 p-2">
+              <Button 
+                variant="ghost" 
+                className="w-full text-sm" 
+                onClick={loadMore} 
+                disabled={loading}
+              >
+                {loading ? "Loading..." : "Load more"}
+              </Button>
+            </div>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <NotificationDetailModal
+        notification={selectedNotification}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onMarkAsRead={markAsRead}
+        onDelete={deleteNotification}
+        onNavigate={handleNavigate}
+      />
+    </>
   );
 }
 
