@@ -12,7 +12,10 @@ import ForecastDetailModal from "@/components/forecasts/ForecastDetailModal";
 import ForecastComparison from "@/components/forecasts/ForecastComparison";
 import SentimentFilter from "@/components/forecasts/SentimentFilter";
 import ForecastSkeleton from "@/components/forecasts/ForecastSkeleton";
+import PullToRefreshIndicator from "@/components/forecasts/PullToRefreshIndicator";
 import { useArovaForecastNotifications } from "@/hooks/useArovaForecastNotifications";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Plus, GitCompare, X } from "lucide-react";
 
 interface Forecast {
@@ -64,6 +67,22 @@ export default function Forecasts() {
   const [showComparisonModal, setShowComparisonModal] = useState(false);
 
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+
+  // Pull-to-refresh for mobile
+  const handlePullRefresh = useCallback(async () => {
+    await fetchForecasts();
+    toast({
+      title: "Refreshed",
+      description: "Forecasts updated successfully",
+    });
+  }, [toast]);
+
+  const { pullDistance, isRefreshing, progress } = usePullToRefresh({
+    onRefresh: handlePullRefresh,
+    enabled: isMobile,
+    threshold: 80
+  });
 
   const fetchForecasts = useCallback(async () => {
     try {
@@ -300,6 +319,15 @@ export default function Forecasts() {
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
+      {/* Pull to Refresh Indicator (Mobile only) */}
+      {isMobile && (
+        <PullToRefreshIndicator
+          pullDistance={pullDistance}
+          isRefreshing={isRefreshing}
+          progress={progress}
+        />
+      )}
+
       {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
