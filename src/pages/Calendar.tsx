@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar as CalendarIcon, Clock, Filter, Bell, TrendingUp, BookOpen, Users, Video, ExternalLink, Star } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Filter, Bell, TrendingUp, BookOpen, Users, Video, ExternalLink, Star, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isToday, isFuture, isPast } from "date-fns";
+import CurrencyStrengthHeatmap from "@/components/calendar/CurrencyStrengthHeatmap";
 
 interface CalendarEvent {
   id: string;
@@ -26,6 +27,7 @@ interface CalendarEvent {
 
 const categories = [
   { value: "all", label: "All Events", icon: CalendarIcon, color: "text-primary" },
+  { value: "market_data", label: "Market Data", icon: BarChart3, color: "text-cyan-400" },
   { value: "market_event", label: "Market Events", icon: TrendingUp, color: "text-blue-400" },
   { value: "academy", label: "Academy", icon: BookOpen, color: "text-purple-400" },
   { value: "webinar", label: "Webinars", icon: Video, color: "text-pink-400" },
@@ -345,8 +347,21 @@ export default function Calendar() {
         </Card>
       </motion.div>
 
+      {/* Market Data Section - Currency Strength Heatmap */}
+      {selectedCategory === 'market_data' && (
+        <motion.div
+          key="market-data"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <CurrencyStrengthHeatmap />
+        </motion.div>
+      )}
+
       {/* Error State */}
-      {error && (
+      {error && selectedCategory !== 'market_data' && (
         <Card className="p-8 text-center border-destructive/50">
           <div className="text-6xl mb-4">⚠️</div>
           <h3 className="text-xl font-semibold mb-2">Oops! Something went wrong</h3>
@@ -356,10 +371,10 @@ export default function Calendar() {
       )}
 
       {/* Loading State */}
-      {loading && <LoadingSkeleton />}
+      {loading && selectedCategory !== 'market_data' && <LoadingSkeleton />}
 
       {/* Events Grid */}
-      {!loading && !error && (
+      {!loading && !error && selectedCategory !== 'market_data' && (
         <AnimatePresence mode="wait">
           <motion.div
             key={selectedCategory}
