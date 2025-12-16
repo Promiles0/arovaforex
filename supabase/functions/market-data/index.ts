@@ -16,8 +16,22 @@ interface CachedData {
 const cache = new Map<string, CachedData>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-const FOREX_PAIRS = [
-  'EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'USD/CHF', 'NZD/USD'
+// All 28 forex pairs for complete matrix
+const ALL_FOREX_PAIRS = [
+  // USD Base Pairs (7)
+  'EUR/USD', 'GBP/USD', 'AUD/USD', 'NZD/USD', 'USD/JPY', 'USD/CAD', 'USD/CHF',
+  // EUR Cross Pairs (6)
+  'EUR/GBP', 'EUR/JPY', 'EUR/AUD', 'EUR/CAD', 'EUR/CHF', 'EUR/NZD',
+  // GBP Cross Pairs (5)
+  'GBP/JPY', 'GBP/AUD', 'GBP/CAD', 'GBP/CHF', 'GBP/NZD',
+  // JPY Cross Pairs (4)
+  'AUD/JPY', 'CAD/JPY', 'CHF/JPY', 'NZD/JPY',
+  // AUD Cross Pairs (3)
+  'AUD/CAD', 'AUD/CHF', 'AUD/NZD',
+  // CAD Cross Pairs (2)
+  'CAD/CHF', 'CAD/NZD',
+  // CHF Cross Pairs (1)
+  'CHF/NZD'
 ];
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD'];
@@ -35,15 +49,10 @@ interface CurrencyStrength {
   normalizedStrength: number;
 }
 
-async function fetchFromTwelveData(apiKey: string): Promise<{ pairs: ForexPair[], gold: ForexPair | null }> {
-  const allSymbols = [...FOREX_PAIRS, 'XAU/USD'];
-  const symbolsString = allSymbols.join(',');
-  
-  console.log('Fetching from Twelve Data API...');
-  
+async function fetchBatch(symbols: string, apiKey: string): Promise<ForexPair[]> {
   try {
     const response = await fetch(
-      `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbolsString)}&apikey=${apiKey}`
+      `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbols)}&apikey=${apiKey}`
     );
     
     if (!response.ok) {
@@ -51,32 +60,74 @@ async function fetchFromTwelveData(apiKey: string): Promise<{ pairs: ForexPair[]
     }
     
     const data = await response.json();
-    console.log('Twelve Data API response received');
-    
-    const pairs: ForexPair[] = [];
-    let gold: ForexPair | null = null;
+    const results: ForexPair[] = [];
     
     // Handle both single and multiple symbol responses
-    if (Array.isArray(data) || (data && typeof data === 'object')) {
-      for (const symbol of allSymbols) {
-        const quote = data[symbol] || data;
-        
-        if (quote && quote.close && !quote.code) {
-          const pairData: ForexPair = {
-            symbol: symbol,
-            price: parseFloat(quote.close) || 0,
-            percentChange: parseFloat(quote.percent_change) || 0,
-            timestamp: quote.datetime || new Date().toISOString()
-          };
-          
-          if (symbol === 'XAU/USD') {
-            gold = pairData;
-          } else {
-            pairs.push(pairData);
+    if (data && typeof data === 'object') {
+      // Check if it's a single symbol response
+      if (data.symbol && data.close && !data.code) {
+        results.push({
+          symbol: data.symbol,
+          price: parseFloat(data.close) || 0,
+          percentChange: parseFloat(data.percent_change) || 0,
+          timestamp: data.datetime || new Date().toISOString()
+        });
+      } else {
+        // Multiple symbols response
+        for (const key of Object.keys(data)) {
+          const quote = data[key];
+          if (quote && quote.close && !quote.code) {
+            results.push({
+              symbol: quote.symbol || key,
+              price: parseFloat(quote.close) || 0,
+              percentChange: parseFloat(quote.percent_change) || 0,
+              timestamp: quote.datetime || new Date().toISOString()
+            });
           }
         }
       }
     }
+    
+    return results;
+  } catch (error) {
+    console.error('Error fetching batch:', error);
+    return [];
+  }
+}
+
+async function fetchFromTwelveData(apiKey: string): Promise<{ pairs: ForexPair[], gold: ForexPair | null }> {
+  console.log('Fetching from Twelve Data API (all 28 pairs + gold)...');
+  
+  try {
+    // Batch requests to stay within rate limits
+    // Batch 1: USD pairs + Gold (8 symbols)
+    const batch1 = ['EUR/USD', 'GBP/USD', 'AUD/USD', 'NZD/USD', 'USD/JPY', 'USD/CAD', 'USD/CHF', 'XAU/USD'].join(',');
+    // Batch 2: EUR crosses (6 symbols)
+    const batch2 = ['EUR/GBP', 'EUR/JPY', 'EUR/AUD', 'EUR/CAD', 'EUR/CHF', 'EUR/NZD'].join(',');
+    // Batch 3: GBP crosses (5 symbols)
+    const batch3 = ['GBP/JPY', 'GBP/AUD', 'GBP/CAD', 'GBP/CHF', 'GBP/NZD'].join(',');
+    // Batch 4: JPY crosses (4 symbols)
+    const batch4 = ['AUD/JPY', 'CAD/JPY', 'CHF/JPY', 'NZD/JPY'].join(',');
+    // Batch 5: Remaining crosses (6 symbols)
+    const batch5 = ['AUD/CAD', 'AUD/CHF', 'AUD/NZD', 'CAD/CHF', 'CAD/NZD', 'CHF/NZD'].join(',');
+    
+    // Fetch all batches in parallel
+    const [data1, data2, data3, data4, data5] = await Promise.all([
+      fetchBatch(batch1, apiKey),
+      fetchBatch(batch2, apiKey),
+      fetchBatch(batch3, apiKey),
+      fetchBatch(batch4, apiKey),
+      fetchBatch(batch5, apiKey)
+    ]);
+    
+    // Combine all results
+    const allData = [...data1, ...data2, ...data3, ...data4, ...data5];
+    
+    // Separate gold from forex pairs
+    const gold = allData.find(p => p.symbol === 'XAU/USD') || null;
+    const pairs = allData.filter(p => p.symbol !== 'XAU/USD');
+    
+    console.log(`Fetched ${pairs.length} forex pairs and gold: ${gold ? 'yes' : 'no'}`);
     
     return { pairs, gold };
   } catch (error) {
@@ -148,6 +199,24 @@ function generatePairMatrix(pairs: ForexPair[]): Record<string, Record<string, {
   return matrix;
 }
 
+function generateDemoData(): { pairs: ForexPair[], gold: ForexPair } {
+  const demoPairs = ALL_FOREX_PAIRS.map(symbol => ({
+    symbol,
+    price: symbol.includes('JPY') ? 140 + Math.random() * 20 : 0.8 + Math.random() * 0.8,
+    percentChange: (Math.random() - 0.5) * 2,
+    timestamp: new Date().toISOString()
+  }));
+  
+  const gold = {
+    symbol: 'XAU/USD',
+    price: 2040 + Math.random() * 20,
+    percentChange: (Math.random() - 0.5) * 3,
+    timestamp: new Date().toISOString()
+  };
+  
+  return { pairs: demoPairs, gold };
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -179,39 +248,44 @@ serve(async (req) => {
     // Fetch fresh data
     const apiKey = Deno.env.get('TWELVE_DATA_API_KEY');
     if (!apiKey) {
-      throw new Error('TWELVE_DATA_API_KEY not configured');
+      console.log('TWELVE_DATA_API_KEY not configured, using demo data');
+      const { pairs, gold } = generateDemoData();
+      const strength = calculateCurrencyStrength(pairs);
+      const matrix = generatePairMatrix(pairs);
+      
+      return new Response(
+        JSON.stringify({
+          pairs,
+          gold,
+          strength,
+          matrix,
+          lastUpdated: new Date().toISOString(),
+          timeframe,
+          isDemo: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
     const { pairs, gold } = await fetchFromTwelveData(apiKey);
     
     if (pairs.length === 0) {
-      // Return fallback data for demo purposes
+      // Return fallback demo data
       console.log('No data from API, using demo data');
-      const demoData = {
-        pairs: FOREX_PAIRS.map(symbol => ({
-          symbol,
-          price: Math.random() * 2 + 0.5,
-          percentChange: (Math.random() - 0.5) * 2,
-          timestamp: new Date().toISOString()
-        })),
-        gold: {
-          symbol: 'XAU/USD',
-          price: 2045.50,
-          percentChange: 0.85,
-          timestamp: new Date().toISOString()
-        },
-        strength: [],
-        matrix: {},
-        lastUpdated: new Date().toISOString(),
-        timeframe,
-        isDemo: true
-      };
-      
-      demoData.strength = calculateCurrencyStrength(demoData.pairs);
-      demoData.matrix = generatePairMatrix(demoData.pairs);
+      const demoData = generateDemoData();
+      const strength = calculateCurrencyStrength(demoData.pairs);
+      const matrix = generatePairMatrix(demoData.pairs);
       
       return new Response(
-        JSON.stringify(demoData),
+        JSON.stringify({
+          pairs: demoData.pairs,
+          gold: demoData.gold,
+          strength,
+          matrix,
+          lastUpdated: new Date().toISOString(),
+          timeframe,
+          isDemo: true
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -236,7 +310,7 @@ serve(async (req) => {
       timeframe
     });
     
-    console.log('Returning fresh data');
+    console.log('Returning fresh data with', pairs.length, 'pairs');
     return new Response(
       JSON.stringify(responseData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
