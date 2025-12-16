@@ -9,6 +9,7 @@ import { PerformanceOverview } from "@/components/dashboard/PerformanceOverview"
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { SmartInsights } from "@/components/dashboard/SmartInsights";
 import { TopInstruments } from "@/components/dashboard/TopInstruments";
+import { MarketOverview } from "@/components/dashboard/MarketOverview";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -141,6 +142,9 @@ export default function Dashboard() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Welcome Section */}
       <WelcomeCard />
+
+      {/* Market Overview */}
+      <MarketOverview />
 
       {/* Today's Stats */}
       <TodayStats entries={journalEntries} />
