@@ -4,10 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, TrendingUp, TrendingDown, Clock, AlertCircle } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Clock, AlertCircle, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePriceAlerts } from "@/hooks/usePriceAlerts";
+import PriceAlertModal from "./PriceAlertModal";
+import PriceAlertsList from "./PriceAlertsList";
 
 interface ForexPair {
   symbol: string;
@@ -58,8 +61,11 @@ export default function CurrencyStrengthHeatmap() {
   const [error, setError] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState<'1D' | '1W' | '1M'>('1D');
   const [countdown, setCountdown] = useState(300); // 5 minutes
+  const [alertModalOpen, setAlertModalOpen] = useState(false);
+  const [selectedPair, setSelectedPair] = useState<{ symbol: string; price: number } | null>(null);
   
   const { toast } = useToast();
+  const { alerts, loading: alertsLoading, createAlert, deleteAlert, checkAlerts, getAlertsForPair } = usePriceAlerts();
 
   const fetchMarketData = async (showRefresh = false) => {
     try {
@@ -119,6 +125,37 @@ export default function CurrencyStrengthHeatmap() {
     
     return () => clearInterval(timer);
   }, []);
+
+  // Check price alerts when market data updates
+  useEffect(() => {
+    if (marketData?.pairs) {
+      const prices: Record<string, number> = {};
+      marketData.pairs.forEach(pair => {
+        prices[pair.symbol] = pair.price;
+      });
+      checkAlerts(prices);
+    }
+  }, [marketData, checkAlerts]);
+
+  // Build current prices map for alerts list
+  const currentPrices = useMemo(() => {
+    const prices: Record<string, number> = {};
+    marketData?.pairs?.forEach(pair => {
+      prices[pair.symbol] = pair.price;
+    });
+    return prices;
+  }, [marketData]);
+
+  const handleCellClick = (baseCurrency: string, quoteCurrency: string, price: number) => {
+    const symbol = `${baseCurrency}/${quoteCurrency}`;
+    setSelectedPair({ symbol, price });
+    setAlertModalOpen(true);
+  };
+
+  const handleCreateAlert = async (targetPrice: number, direction: 'above' | 'below') => {
+    if (!selectedPair) return false;
+    return createAlert(selectedPair.symbol, targetPrice, direction);
+  };
 
   const getCellColor = (percentChange: number | undefined) => {
     if (percentChange === undefined || percentChange === null || isNaN(percentChange)) {
@@ -322,17 +359,26 @@ export default function CurrencyStrengthHeatmap() {
                       
                       const cellData = marketData?.matrix?.[baseCurrency]?.[quoteCurrency];
                       
+                      const pairAlerts = getAlertsForPair(`${baseCurrency}/${quoteCurrency}`);
+                      
                       return (
                         <motion.div
                           key={`${baseCurrency}-${quoteCurrency}`}
                           variants={itemVariants}
                           whileHover={{ scale: 1.05, zIndex: 10 }}
+                          onClick={() => cellData && handleCellClick(baseCurrency, quoteCurrency, cellData.price)}
                           className={cn(
-                            "h-16 flex flex-col items-center justify-center rounded cursor-pointer transition-all",
+                            "h-16 flex flex-col items-center justify-center rounded cursor-pointer transition-all relative",
                             getCellColor(cellData?.change),
                             "hover:ring-2 hover:ring-primary/50"
                           )}
                         >
+                          {/* Alert indicator */}
+                          {pairAlerts.length > 0 && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                              <Bell className="w-2.5 h-2.5 text-primary-foreground" />
+                            </div>
+                          )}
                           {cellData ? (
                             <>
                               <div className="text-xs font-semibold flex items-center gap-0.5">
@@ -419,7 +465,19 @@ export default function CurrencyStrengthHeatmap() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <Card className="bg-gradient-to-br from-amber-500/10 via-amber-600/5 to-yellow-500/10 border-amber-500/30 overflow-hidden">
+              <Card 
+                className="bg-gradient-to-br from-amber-500/10 via-amber-600/5 to-yellow-500/10 border-amber-500/30 overflow-hidden cursor-pointer hover:ring-2 hover:ring-amber-500/30 transition-all relative"
+                onClick={() => {
+                  setSelectedPair({ symbol: 'XAU/USD', price: marketData.gold!.price });
+                  setAlertModalOpen(true);
+                }}
+              >
+                {/* Alert indicator */}
+                {getAlertsForPair('XAU/USD').length > 0 && (
+                  <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                    <Bell className="w-3.5 h-3.5 text-primary-foreground" />
+                  </div>
+                )}
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
@@ -449,10 +507,23 @@ export default function CurrencyStrengthHeatmap() {
                     ${marketData.gold.price.toFixed(2)}
                   </div>
                   
-                  <div className="mt-3 pt-3 border-t border-amber-500/20">
+                  <div className="mt-3 pt-3 border-t border-amber-500/20 flex items-center justify-between">
                     <div className="text-xs text-muted-foreground">
                       Last update: {new Date(marketData.gold.timestamp).toLocaleTimeString()}
                     </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-amber-400 hover:text-amber-300 h-7 px-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPair({ symbol: 'XAU/USD', price: marketData.gold!.price });
+                        setAlertModalOpen(true);
+                      }}
+                    >
+                      <Bell className="w-3.5 h-3.5 mr-1" />
+                      Set Alert
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -476,34 +547,72 @@ export default function CurrencyStrengthHeatmap() {
             animate="visible"
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3"
           >
-            {marketData?.pairs?.map((pair, index) => (
-              <motion.div
-                key={pair.symbol}
-                variants={itemVariants}
-                whileHover={{ scale: 1.02, y: -2 }}
-                className={cn(
-                  "p-4 rounded-lg border transition-all cursor-pointer",
-                  getCellColor(pair.percentChange),
-                  "hover:ring-2 hover:ring-primary/30"
-                )}
-              >
-                <div className="text-xs font-medium opacity-80 mb-1">{pair.symbol}</div>
-                <div className="text-lg font-bold font-mono">
-                  {pair.price.toFixed(pair.symbol.includes('JPY') ? 2 : 4)}
-                </div>
-                <div className="text-sm font-semibold flex items-center gap-1 mt-1">
-                  {pair.percentChange > 0 ? (
-                    <TrendingUp className="w-3 h-3" />
-                  ) : pair.percentChange < 0 ? (
-                    <TrendingDown className="w-3 h-3" />
-                  ) : null}
-                  {pair.percentChange > 0 ? '+' : ''}{pair.percentChange.toFixed(2)}%
-                </div>
-              </motion.div>
-            ))}
+            {marketData?.pairs?.map((pair, index) => {
+              const pairAlerts = getAlertsForPair(pair.symbol);
+              return (
+                <motion.div
+                  key={pair.symbol}
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  onClick={() => {
+                    setSelectedPair({ symbol: pair.symbol, price: pair.price });
+                    setAlertModalOpen(true);
+                  }}
+                  className={cn(
+                    "p-4 rounded-lg border transition-all cursor-pointer relative",
+                    getCellColor(pair.percentChange),
+                    "hover:ring-2 hover:ring-primary/30"
+                  )}
+                >
+                  {/* Alert indicator */}
+                  {pairAlerts.length > 0 && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                      <Bell className="w-3 h-3 text-primary-foreground" />
+                    </div>
+                  )}
+                  <div className="text-xs font-medium opacity-80 mb-1">{pair.symbol}</div>
+                  <div className="text-lg font-bold font-mono">
+                    {pair.price.toFixed(pair.symbol.includes('JPY') ? 2 : 4)}
+                  </div>
+                  <div className="text-sm font-semibold flex items-center gap-1 mt-1">
+                    {pair.percentChange > 0 ? (
+                      <TrendingUp className="w-3 h-3" />
+                    ) : pair.percentChange < 0 ? (
+                      <TrendingDown className="w-3 h-3" />
+                    ) : null}
+                    {pair.percentChange > 0 ? '+' : ''}{pair.percentChange.toFixed(2)}%
+                  </div>
+                </motion.div>
+              );
+            })}
           </motion.div>
         </CardContent>
       </Card>
+
+      {/* Price Alerts Section */}
+      <div className="mt-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Bell className="w-5 h-5 text-primary" />
+          Price Alerts
+        </h2>
+        <PriceAlertsList
+          alerts={alerts}
+          loading={alertsLoading}
+          onDelete={deleteAlert}
+          currentPrices={currentPrices}
+        />
+      </div>
+
+      {/* Price Alert Modal */}
+      {selectedPair && (
+        <PriceAlertModal
+          open={alertModalOpen}
+          onOpenChange={setAlertModalOpen}
+          currencyPair={selectedPair.symbol}
+          currentPrice={selectedPair.price}
+          onCreateAlert={handleCreateAlert}
+        />
+      )}
     </div>
   );
 }
