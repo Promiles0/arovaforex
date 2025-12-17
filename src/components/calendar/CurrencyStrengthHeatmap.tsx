@@ -108,13 +108,8 @@ export default function CurrencyStrengthHeatmap() {
 
   useEffect(() => {
     fetchMarketData();
-    
-    // Auto-refresh every 5 minutes
-    const interval = setInterval(() => {
-      fetchMarketData();
-    }, 5 * 60 * 1000);
-    
-    return () => clearInterval(interval);
+    // NO auto-refresh - server database cache ensures all users share same data
+    // Manual refresh available if user wants to check for updates
   }, [timeframe]);
 
   // Countdown timer

@@ -1,40 +1,26 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// In-memory cache
-interface CachedData {
-  data: any;
-  lastUpdated: number;
-  timeframe: string;
-}
-
-const cache = new Map<string, CachedData>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-// All 28 forex pairs for complete matrix
-const ALL_FOREX_PAIRS = [
-  // USD Base Pairs (7)
-  'EUR/USD', 'GBP/USD', 'AUD/USD', 'NZD/USD', 'USD/JPY', 'USD/CAD', 'USD/CHF',
-  // EUR Cross Pairs (6)
-  'EUR/GBP', 'EUR/JPY', 'EUR/AUD', 'EUR/CAD', 'EUR/CHF', 'EUR/NZD',
-  // GBP Cross Pairs (5)
-  'GBP/JPY', 'GBP/AUD', 'GBP/CAD', 'GBP/CHF', 'GBP/NZD',
-  // JPY Cross Pairs (4)
-  'AUD/JPY', 'CAD/JPY', 'CHF/JPY', 'NZD/JPY',
-  // AUD Cross Pairs (3)
-  'AUD/CAD', 'AUD/CHF', 'AUD/NZD',
-  // CAD Cross Pairs (2)
-  'CAD/CHF', 'CAD/NZD',
-  // CHF Cross Pairs (1)
-  'CHF/NZD'
-];
-
+const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD'];
+
+// All 28 forex pairs + gold in ONE batch
+const ALL_SYMBOLS = [
+  'EUR/USD', 'GBP/USD', 'AUD/USD', 'NZD/USD', 'USD/JPY', 'USD/CAD', 'USD/CHF',
+  'EUR/GBP', 'EUR/JPY', 'EUR/AUD', 'EUR/CAD', 'EUR/CHF', 'EUR/NZD',
+  'GBP/JPY', 'GBP/AUD', 'GBP/CAD', 'GBP/CHF', 'GBP/NZD',
+  'AUD/JPY', 'CAD/JPY', 'CHF/JPY', 'NZD/JPY',
+  'AUD/CAD', 'AUD/CHF', 'AUD/NZD',
+  'CAD/CHF', 'CAD/NZD',
+  'CHF/NZD',
+  'XAU/USD'
+].join(',');
 
 interface ForexPair {
   symbol: string;
@@ -49,10 +35,67 @@ interface CurrencyStrength {
   normalizedStrength: number;
 }
 
-async function fetchBatch(symbols: string, apiKey: string): Promise<ForexPair[]> {
+// Get Supabase client with service role for cache operations
+function getSupabaseClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  return createClient(supabaseUrl, supabaseKey);
+}
+
+// Check database cache
+async function getCachedData(supabase: any, timeframe: string) {
+  try {
+    const { data, error } = await supabase
+      .from('market_data_cache')
+      .select('*')
+      .eq('id', `global-${timeframe}`)
+      .single();
+
+    if (error || !data) return null;
+
+    const cacheAge = Date.now() - new Date(data.updated_at).getTime();
+    if (cacheAge < CACHE_DURATION_MS) {
+      console.log(`Cache hit - age: ${Math.round(cacheAge / 1000)}s`);
+      return {
+        ...data.data,
+        fromCache: true,
+        cacheAge: Math.round(cacheAge / 1000),
+        nextRefresh: Math.round((CACHE_DURATION_MS - cacheAge) / 1000)
+      };
+    }
+    
+    console.log(`Cache stale - age: ${Math.round(cacheAge / 1000)}s`);
+    return null;
+  } catch (err) {
+    console.error('Cache read error:', err);
+    return null;
+  }
+}
+
+// Save to database cache
+async function setCachedData(supabase: any, timeframe: string, data: any) {
+  try {
+    await supabase
+      .from('market_data_cache')
+      .upsert({
+        id: `global-${timeframe}`,
+        data,
+        timeframe,
+        updated_at: new Date().toISOString()
+      });
+    console.log('Cache updated');
+  } catch (err) {
+    console.error('Cache write error:', err);
+  }
+}
+
+// Fetch ALL symbols in ONE API call
+async function fetchFromTwelveData(apiKey: string): Promise<{ pairs: ForexPair[], gold: ForexPair | null }> {
+  console.log('Fetching from Twelve Data API - SINGLE request for all symbols');
+  
   try {
     const response = await fetch(
-      `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbols)}&apikey=${apiKey}`
+      `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(ALL_SYMBOLS)}&apikey=${apiKey}`
     );
     
     if (!response.ok) {
@@ -62,76 +105,28 @@ async function fetchBatch(symbols: string, apiKey: string): Promise<ForexPair[]>
     const data = await response.json();
     const results: ForexPair[] = [];
     
-    // Handle both single and multiple symbol responses
     if (data && typeof data === 'object') {
-      // Check if it's a single symbol response
-      if (data.symbol && data.close && !data.code) {
-        results.push({
-          symbol: data.symbol,
-          price: parseFloat(data.close) || 0,
-          percentChange: parseFloat(data.percent_change) || 0,
-          timestamp: data.datetime || new Date().toISOString()
-        });
-      } else {
-        // Multiple symbols response
-        for (const key of Object.keys(data)) {
-          const quote = data[key];
-          if (quote && quote.close && !quote.code) {
-            results.push({
-              symbol: quote.symbol || key,
-              price: parseFloat(quote.close) || 0,
-              percentChange: parseFloat(quote.percent_change) || 0,
-              timestamp: quote.datetime || new Date().toISOString()
-            });
-          }
+      // Multiple symbols response - object with symbol keys
+      for (const key of Object.keys(data)) {
+        const quote = data[key];
+        if (quote && quote.close && !quote.code && !quote.status) {
+          results.push({
+            symbol: quote.symbol || key,
+            price: parseFloat(quote.close) || 0,
+            percentChange: parseFloat(quote.percent_change) || 0,
+            timestamp: quote.datetime || new Date().toISOString()
+          });
         }
       }
     }
     
-    return results;
-  } catch (error) {
-    console.error('Error fetching batch:', error);
-    return [];
-  }
-}
-
-async function fetchFromTwelveData(apiKey: string): Promise<{ pairs: ForexPair[], gold: ForexPair | null }> {
-  console.log('Fetching from Twelve Data API (all 28 pairs + gold)...');
-  
-  try {
-    // Batch requests to stay within rate limits
-    // Batch 1: USD pairs + Gold (8 symbols)
-    const batch1 = ['EUR/USD', 'GBP/USD', 'AUD/USD', 'NZD/USD', 'USD/JPY', 'USD/CAD', 'USD/CHF', 'XAU/USD'].join(',');
-    // Batch 2: EUR crosses (6 symbols)
-    const batch2 = ['EUR/GBP', 'EUR/JPY', 'EUR/AUD', 'EUR/CAD', 'EUR/CHF', 'EUR/NZD'].join(',');
-    // Batch 3: GBP crosses (5 symbols)
-    const batch3 = ['GBP/JPY', 'GBP/AUD', 'GBP/CAD', 'GBP/CHF', 'GBP/NZD'].join(',');
-    // Batch 4: JPY crosses (4 symbols)
-    const batch4 = ['AUD/JPY', 'CAD/JPY', 'CHF/JPY', 'NZD/JPY'].join(',');
-    // Batch 5: Remaining crosses (6 symbols)
-    const batch5 = ['AUD/CAD', 'AUD/CHF', 'AUD/NZD', 'CAD/CHF', 'CAD/NZD', 'CHF/NZD'].join(',');
+    const gold = results.find(p => p.symbol === 'XAU/USD') || null;
+    const pairs = results.filter(p => p.symbol !== 'XAU/USD');
     
-    // Fetch all batches in parallel
-    const [data1, data2, data3, data4, data5] = await Promise.all([
-      fetchBatch(batch1, apiKey),
-      fetchBatch(batch2, apiKey),
-      fetchBatch(batch3, apiKey),
-      fetchBatch(batch4, apiKey),
-      fetchBatch(batch5, apiKey)
-    ]);
-    
-    // Combine all results
-    const allData = [...data1, ...data2, ...data3, ...data4, ...data5];
-    
-    // Separate gold from forex pairs
-    const gold = allData.find(p => p.symbol === 'XAU/USD') || null;
-    const pairs = allData.filter(p => p.symbol !== 'XAU/USD');
-    
-    console.log(`Fetched ${pairs.length} forex pairs and gold: ${gold ? 'yes' : 'no'}`);
-    
+    console.log(`API returned ${pairs.length} forex pairs and gold: ${gold ? 'yes' : 'no'}`);
     return { pairs, gold };
   } catch (error) {
-    console.error('Error fetching from Twelve Data:', error);
+    console.error('API fetch error:', error);
     throw error;
   }
 }
@@ -144,15 +139,10 @@ function calculateCurrencyStrength(pairs: ForexPair[]): CurrencyStrength[] {
     const [base, quote] = pair.symbol.split('/');
     const change = pair.percentChange;
     
-    if (strength[base] !== undefined) {
-      strength[base] += change;
-    }
-    if (strength[quote] !== undefined) {
-      strength[quote] -= change;
-    }
+    if (strength[base] !== undefined) strength[base] += change;
+    if (strength[quote] !== undefined) strength[quote] -= change;
   });
   
-  // Calculate normalized values
   const values = Object.values(strength);
   const max = Math.max(...values);
   const min = Math.min(...values);
@@ -161,16 +151,13 @@ function calculateCurrencyStrength(pairs: ForexPair[]): CurrencyStrength[] {
   return CURRENCIES.map(currency => ({
     currency,
     strength: strength[currency],
-    normalizedStrength: range > 0 
-      ? ((strength[currency] - min) / range) * 200 - 100 
-      : 0
+    normalizedStrength: range > 0 ? ((strength[currency] - min) / range) * 200 - 100 : 0
   })).sort((a, b) => b.strength - a.strength);
 }
 
 function generatePairMatrix(pairs: ForexPair[]): Record<string, Record<string, { price: number; change: number } | null>> {
   const matrix: Record<string, Record<string, { price: number; change: number } | null>> = {};
   
-  // Initialize matrix
   CURRENCIES.forEach(base => {
     matrix[base] = {};
     CURRENCIES.forEach(quote => {
@@ -178,21 +165,13 @@ function generatePairMatrix(pairs: ForexPair[]): Record<string, Record<string, {
     });
   });
   
-  // Fill in the pairs we have data for
   pairs.forEach(pair => {
     const [base, quote] = pair.symbol.split('/');
     if (matrix[base] && matrix[base][quote] !== undefined) {
-      matrix[base][quote] = {
-        price: pair.price,
-        change: pair.percentChange
-      };
+      matrix[base][quote] = { price: pair.price, change: pair.percentChange };
     }
-    // Also calculate the inverse
     if (matrix[quote] && matrix[quote][base] !== undefined) {
-      matrix[quote][base] = {
-        price: pair.price > 0 ? 1 / pair.price : 0,
-        change: -pair.percentChange
-      };
+      matrix[quote][base] = { price: pair.price > 0 ? 1 / pair.price : 0, change: -pair.percentChange };
     }
   });
   
@@ -200,7 +179,15 @@ function generatePairMatrix(pairs: ForexPair[]): Record<string, Record<string, {
 }
 
 function generateDemoData(): { pairs: ForexPair[], gold: ForexPair } {
-  const demoPairs = ALL_FOREX_PAIRS.map(symbol => ({
+  const allPairs = [
+    'EUR/USD', 'GBP/USD', 'AUD/USD', 'NZD/USD', 'USD/JPY', 'USD/CAD', 'USD/CHF',
+    'EUR/GBP', 'EUR/JPY', 'EUR/AUD', 'EUR/CAD', 'EUR/CHF', 'EUR/NZD',
+    'GBP/JPY', 'GBP/AUD', 'GBP/CAD', 'GBP/CHF', 'GBP/NZD',
+    'AUD/JPY', 'CAD/JPY', 'CHF/JPY', 'NZD/JPY',
+    'AUD/CAD', 'AUD/CHF', 'AUD/NZD', 'CAD/CHF', 'CAD/NZD', 'CHF/NZD'
+  ];
+  
+  const pairs = allPairs.map(symbol => ({
     symbol,
     price: symbol.includes('JPY') ? 140 + Math.random() * 20 : 0.8 + Math.random() * 0.8,
     percentChange: (Math.random() - 0.5) * 2,
@@ -214,11 +201,10 @@ function generateDemoData(): { pairs: ForexPair[], gold: ForexPair } {
     timestamp: new Date().toISOString()
   };
   
-  return { pairs: demoPairs, gold };
+  return { pairs, gold };
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -226,111 +212,103 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const timeframe = url.searchParams.get('timeframe') || '1D';
-    const cacheKey = `market-data-${timeframe}`;
     
-    const now = Date.now();
-    const cached = cache.get(cacheKey);
+    const supabase = getSupabaseClient();
     
-    // Check if cache is still valid
-    if (cached && (now - cached.lastUpdated) < CACHE_DURATION) {
-      console.log('Returning cached data');
+    // ALWAYS check database cache first
+    const cached = await getCachedData(supabase, timeframe);
+    if (cached) {
       return new Response(
-        JSON.stringify({
-          ...cached.data,
-          fromCache: true,
-          cacheAge: Math.round((now - cached.lastUpdated) / 1000),
-          nextRefresh: Math.round((CACHE_DURATION - (now - cached.lastUpdated)) / 1000)
-        }),
+        JSON.stringify(cached),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Fetch fresh data
+    // Cache miss - fetch from API
     const apiKey = Deno.env.get('TWELVE_DATA_API_KEY');
+    
     if (!apiKey) {
-      console.log('TWELVE_DATA_API_KEY not configured, using demo data');
+      console.log('No API key configured - using demo data');
       const { pairs, gold } = generateDemoData();
-      const strength = calculateCurrencyStrength(pairs);
-      const matrix = generatePairMatrix(pairs);
+      const responseData = {
+        pairs,
+        gold,
+        strength: calculateCurrencyStrength(pairs),
+        matrix: generatePairMatrix(pairs),
+        lastUpdated: new Date().toISOString(),
+        timeframe,
+        isDemo: true
+      };
+      
+      await setCachedData(supabase, timeframe, responseData);
       
       return new Response(
-        JSON.stringify({
-          pairs,
-          gold,
-          strength,
-          matrix,
-          lastUpdated: new Date().toISOString(),
-          timeframe,
-          isDemo: true
-        }),
+        JSON.stringify(responseData),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
+    // Fetch SINGLE API request
     const { pairs, gold } = await fetchFromTwelveData(apiKey);
     
     if (pairs.length === 0) {
-      // Return fallback demo data
-      console.log('No data from API, using demo data');
+      console.log('Empty API response - using demo data');
       const demoData = generateDemoData();
-      const strength = calculateCurrencyStrength(demoData.pairs);
-      const matrix = generatePairMatrix(demoData.pairs);
+      const responseData = {
+        pairs: demoData.pairs,
+        gold: demoData.gold,
+        strength: calculateCurrencyStrength(demoData.pairs),
+        matrix: generatePairMatrix(demoData.pairs),
+        lastUpdated: new Date().toISOString(),
+        timeframe,
+        isDemo: true
+      };
+      
+      await setCachedData(supabase, timeframe, responseData);
       
       return new Response(
-        JSON.stringify({
-          pairs: demoData.pairs,
-          gold: demoData.gold,
-          strength,
-          matrix,
-          lastUpdated: new Date().toISOString(),
-          timeframe,
-          isDemo: true
-        }),
+        JSON.stringify(responseData),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    const strength = calculateCurrencyStrength(pairs);
-    const matrix = generatePairMatrix(pairs);
     
     const responseData = {
       pairs,
       gold,
-      strength,
-      matrix,
+      strength: calculateCurrencyStrength(pairs),
+      matrix: generatePairMatrix(pairs),
       lastUpdated: new Date().toISOString(),
       timeframe,
       fromCache: false
     };
     
-    // Update cache
-    cache.set(cacheKey, {
-      data: responseData,
-      lastUpdated: now,
-      timeframe
-    });
+    // Save to database cache
+    await setCachedData(supabase, timeframe, responseData);
     
-    console.log('Returning fresh data with', pairs.length, 'pairs');
+    console.log(`Fresh data saved - ${pairs.length} pairs`);
     return new Response(
       JSON.stringify(responseData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
     
   } catch (error) {
-    console.error('Error in market-data function:', error);
+    console.error('Function error:', error);
     
-    // Try to return cached data if available
-    const cached = cache.get('market-data-1D');
-    if (cached) {
-      return new Response(
-        JSON.stringify({
-          ...cached.data,
-          fromCache: true,
-          error: 'Using cached data - API temporarily unavailable'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Try to return any cached data on error
+    try {
+      const supabase = getSupabaseClient();
+      const { data } = await supabase
+        .from('market_data_cache')
+        .select('data')
+        .single();
+      
+      if (data?.data) {
+        return new Response(
+          JSON.stringify({ ...data.data, fromCache: true, error: 'Using cached data' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch {}
     
     return new Response(
       JSON.stringify({ error: error.message || 'Failed to fetch market data' }),
