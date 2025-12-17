@@ -54,10 +54,8 @@ export function MarketOverview() {
 
   useEffect(() => {
     fetchMarketData();
-    
-    // Refresh every 5 minutes
-    const interval = setInterval(() => fetchMarketData(), 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    // NO auto-refresh - server cache handles freshness
+    // Manual refresh button available if user wants to check for updates
   }, []);
 
   // Get top 5 most volatile pairs (highest absolute percent change)
