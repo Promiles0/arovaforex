@@ -94,25 +94,40 @@ async function fetchFromTwelveData(apiKey: string): Promise<{ pairs: ForexPair[]
   console.log('Fetching from Twelve Data API - SINGLE request for all symbols');
   
   try {
-    const response = await fetch(
-      `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(ALL_SYMBOLS)}&apikey=${apiKey}`
-    );
+    const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(ALL_SYMBOLS)}&apikey=${apiKey}`;
+    console.log('Request URL (key hidden):', url.replace(apiKey, 'HIDDEN'));
+    
+    const response = await fetch(url);
     
     if (!response.ok) {
       throw new Error(`API responded with status ${response.status}`);
     }
     
     const data = await response.json();
+    console.log('API response keys:', Object.keys(data || {}));
+    
+    // Check for API error response
+    if (data.code || data.status === 'error' || data.message) {
+      console.error('API error:', data.message || data.status);
+      throw new Error(data.message || 'API error');
+    }
+    
     const results: ForexPair[] = [];
     
     if (data && typeof data === 'object') {
       // Multiple symbols response - object with symbol keys
       for (const key of Object.keys(data)) {
         const quote = data[key];
-        if (quote && quote.close && !quote.code && !quote.status) {
+        // Log first quote for debugging
+        if (results.length === 0) {
+          console.log('Sample quote:', JSON.stringify(quote).slice(0, 200));
+        }
+        
+        // Accept if quote has valid price data
+        if (quote && (quote.close || quote.price) && quote.symbol) {
           results.push({
-            symbol: quote.symbol || key,
-            price: parseFloat(quote.close) || 0,
+            symbol: quote.symbol,
+            price: parseFloat(quote.close || quote.price) || 0,
             percentChange: parseFloat(quote.percent_change) || 0,
             timestamp: quote.datetime || new Date().toISOString()
           });
