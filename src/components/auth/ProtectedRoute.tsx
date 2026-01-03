@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -20,9 +21,16 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
+  // Not logged in - redirect to auth page
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
 
+  // Logged in but email not confirmed - redirect to confirm email page
+  if (!user.email_confirmed_at) {
+    return <Navigate to="/auth/confirm-email" state={{ email: user.email }} replace />;
+  }
+
+  // Logged in and email confirmed - allow access
   return <>{children}</>;
 }
