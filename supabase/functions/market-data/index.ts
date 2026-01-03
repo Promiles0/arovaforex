@@ -7,19 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION_MS = 10 * 60 * 1000; // 10 minutes (longer cache to avoid rate limits)
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD'];
 
-// All 28 forex pairs + gold in ONE batch
-const ALL_SYMBOLS = [
-  'EUR/USD', 'GBP/USD', 'AUD/USD', 'NZD/USD', 'USD/JPY', 'USD/CAD', 'USD/CHF',
-  'EUR/GBP', 'EUR/JPY', 'EUR/AUD', 'EUR/CAD', 'EUR/CHF', 'EUR/NZD',
-  'GBP/JPY', 'GBP/AUD', 'GBP/CAD', 'GBP/CHF', 'GBP/NZD',
-  'AUD/JPY', 'CAD/JPY', 'CHF/JPY', 'NZD/JPY',
-  'AUD/CAD', 'AUD/CHF', 'AUD/NZD',
-  'CAD/CHF', 'CAD/NZD',
-  'CHF/NZD',
-  'XAU/USD'
+// Reduced to 8 major pairs to stay within free tier API limits (8 credits/minute)
+// The free Twelve Data tier only allows 8 API credits per minute
+const MAJOR_SYMBOLS = [
+  'EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 
+  'AUD/USD', 'USD/CAD', 'NZD/USD', 'XAU/USD'
 ].join(',');
 
 interface ForexPair {
@@ -65,7 +60,13 @@ async function getCachedData(supabase: any, timeframe: string) {
     }
     
     console.log(`Cache stale - age: ${Math.round(cacheAge / 1000)}s`);
-    return null;
+    // Return stale cache data instead of null for rate limit protection
+    return {
+      ...data.data,
+      fromCache: true,
+      cacheAge: Math.round(cacheAge / 1000),
+      isStale: true
+    };
   } catch (err) {
     console.error('Cache read error:', err);
     return null;
@@ -89,12 +90,12 @@ async function setCachedData(supabase: any, timeframe: string, data: any) {
   }
 }
 
-// Fetch ALL symbols in ONE API call
+// Fetch from Twelve Data API with reduced symbols for free tier
 async function fetchFromTwelveData(apiKey: string): Promise<{ pairs: ForexPair[], gold: ForexPair | null }> {
-  console.log('Fetching from Twelve Data API - SINGLE request for all symbols');
+  console.log('Fetching from Twelve Data API - 8 major symbols only (free tier limit)');
   
   try {
-    const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(ALL_SYMBOLS)}&apikey=${apiKey}`;
+    const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(MAJOR_SYMBOLS)}&apikey=${apiKey}`;
     console.log('Request URL (key hidden):', url.replace(apiKey, 'HIDDEN'));
     
     const response = await fetch(url);
@@ -106,28 +107,36 @@ async function fetchFromTwelveData(apiKey: string): Promise<{ pairs: ForexPair[]
     const data = await response.json();
     console.log('API response keys:', Object.keys(data || {}));
     
-    // Check for API error response
+    // Check for API error response (rate limit, etc.)
     if (data.code || data.status === 'error' || data.message) {
       console.error('API error:', data.message || data.status);
-      throw new Error(data.message || 'API error');
+      // Return empty to trigger fallback to demo/cache
+      return { pairs: [], gold: null };
     }
     
     const results: ForexPair[] = [];
     
     if (data && typeof data === 'object') {
-      // Multiple symbols response - object with symbol keys
       for (const key of Object.keys(data)) {
         const quote = data[key];
+        
+        // Skip error responses for individual symbols
+        if (quote.code || quote.status === 'error') {
+          console.log(`Skipping ${key}: ${quote.message || 'error'}`);
+          continue;
+        }
+        
         // Log first quote for debugging
         if (results.length === 0) {
-          console.log('Sample quote:', JSON.stringify(quote).slice(0, 200));
+          console.log('Sample quote:', JSON.stringify(quote).slice(0, 300));
         }
         
         // Accept if quote has valid price data
-        if (quote && (quote.close || quote.price) && quote.symbol) {
+        const price = parseFloat(quote.close || quote.price || quote.last_price) || 0;
+        if (quote && price > 0) {
           results.push({
-            symbol: quote.symbol,
-            price: parseFloat(quote.close || quote.price) || 0,
+            symbol: quote.symbol || key.replace(':', '/'),
+            price,
             percentChange: parseFloat(quote.percent_change) || 0,
             timestamp: quote.datetime || new Date().toISOString()
           });
@@ -142,7 +151,7 @@ async function fetchFromTwelveData(apiKey: string): Promise<{ pairs: ForexPair[]
     return { pairs, gold };
   } catch (error) {
     console.error('API fetch error:', error);
-    throw error;
+    return { pairs: [], gold: null };
   }
 }
 
@@ -219,6 +228,51 @@ function generateDemoData(): { pairs: ForexPair[], gold: ForexPair } {
   return { pairs, gold };
 }
 
+// Expand 7 major pairs to all 28 cross pairs using synthetic calculation
+function expandToAllPairs(majorPairs: ForexPair[]): ForexPair[] {
+  const pairMap: Record<string, ForexPair> = {};
+  majorPairs.forEach(p => { pairMap[p.symbol] = p; });
+  
+  const allPairs: ForexPair[] = [...majorPairs];
+  
+  // Calculate cross pairs from USD pairs
+  // e.g., EUR/GBP = EUR/USD / GBP/USD
+  const usdPairs: Record<string, ForexPair> = {};
+  majorPairs.forEach(p => {
+    const [base, quote] = p.symbol.split('/');
+    if (quote === 'USD') usdPairs[base] = p;
+    if (base === 'USD') usdPairs[quote] = { ...p, price: 1 / p.price, percentChange: -p.percentChange };
+  });
+  
+  const currencies = Object.keys(usdPairs);
+  for (let i = 0; i < currencies.length; i++) {
+    for (let j = i + 1; j < currencies.length; j++) {
+      const base = currencies[i];
+      const quote = currencies[j];
+      const symbol = `${base}/${quote}`;
+      const reverseSymbol = `${quote}/${base}`;
+      
+      if (!pairMap[symbol] && !pairMap[reverseSymbol] && usdPairs[base] && usdPairs[quote]) {
+        const baseUsd = usdPairs[base];
+        const quoteUsd = usdPairs[quote];
+        
+        // Cross rate = base/USD * USD/quote = base/USD / quote/USD
+        const price = baseUsd.price / quoteUsd.price;
+        const percentChange = baseUsd.percentChange - quoteUsd.percentChange;
+        
+        allPairs.push({
+          symbol,
+          price,
+          percentChange,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+  }
+  
+  return allPairs;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -227,19 +281,22 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const timeframe = url.searchParams.get('timeframe') || '1D';
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
     
     const supabase = getSupabaseClient();
     
-    // ALWAYS check database cache first
-    const cached = await getCachedData(supabase, timeframe);
-    if (cached) {
-      return new Response(
-        JSON.stringify(cached),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Check database cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cached = await getCachedData(supabase, timeframe);
+      if (cached && !cached.isStale) {
+        return new Response(
+          JSON.stringify(cached),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
     
-    // Cache miss - fetch from API
+    // Try to fetch from API
     const apiKey = Deno.env.get('TWELVE_DATA_API_KEY');
     
     if (!apiKey) {
@@ -263,11 +320,23 @@ serve(async (req) => {
       );
     }
     
-    // Fetch SINGLE API request
-    const { pairs, gold } = await fetchFromTwelveData(apiKey);
+    // Fetch from API (reduced symbols for free tier)
+    const { pairs: majorPairs, gold } = await fetchFromTwelveData(apiKey);
     
-    if (pairs.length === 0) {
-      console.log('Empty API response - using demo data');
+    if (majorPairs.length === 0) {
+      console.log('Empty API response - checking for stale cache or using demo');
+      
+      // Try stale cache first
+      const staleCache = await getCachedData(supabase, timeframe);
+      if (staleCache) {
+        console.log('Using stale cache due to API rate limit');
+        return new Response(
+          JSON.stringify({ ...staleCache, rateLimited: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Fall back to demo data
       const demoData = generateDemoData();
       const responseData = {
         pairs: demoData.pairs,
@@ -287,20 +356,25 @@ serve(async (req) => {
       );
     }
     
+    // Expand 7 major pairs to all 28 cross pairs
+    const allPairs = expandToAllPairs(majorPairs);
+    console.log(`Expanded ${majorPairs.length} major pairs to ${allPairs.length} total pairs`);
+    
     const responseData = {
-      pairs,
+      pairs: allPairs,
       gold,
-      strength: calculateCurrencyStrength(pairs),
-      matrix: generatePairMatrix(pairs),
+      strength: calculateCurrencyStrength(allPairs),
+      matrix: generatePairMatrix(allPairs),
       lastUpdated: new Date().toISOString(),
       timeframe,
-      fromCache: false
+      fromCache: false,
+      liveSymbols: majorPairs.length
     };
     
     // Save to database cache
     await setCachedData(supabase, timeframe, responseData);
     
-    console.log(`Fresh data saved - ${pairs.length} pairs`);
+    console.log(`Fresh data saved - ${allPairs.length} pairs (${majorPairs.length} live + calculated crosses)`);
     return new Response(
       JSON.stringify(responseData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -325,9 +399,19 @@ serve(async (req) => {
       }
     } catch {}
     
+    // Last resort - return demo data
+    const demoData = generateDemoData();
     return new Response(
-      JSON.stringify({ error: error.message || 'Failed to fetch market data' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({
+        pairs: demoData.pairs,
+        gold: demoData.gold,
+        strength: calculateCurrencyStrength(demoData.pairs),
+        matrix: generatePairMatrix(demoData.pairs),
+        lastUpdated: new Date().toISOString(),
+        isDemo: true,
+        error: error.message
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
