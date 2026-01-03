@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,12 +8,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { GoogleSignInButton } from "./GoogleSignInButton";
+
 interface AuthFormProps {
   mode: "login" | "signup";
   onToggleMode: () => void;
 }
 
 export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -94,7 +98,7 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
           email: formData.email,
           password: formData.password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: {
               full_name: formData.fullName,
             },
@@ -104,16 +108,35 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
         if (error) throw error;
 
         toast({
-          title: "Success",
-          description: "Account created successfully! Please check your email to confirm your account.",
+          title: "Account Created",
+          description: "Please check your email to confirm your account.",
+        });
+        
+        // Redirect to confirm email page
+        navigate('/auth/confirm-email', { 
+          state: { 
+            email: formData.email,
+            message: "We've sent a confirmation link to your email address."
+          } 
         });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
 
         if (error) throw error;
+
+        // Check if email is confirmed
+        if (data.user && !data.user.email_confirmed_at) {
+          toast({
+            title: "Email Not Confirmed",
+            description: "Please confirm your email address before signing in.",
+            variant: "destructive",
+          });
+          navigate('/auth/confirm-email', { state: { email: data.user.email } });
+          return;
+        }
 
         toast({
           title: "Success",
@@ -296,6 +319,21 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
           ) : null}
           {mode === "login" ? "Sign In" : "Create Account"}
         </Button>
+
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border"></div>
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        {/* Google Sign In Button */}
+        <GoogleSignInButton mode={mode} />
 
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
