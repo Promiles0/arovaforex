@@ -35,6 +35,11 @@ export default function AuthCallbackPage() {
           return;
         }
 
+        // Check if user is new (created within last 30 seconds) and needs onboarding
+        const createdAt = new Date(user.created_at);
+        const now = new Date();
+        const isNewUser = (now.getTime() - createdAt.getTime()) < 30000; // 30 seconds
+
         // Email confirmed - success!
         setStatus('success');
         toast({
@@ -42,9 +47,15 @@ export default function AuthCallbackPage() {
           description: "Signed in successfully!",
         });
 
-        // Small delay for better UX
+        // Small delay for better UX, then redirect
         setTimeout(() => {
-          navigate('/dashboard');
+          if (isNewUser) {
+            // New user - go to onboarding
+            navigate('/auth/onboarding');
+          } else {
+            // Existing user - go to dashboard
+            navigate('/dashboard');
+          }
         }, 1000);
       } else {
         throw new Error('No session found');
