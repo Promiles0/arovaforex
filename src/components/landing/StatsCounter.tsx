@@ -12,6 +12,13 @@ interface Stat {
   color: string;
 }
 
+interface PlatformStats {
+  users_count: number;
+  forecasts_count: number;
+  active_this_month: number;
+  avg_win_rate: number;
+}
+
 export const StatsCounter = () => {
   const [stats, setStats] = useState<Stat[]>([
     { icon: <Users className="w-8 h-8" />, value: 0, suffix: "+", label: "Active Traders", color: "text-primary" },
@@ -26,43 +33,21 @@ export const StatsCounter = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Total users count
-        const { count: usersCount } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
+        // Use the database function that bypasses RLS for aggregate counts
+        const { data, error } = await supabase.rpc('get_platform_stats');
 
-        // Total forecasts
-        const { count: forecastsCount } = await supabase
-          .from('forecasts')
-          .select('*', { count: 'exact', head: true });
+        if (error) {
+          console.error('Error fetching platform stats:', error);
+          return;
+        }
 
-        // Active users this month (users with journal entries)
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
-        
-        const { data: activeUsers } = await supabase
-          .from('journal_entries')
-          .select('user_id')
-          .gte('created_at', startOfMonth.toISOString());
-
-        const uniqueActiveUsers = new Set(activeUsers?.map(entry => entry.user_id));
-
-        // Calculate average win rate from journal entries
-        const { data: allEntries } = await supabase
-          .from('journal_entries')
-          .select('outcome')
-          .not('outcome', 'is', null);
-
-        const wins = allEntries?.filter(e => e.outcome === 'win').length || 0;
-        const total = allEntries?.length || 1;
-        const avgWinRate = Math.round((wins / total) * 100);
+        const platformStats = data as unknown as PlatformStats;
 
         setStats([
-          { icon: <Users className="w-8 h-8" />, value: usersCount || 0, suffix: "+", label: "Active Traders", color: "text-primary" },
-          { icon: <TrendingUp className="w-8 h-8" />, value: forecastsCount || 0, suffix: "", label: "Total Forecasts", color: "text-success" },
-          { icon: <Activity className="w-8 h-8" />, value: uniqueActiveUsers.size, suffix: "", label: "Active This Month", color: "text-premium" },
-          { icon: <Award className="w-8 h-8" />, value: avgWinRate, suffix: "%", label: "Avg. Win Rate", color: "text-warning" }
+          { icon: <Users className="w-8 h-8" />, value: platformStats.users_count || 0, suffix: "+", label: "Active Traders", color: "text-primary" },
+          { icon: <TrendingUp className="w-8 h-8" />, value: platformStats.forecasts_count || 0, suffix: "", label: "Total Forecasts", color: "text-success" },
+          { icon: <Activity className="w-8 h-8" />, value: platformStats.active_this_month || 0, suffix: "", label: "Active This Month", color: "text-premium" },
+          { icon: <Award className="w-8 h-8" />, value: platformStats.avg_win_rate || 0, suffix: "%", label: "Avg. Win Rate", color: "text-warning" }
         ]);
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -70,6 +55,10 @@ export const StatsCounter = () => {
     };
 
     fetchStats();
+    
+    // Refresh stats every 30 seconds
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   return (

@@ -303,9 +303,9 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
                 Remember me
               </Label>
             </div>
-            <a href="#" className="text-sm text-primary hover:underline">
+            <Link to="/auth/forgot-password" className="text-sm text-primary hover:underline">
               Forgot password?
-            </a>
+            </Link>
           </div>
         )}
 

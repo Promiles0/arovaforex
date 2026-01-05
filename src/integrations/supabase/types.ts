@@ -713,6 +713,7 @@ export type Database = {
         }
         Returns: string
       }
+      get_platform_stats: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
