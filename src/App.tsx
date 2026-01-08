@@ -25,6 +25,7 @@ import JoinAcademy from "./pages/JoinAcademy";
 import Calendar from "./pages/Calendar";
 import Journal from "./pages/Journal";
 import Settings from "./pages/Settings";
+import Calculator from "./pages/Calculator";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
@@ -73,6 +74,7 @@ const App = () => (
                 <Route path="calendar" element={<Calendar />} />
                 <Route path="journal" element={<Journal />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="calculator" element={<Calculator />} />
               </Route>
 
               <Route path="/admin" element={
