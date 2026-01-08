@@ -14,6 +14,7 @@ import {
   Settings,
   Lock,
   NotebookPen,
+  Calculator,
   X
 } from "lucide-react";
 
@@ -22,6 +23,7 @@ const navigationItems = [
   { name: "Forecasts", href: "/dashboard/forecasts", icon: TrendingUp },
   { name: "Premium Signals", href: "/dashboard/signals", icon: Signal, premium: true },
   { name: "My Journal", href: "/dashboard/journal", icon: NotebookPen },
+  { name: "Calculator", href: "/dashboard/calculator", icon: Calculator },
   { name: "My Wallet", href: "/dashboard/wallet", icon: Wallet },
   { name: "Join Academy", href: "/dashboard/academy", icon: BookOpen },
   { name: "Contact Us", href: "/dashboard/contact", icon: MessageCircle },
