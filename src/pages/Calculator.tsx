@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Calculator, DollarSign, TrendingUp, Target, Info, Scale, ArrowUpDown } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Calculator, DollarSign, TrendingUp, Target, Info, Scale, ArrowUpDown, Ruler, Save, Download, Trash2, History } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SEO } from "@/components/seo/SEO";
+import { toast } from "sonner";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Pip values and contract sizes for different instruments
 const INSTRUMENTS = {
@@ -47,11 +49,41 @@ const INSTRUMENTS = {
 
 type InstrumentKey = keyof typeof INSTRUMENTS;
 
+interface SavedCalculation {
+  id: string;
+  type: "position" | "rr" | "pnl" | "pip";
+  timestamp: string;
+  data: Record<string, unknown>;
+}
+
+const STORAGE_KEY = "arovaforex_calculator_history";
+
 export default function CalculatorPage() {
   const [accountBalance, setAccountBalance] = useState<string>("10000");
   const [riskPercent, setRiskPercent] = useState<string>("1");
   const [stopLossPips, setStopLossPips] = useState<string>("50");
   const [selectedPair, setSelectedPair] = useState<InstrumentKey>("EUR/USD");
+
+  // Saved calculations history
+  const [savedCalculations, setSavedCalculations] = useState<SavedCalculation[]>([]);
+
+  // Load saved calculations from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setSavedCalculations(JSON.parse(saved));
+      } catch {
+        console.error("Failed to load saved calculations");
+      }
+    }
+  }, []);
+
+  // Save to localStorage when calculations change
+  const saveToStorage = (calcs: SavedCalculation[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(calcs));
+    setSavedCalculations(calcs);
+  };
 
   const calculations = useMemo(() => {
     const balance = parseFloat(accountBalance) || 0;
@@ -69,9 +101,6 @@ export default function CalculatorPage() {
     // Calculate pip value per standard lot
     const pipValuePerLot = instrument.pipValue;
 
-    // For Gold: pip value is $1 per 0.01 movement per lot
-    // For Forex: pip value is typically $10 per pip per standard lot (for USD pairs)
-    
     // Calculate lot size: Risk Amount / (Stop Loss Pips × Pip Value Per Lot)
     const lotSize = riskAmount / (stopLoss * pipValuePerLot);
 
@@ -91,6 +120,26 @@ export default function CalculatorPage() {
     setRiskPercent("1");
     setStopLossPips("50");
     setSelectedPair("EUR/USD");
+  };
+
+  const savePositionCalc = () => {
+    if (!calculations.isValid) return;
+    const newCalc: SavedCalculation = {
+      id: Date.now().toString(),
+      type: "position",
+      timestamp: new Date().toISOString(),
+      data: {
+        pair: selectedPair,
+        accountBalance,
+        riskPercent,
+        stopLossPips,
+        lotSize: calculations.lotSize,
+        riskAmount: calculations.riskAmount,
+        pipValue: calculations.pipValue,
+      },
+    };
+    saveToStorage([newCalc, ...savedCalculations].slice(0, 50));
+    toast.success("Position size calculation saved!");
   };
 
   // Risk:Reward Calculator State
@@ -116,6 +165,24 @@ export default function CalculatorPage() {
       isValid: true,
     };
   }, [rrStopLoss, rrTakeProfit, rrRiskAmount]);
+
+  const saveRRCalc = () => {
+    if (!rrCalculations.isValid) return;
+    const newCalc: SavedCalculation = {
+      id: Date.now().toString(),
+      type: "rr",
+      timestamp: new Date().toISOString(),
+      data: {
+        stopLoss: rrStopLoss,
+        takeProfit: rrTakeProfit,
+        riskAmount: rrRiskAmount,
+        ratio: rrCalculations.ratio,
+        potentialReward: rrCalculations.potentialReward,
+      },
+    };
+    saveToStorage([newCalc, ...savedCalculations].slice(0, 50));
+    toast.success("Risk:Reward calculation saved!");
+  };
 
   // Profit/Loss Calculator State
   const [plPair, setPlPair] = useState<InstrumentKey>("EUR/USD");
@@ -154,11 +221,155 @@ export default function CalculatorPage() {
     };
   }, [plPair, plDirection, plEntryPrice, plExitPrice, plLotSize]);
 
+  const savePLCalc = () => {
+    if (!plCalculations.isValid) return;
+    const newCalc: SavedCalculation = {
+      id: Date.now().toString(),
+      type: "pnl",
+      timestamp: new Date().toISOString(),
+      data: {
+        pair: plPair,
+        direction: plDirection,
+        entryPrice: plEntryPrice,
+        exitPrice: plExitPrice,
+        lotSize: plLotSize,
+        pips: plCalculations.pips,
+        profitLoss: plCalculations.profitLoss,
+      },
+    };
+    saveToStorage([newCalc, ...savedCalculations].slice(0, 50));
+    toast.success("Profit/Loss calculation saved!");
+  };
+
+  // Pip Calculator State
+  const [pipPair, setPipPair] = useState<InstrumentKey>("EUR/USD");
+  const [pipPrice1, setPipPrice1] = useState<string>("1.1000");
+  const [pipPrice2, setPipPrice2] = useState<string>("1.1050");
+  const [pipLotSize, setPipLotSize] = useState<string>("1");
+
+  const pipCalculations = useMemo(() => {
+    const price1 = parseFloat(pipPrice1) || 0;
+    const price2 = parseFloat(pipPrice2) || 0;
+    const lots = parseFloat(pipLotSize) || 0;
+    const instrument = INSTRUMENTS[pipPair];
+
+    if (price1 <= 0 || price2 <= 0) {
+      return { pips: 0, pipValue: 0, totalValue: 0, isValid: false };
+    }
+
+    // Calculate pip difference based on pip decimal
+    const pipMultiplier = instrument.pipDecimal === 2 ? 100 : 10000;
+    const priceDiff = Math.abs(price2 - price1);
+    const pips = priceDiff * pipMultiplier;
+    
+    // Pip value per lot
+    const pipValuePerLot = instrument.pipValue;
+    const totalValue = pips * lots * pipValuePerLot;
+
+    return {
+      pips: Math.round(pips * 10) / 10,
+      pipValue: pipValuePerLot,
+      totalValue: Math.round(totalValue * 100) / 100,
+      isValid: true,
+    };
+  }, [pipPair, pipPrice1, pipPrice2, pipLotSize]);
+
+  const savePipCalc = () => {
+    if (!pipCalculations.isValid) return;
+    const newCalc: SavedCalculation = {
+      id: Date.now().toString(),
+      type: "pip",
+      timestamp: new Date().toISOString(),
+      data: {
+        pair: pipPair,
+        price1: pipPrice1,
+        price2: pipPrice2,
+        lotSize: pipLotSize,
+        pips: pipCalculations.pips,
+        pipValue: pipCalculations.pipValue,
+        totalValue: pipCalculations.totalValue,
+      },
+    };
+    saveToStorage([newCalc, ...savedCalculations].slice(0, 50));
+    toast.success("Pip calculation saved!");
+  };
+
+  // Export calculations
+  const exportCalculations = () => {
+    if (savedCalculations.length === 0) {
+      toast.error("No calculations to export");
+      return;
+    }
+
+    const headers = ["Date", "Type", "Details"];
+    const rows = savedCalculations.map((calc) => {
+      const date = new Date(calc.timestamp).toLocaleString();
+      let details = "";
+      
+      switch (calc.type) {
+        case "position":
+          details = `${calc.data.pair} | Balance: $${calc.data.accountBalance} | Risk: ${calc.data.riskPercent}% | SL: ${calc.data.stopLossPips} pips | Lot: ${calc.data.lotSize}`;
+          break;
+        case "rr":
+          details = `SL: ${calc.data.stopLoss} pips | TP: ${calc.data.takeProfit} pips | Ratio: 1:${calc.data.ratio} | Reward: $${calc.data.potentialReward}`;
+          break;
+        case "pnl":
+          details = `${calc.data.pair} ${calc.data.direction} | Entry: ${calc.data.entryPrice} → Exit: ${calc.data.exitPrice} | Lots: ${calc.data.lotSize} | P/L: $${calc.data.profitLoss}`;
+          break;
+        case "pip":
+          details = `${calc.data.pair} | ${calc.data.price1} → ${calc.data.price2} | Pips: ${calc.data.pips} | Value: $${calc.data.totalValue}`;
+          break;
+      }
+      
+      return [date, calc.type.toUpperCase(), details];
+    });
+
+    const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `arovaforex-calculations-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Calculations exported!");
+  };
+
+  const clearHistory = () => {
+    saveToStorage([]);
+    toast.success("History cleared");
+  };
+
+  const deleteCalculation = (id: string) => {
+    saveToStorage(savedCalculations.filter((c) => c.id !== id));
+    toast.success("Calculation deleted");
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case "position": return "Position Size";
+      case "rr": return "Risk:Reward";
+      case "pnl": return "P&L";
+      case "pip": return "Pip Value";
+      default: return type;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "position": return "bg-primary/20 text-primary";
+      case "rr": return "bg-amber-500/20 text-amber-500";
+      case "pnl": return "bg-green-500/20 text-green-500";
+      case "pip": return "bg-blue-500/20 text-blue-500";
+      default: return "bg-muted text-muted-foreground";
+    }
+  };
+
   return (
     <>
       <SEO 
         title="Trading Calculators | ArovaForex"
-        description="Position size, risk:reward, and profit/loss calculators for Forex and Gold trading."
+        description="Position size, risk:reward, profit/loss, and pip calculators for Forex and Gold trading."
       />
       
       <div className="min-h-screen bg-background">
@@ -177,21 +388,31 @@ export default function CalculatorPage() {
           </div>
 
           <Tabs defaultValue="position" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 max-w-lg mx-auto">
-              <TabsTrigger value="position" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-5 max-w-2xl mx-auto">
+              <TabsTrigger value="position" className="flex items-center gap-1.5">
                 <Target className="w-4 h-4" />
-                <span className="hidden sm:inline">Position Size</span>
-                <span className="sm:hidden">Size</span>
+                <span className="hidden sm:inline">Position</span>
               </TabsTrigger>
-              <TabsTrigger value="rr" className="flex items-center gap-2">
+              <TabsTrigger value="rr" className="flex items-center gap-1.5">
                 <Scale className="w-4 h-4" />
-                <span className="hidden sm:inline">Risk:Reward</span>
-                <span className="sm:hidden">R:R</span>
+                <span className="hidden sm:inline">R:R</span>
               </TabsTrigger>
-              <TabsTrigger value="pnl" className="flex items-center gap-2">
+              <TabsTrigger value="pnl" className="flex items-center gap-1.5">
                 <ArrowUpDown className="w-4 h-4" />
-                <span className="hidden sm:inline">Profit/Loss</span>
-                <span className="sm:hidden">P&L</span>
+                <span className="hidden sm:inline">P&L</span>
+              </TabsTrigger>
+              <TabsTrigger value="pip" className="flex items-center gap-1.5">
+                <Ruler className="w-4 h-4" />
+                <span className="hidden sm:inline">Pip</span>
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex items-center gap-1.5">
+                <History className="w-4 h-4" />
+                <span className="hidden sm:inline">History</span>
+                {savedCalculations.length > 0 && (
+                  <span className="ml-1 text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                    {savedCalculations.length}
+                  </span>
+                )}
               </TabsTrigger>
             </TabsList>
 
@@ -320,9 +541,15 @@ export default function CalculatorPage() {
                   </Select>
                 </div>
 
-                <Button variant="outline" onClick={handleReset} className="w-full">
-                  Reset Values
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleReset} className="flex-1">
+                    Reset
+                  </Button>
+                  <Button onClick={savePositionCalc} disabled={!calculations.isValid} className="flex-1">
+                    <Save className="w-4 h-4 mr-2" />
+                    Save
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -514,17 +741,23 @@ export default function CalculatorPage() {
                       </div>
                     </div>
 
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setRrStopLoss("50");
-                        setRrTakeProfit("100");
-                        setRrRiskAmount("100");
-                      }} 
-                      className="w-full"
-                    >
-                      Reset Values
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setRrStopLoss("50");
+                          setRrTakeProfit("100");
+                          setRrRiskAmount("100");
+                        }} 
+                        className="flex-1"
+                      >
+                        Reset
+                      </Button>
+                      <Button onClick={saveRRCalc} disabled={!rrCalculations.isValid} className="flex-1">
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -706,19 +939,25 @@ export default function CalculatorPage() {
                       />
                     </div>
 
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setPlPair("EUR/USD");
-                        setPlDirection("buy");
-                        setPlEntryPrice("1.1000");
-                        setPlExitPrice("1.1050");
-                        setPlLotSize("1");
-                      }} 
-                      className="w-full"
-                    >
-                      Reset Values
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setPlPair("EUR/USD");
+                          setPlDirection("buy");
+                          setPlEntryPrice("1.1000");
+                          setPlExitPrice("1.1050");
+                          setPlLotSize("1");
+                        }} 
+                        className="flex-1"
+                      >
+                        Reset
+                      </Button>
+                      <Button onClick={savePLCalc} disabled={!plCalculations.isValid} className="flex-1">
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -783,6 +1022,352 @@ export default function CalculatorPage() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            {/* Pip Calculator Tab */}
+            <TabsContent value="pip">
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Input Card */}
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Ruler className="w-5 h-5 text-primary" />
+                      Pip Calculator
+                    </CardTitle>
+                    <CardDescription>
+                      Convert price movements to pip values
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    {/* Trading Pair */}
+                    <div className="space-y-2">
+                      <Label htmlFor="pip-pair">Trading Instrument</Label>
+                      <Select value={pipPair} onValueChange={(v) => setPipPair(v as InstrumentKey)}>
+                        <SelectTrigger id="pip-pair">
+                          <SelectValue placeholder="Select pair" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          <SelectItem value="XAU/USD" className="font-medium text-amber-500">
+                            🥇 XAU/USD (Gold)
+                          </SelectItem>
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            Major Pairs
+                          </div>
+                          {["EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "NZD/USD", "USD/CAD"].map((pair) => (
+                            <SelectItem key={pair} value={pair}>{pair}</SelectItem>
+                          ))}
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            Cross Pairs
+                          </div>
+                          {Object.keys(INSTRUMENTS)
+                            .filter(p => !["EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "NZD/USD", "USD/CAD", "XAU/USD"].includes(p))
+                            .map((pair) => (
+                              <SelectItem key={pair} value={pair}>{pair}</SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Price 1 */}
+                    <div className="space-y-2">
+                      <Label htmlFor="pip-price1" className="flex items-center gap-2">
+                        Price 1
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Starting price (e.g., entry price)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        id="pip-price1"
+                        type="number"
+                        step="0.0001"
+                        value={pipPrice1}
+                        onChange={(e) => setPipPrice1(e.target.value)}
+                        placeholder="1.1000"
+                      />
+                    </div>
+
+                    {/* Price 2 */}
+                    <div className="space-y-2">
+                      <Label htmlFor="pip-price2" className="flex items-center gap-2">
+                        Price 2
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ending price (e.g., target or stop loss)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        id="pip-price2"
+                        type="number"
+                        step="0.0001"
+                        value={pipPrice2}
+                        onChange={(e) => setPipPrice2(e.target.value)}
+                        placeholder="1.1050"
+                      />
+                    </div>
+
+                    {/* Lot Size (Optional) */}
+                    <div className="space-y-2">
+                      <Label htmlFor="pip-lots" className="flex items-center gap-2">
+                        Lot Size (optional)
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Enter lot size to calculate total dollar value</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        id="pip-lots"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={pipLotSize}
+                        onChange={(e) => setPipLotSize(e.target.value)}
+                        placeholder="1.00"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setPipPair("EUR/USD");
+                          setPipPrice1("1.1000");
+                          setPipPrice2("1.1050");
+                          setPipLotSize("1");
+                        }} 
+                        className="flex-1"
+                      >
+                        Reset
+                      </Button>
+                      <Button onClick={savePipCalc} disabled={!pipCalculations.isValid} className="flex-1">
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Results Card */}
+                <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Ruler className="w-5 h-5 text-primary" />
+                      Pip Calculation Results
+                    </CardTitle>
+                    <CardDescription>
+                      Price movement converted to pips
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {pipCalculations.isValid ? (
+                      <>
+                        {/* Pips - Main Result */}
+                        <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+                          <p className="text-sm text-muted-foreground mb-1">Pip Difference</p>
+                          <p className="text-4xl font-bold text-primary">
+                            {pipCalculations.pips.toFixed(1)}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            pips
+                          </p>
+                        </div>
+
+                        {/* Secondary Results */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-4 rounded-xl bg-card border border-border/50">
+                            <p className="text-sm text-muted-foreground mb-1">Pip Value / Lot</p>
+                            <p className="text-2xl font-semibold text-foreground">
+                              ${pipCalculations.pipValue.toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="p-4 rounded-xl bg-card border border-border/50">
+                            <p className="text-sm text-muted-foreground mb-1">Total Value</p>
+                            <p className="text-2xl font-semibold text-green-500">
+                              ${pipCalculations.totalValue.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Info Box */}
+                        <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
+                          <p className="text-sm text-muted-foreground">
+                            <strong className="text-foreground">Calculation:</strong> The price moved from {pipPrice1} to {pipPrice2} on {pipPair}, 
+                            resulting in {pipCalculations.pips.toFixed(1)} pips. At {pipLotSize} lot(s), 
+                            this equals ${pipCalculations.totalValue.toLocaleString()}.
+                          </p>
+                        </div>
+
+                        {/* Pip Value Reference */}
+                        <div className="pt-2 border-t border-border/50">
+                          <p className="text-xs text-muted-foreground mb-2">Quick Reference:</p>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="p-2 rounded bg-muted">
+                              <span className="text-muted-foreground">1 pip =</span>{" "}
+                              <span className="font-medium text-foreground">
+                                {INSTRUMENTS[pipPair].pipDecimal === 2 ? "0.01" : "0.0001"}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded bg-muted">
+                              <span className="text-muted-foreground">Contract =</span>{" "}
+                              <span className="font-medium text-foreground">
+                                {INSTRUMENTS[pipPair].contractSize.toLocaleString()} units
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="py-8 text-center text-muted-foreground">
+                        <Ruler className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>Enter valid prices to see calculations</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Info Section */}
+                <Card className="md:col-span-2 border-border/50">
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-3">Understanding Pips</h3>
+                    <div className="grid gap-4 md:grid-cols-3 text-sm text-muted-foreground">
+                      <div>
+                        <p className="font-medium text-foreground mb-1">What is a Pip?</p>
+                        <p>A pip is the smallest price move in Forex. For most pairs, it's 0.0001. For JPY pairs, it's 0.01.</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground mb-1">Pip Value</p>
+                        <p>The monetary value of each pip depends on the currency pair and lot size you're trading.</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground mb-1">Gold (XAU/USD)</p>
+                        <p>For Gold, 1 pip = $0.01 price movement, valued at $1 per standard lot (100 oz).</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* History Tab */}
+            <TabsContent value="history">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <History className="w-5 h-5 text-primary" />
+                        Saved Calculations
+                      </CardTitle>
+                      <CardDescription>
+                        Your trade planning history ({savedCalculations.length} saved)
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={exportCalculations}
+                        disabled={savedCalculations.length === 0}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Export CSV
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={clearHistory}
+                        disabled={savedCalculations.length === 0}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Clear All
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {savedCalculations.length === 0 ? (
+                    <div className="py-12 text-center text-muted-foreground">
+                      <History className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p className="mb-2">No saved calculations yet</p>
+                      <p className="text-sm">Use the calculators above and click "Save" to track your trade planning history.</p>
+                    </div>
+                  ) : (
+                    <ScrollArea className="h-[400px] pr-4">
+                      <div className="space-y-3">
+                        {savedCalculations.map((calc) => (
+                          <div
+                            key={calc.id}
+                            className="p-4 rounded-lg border border-border/50 bg-card hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded ${getTypeColor(calc.type)}`}>
+                                    {getTypeLabel(calc.type)}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(calc.timestamp).toLocaleString()}
+                                  </span>
+                                </div>
+                                <div className="text-sm text-foreground">
+                                  {calc.type === "position" && (
+                                    <div className="space-y-1">
+                                      <p><span className="text-muted-foreground">Pair:</span> {calc.data.pair as string}</p>
+                                      <p><span className="text-muted-foreground">Balance:</span> ${(calc.data.accountBalance as string)} | <span className="text-muted-foreground">Risk:</span> {calc.data.riskPercent as string}%</p>
+                                      <p><span className="text-muted-foreground">Result:</span> <span className="font-semibold text-primary">{(calc.data.lotSize as number).toFixed(2)} lots</span> | Risk: ${calc.data.riskAmount as number}</p>
+                                    </div>
+                                  )}
+                                  {calc.type === "rr" && (
+                                    <div className="space-y-1">
+                                      <p><span className="text-muted-foreground">SL:</span> {calc.data.stopLoss as string} pips | <span className="text-muted-foreground">TP:</span> {calc.data.takeProfit as string} pips</p>
+                                      <p><span className="text-muted-foreground">Ratio:</span> <span className="font-semibold text-primary">1:{calc.data.ratio as number}</span> | Reward: ${calc.data.potentialReward as number}</p>
+                                    </div>
+                                  )}
+                                  {calc.type === "pnl" && (
+                                    <div className="space-y-1">
+                                      <p><span className="text-muted-foreground">Pair:</span> {calc.data.pair as string} {(calc.data.direction as string).toUpperCase()}</p>
+                                      <p><span className="text-muted-foreground">Entry → Exit:</span> {calc.data.entryPrice as string} → {calc.data.exitPrice as string}</p>
+                                      <p><span className="text-muted-foreground">Result:</span> <span className={`font-semibold ${(calc.data.profitLoss as number) >= 0 ? 'text-green-500' : 'text-destructive'}`}>{(calc.data.profitLoss as number) >= 0 ? '+' : ''}${calc.data.profitLoss as number}</span> ({calc.data.pips as number} pips)</p>
+                                    </div>
+                                  )}
+                                  {calc.type === "pip" && (
+                                    <div className="space-y-1">
+                                      <p><span className="text-muted-foreground">Pair:</span> {calc.data.pair as string}</p>
+                                      <p><span className="text-muted-foreground">Prices:</span> {calc.data.price1 as string} → {calc.data.price2 as string}</p>
+                                      <p><span className="text-muted-foreground">Result:</span> <span className="font-semibold text-primary">{calc.data.pips as number} pips</span> = ${calc.data.totalValue as number}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={() => deleteCalculation(calc.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
