@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Calculator, DollarSign, TrendingUp, Target, Info, Scale, ArrowUpDown, Ruler, Save, Download, Trash2, History } from "lucide-react";
+import { Calculator, DollarSign, TrendingUp, Target, Info, Scale, ArrowUpDown, Ruler, Save, Download, Trash2, History, Percent } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,7 +51,7 @@ type InstrumentKey = keyof typeof INSTRUMENTS;
 
 interface SavedCalculation {
   id: string;
-  type: "position" | "rr" | "pnl" | "pip";
+  type: "position" | "rr" | "pnl" | "pip" | "margin";
   timestamp: string;
   data: Record<string, unknown>;
 }
@@ -294,6 +294,61 @@ export default function CalculatorPage() {
     toast.success("Pip calculation saved!");
   };
 
+  // Margin Calculator State
+  const [marginPair, setMarginPair] = useState<InstrumentKey>("EUR/USD");
+  const [marginLotSize, setMarginLotSize] = useState<string>("1");
+  const [marginLeverage, setMarginLeverage] = useState<string>("100");
+  const [marginPrice, setMarginPrice] = useState<string>("1.1000");
+
+  const marginCalculations = useMemo(() => {
+    const lots = parseFloat(marginLotSize) || 0;
+    const leverage = parseFloat(marginLeverage) || 0;
+    const price = parseFloat(marginPrice) || 0;
+    const instrument = INSTRUMENTS[marginPair];
+
+    if (lots <= 0 || leverage <= 0 || price <= 0) {
+      return { requiredMargin: 0, positionValue: 0, marginPercent: 0, isValid: false };
+    }
+
+    // Calculate position value: lots × contract size × price
+    // For Gold, price is per oz, contract is 100 oz
+    // For Forex, contract is 100,000 units
+    const positionValue = lots * instrument.contractSize * price;
+    
+    // Required margin = position value / leverage
+    const requiredMargin = positionValue / leverage;
+    
+    // Margin percentage (inverse of leverage)
+    const marginPercent = (1 / leverage) * 100;
+
+    return {
+      requiredMargin: Math.round(requiredMargin * 100) / 100,
+      positionValue: Math.round(positionValue * 100) / 100,
+      marginPercent: Math.round(marginPercent * 100) / 100,
+      isValid: true,
+    };
+  }, [marginPair, marginLotSize, marginLeverage, marginPrice]);
+
+  const saveMarginCalc = () => {
+    if (!marginCalculations.isValid) return;
+    const newCalc: SavedCalculation = {
+      id: Date.now().toString(),
+      type: "margin",
+      timestamp: new Date().toISOString(),
+      data: {
+        pair: marginPair,
+        lotSize: marginLotSize,
+        leverage: marginLeverage,
+        price: marginPrice,
+        requiredMargin: marginCalculations.requiredMargin,
+        positionValue: marginCalculations.positionValue,
+        marginPercent: marginCalculations.marginPercent,
+      },
+    };
+    saveToStorage([newCalc, ...savedCalculations].slice(0, 50));
+    toast.success("Margin calculation saved!");
+  };
+
   // Export calculations
   const exportCalculations = () => {
     if (savedCalculations.length === 0) {
@@ -318,6 +373,9 @@ export default function CalculatorPage() {
           break;
         case "pip":
           details = `${calc.data.pair} | ${calc.data.price1} → ${calc.data.price2} | Pips: ${calc.data.pips} | Value: $${calc.data.totalValue}`;
+          break;
+        case "margin":
+          details = `${calc.data.pair} | Lots: ${calc.data.lotSize} | Leverage: 1:${calc.data.leverage} | Margin: $${calc.data.requiredMargin}`;
           break;
       }
       
@@ -351,6 +409,7 @@ export default function CalculatorPage() {
       case "rr": return "Risk:Reward";
       case "pnl": return "P&L";
       case "pip": return "Pip Value";
+      case "margin": return "Margin";
       default: return type;
     }
   };
@@ -361,6 +420,7 @@ export default function CalculatorPage() {
       case "rr": return "bg-amber-500/20 text-amber-500";
       case "pnl": return "bg-green-500/20 text-green-500";
       case "pip": return "bg-blue-500/20 text-blue-500";
+      case "margin": return "bg-purple-500/20 text-purple-500";
       default: return "bg-muted text-muted-foreground";
     }
   };
@@ -388,7 +448,7 @@ export default function CalculatorPage() {
           </div>
 
           <Tabs defaultValue="position" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 max-w-2xl mx-auto">
+            <TabsList className="grid w-full grid-cols-6 max-w-3xl mx-auto">
               <TabsTrigger value="position" className="flex items-center gap-1.5">
                 <Target className="w-4 h-4" />
                 <span className="hidden sm:inline">Position</span>
@@ -404,6 +464,10 @@ export default function CalculatorPage() {
               <TabsTrigger value="pip" className="flex items-center gap-1.5">
                 <Ruler className="w-4 h-4" />
                 <span className="hidden sm:inline">Pip</span>
+              </TabsTrigger>
+              <TabsTrigger value="margin" className="flex items-center gap-1.5">
+                <Percent className="w-4 h-4" />
+                <span className="hidden sm:inline">Margin</span>
               </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center gap-1.5">
                 <History className="w-4 h-4" />
@@ -1260,6 +1324,248 @@ export default function CalculatorPage() {
               </div>
             </TabsContent>
 
+            {/* Margin Calculator Tab */}
+            <TabsContent value="margin">
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Input Card */}
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Percent className="w-5 h-5 text-primary" />
+                      Margin Parameters
+                    </CardTitle>
+                    <CardDescription>
+                      Calculate required margin for your trade
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    {/* Trading Pair */}
+                    <div className="space-y-2">
+                      <Label htmlFor="margin-pair">Trading Instrument</Label>
+                      <Select value={marginPair} onValueChange={(v) => setMarginPair(v as InstrumentKey)}>
+                        <SelectTrigger id="margin-pair">
+                          <SelectValue placeholder="Select pair" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          <SelectItem value="XAU/USD" className="font-medium text-amber-500">
+                            🥇 XAU/USD (Gold)
+                          </SelectItem>
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            Major Pairs
+                          </div>
+                          {["EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "NZD/USD", "USD/CAD"].map((pair) => (
+                            <SelectItem key={pair} value={pair}>{pair}</SelectItem>
+                          ))}
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            Cross Pairs
+                          </div>
+                          {Object.keys(INSTRUMENTS)
+                            .filter(p => !["EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "NZD/USD", "USD/CAD", "XAU/USD"].includes(p))
+                            .map((pair) => (
+                              <SelectItem key={pair} value={pair}>{pair}</SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Current Price */}
+                    <div className="space-y-2">
+                      <Label htmlFor="margin-price" className="flex items-center gap-2">
+                        Current Price
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Current market price of the instrument</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        id="margin-price"
+                        type="number"
+                        step="0.0001"
+                        value={marginPrice}
+                        onChange={(e) => setMarginPrice(e.target.value)}
+                        placeholder="1.1000"
+                      />
+                    </div>
+
+                    {/* Lot Size */}
+                    <div className="space-y-2">
+                      <Label htmlFor="margin-lots" className="flex items-center gap-2">
+                        Lot Size
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Number of lots to trade (1 lot = 100,000 units for Forex)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        id="margin-lots"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={marginLotSize}
+                        onChange={(e) => setMarginLotSize(e.target.value)}
+                        placeholder="1.00"
+                      />
+                    </div>
+
+                    {/* Leverage */}
+                    <div className="space-y-2">
+                      <Label htmlFor="margin-leverage" className="flex items-center gap-2">
+                        Leverage (1:X)
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Your broker's leverage ratio (e.g., 100 for 1:100)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Select value={marginLeverage} onValueChange={setMarginLeverage}>
+                        <SelectTrigger id="margin-leverage">
+                          <SelectValue placeholder="Select leverage" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">1:10</SelectItem>
+                          <SelectItem value="20">1:20</SelectItem>
+                          <SelectItem value="30">1:30</SelectItem>
+                          <SelectItem value="50">1:50</SelectItem>
+                          <SelectItem value="100">1:100</SelectItem>
+                          <SelectItem value="200">1:200</SelectItem>
+                          <SelectItem value="300">1:300</SelectItem>
+                          <SelectItem value="400">1:400</SelectItem>
+                          <SelectItem value="500">1:500</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setMarginPair("EUR/USD");
+                          setMarginLotSize("1");
+                          setMarginLeverage("100");
+                          setMarginPrice("1.1000");
+                        }} 
+                        className="flex-1"
+                      >
+                        Reset
+                      </Button>
+                      <Button onClick={saveMarginCalc} disabled={!marginCalculations.isValid} className="flex-1">
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Results Card */}
+                <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Percent className="w-5 h-5 text-primary" />
+                      Margin Requirements
+                    </CardTitle>
+                    <CardDescription>
+                      Capital needed to open this position
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {marginCalculations.isValid ? (
+                      <>
+                        {/* Required Margin - Main Result */}
+                        <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+                          <p className="text-sm text-muted-foreground mb-1">Required Margin</p>
+                          <p className="text-4xl font-bold text-primary">
+                            ${marginCalculations.requiredMargin.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            minimum to open position
+                          </p>
+                        </div>
+
+                        {/* Secondary Results */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-4 rounded-xl bg-card border border-border/50">
+                            <p className="text-sm text-muted-foreground mb-1">Position Value</p>
+                            <p className="text-2xl font-semibold text-foreground">
+                              ${marginCalculations.positionValue.toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="p-4 rounded-xl bg-card border border-border/50">
+                            <p className="text-sm text-muted-foreground mb-1">Margin %</p>
+                            <p className="text-2xl font-semibold text-foreground">
+                              {marginCalculations.marginPercent}%
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Info Box */}
+                        <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
+                          <p className="text-sm text-muted-foreground">
+                            <strong className="text-foreground">Calculation:</strong> Trading {marginLotSize} lot(s) of {marginPair} at {marginPrice} 
+                            with 1:{marginLeverage} leverage requires ${marginCalculations.requiredMargin.toLocaleString()} margin for a ${marginCalculations.positionValue.toLocaleString()} position.
+                          </p>
+                        </div>
+
+                        {/* Leverage Comparison */}
+                        <div className="pt-2 border-t border-border/50">
+                          <p className="text-xs text-muted-foreground mb-2">Margin at Different Leverage:</p>
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            {[50, 100, 200].map((lev) => {
+                              const margin = marginCalculations.positionValue / lev;
+                              return (
+                                <div key={lev} className={`p-2 rounded ${marginLeverage === String(lev) ? 'bg-primary/20 border border-primary/30' : 'bg-muted'}`}>
+                                  <span className="text-muted-foreground">1:{lev}</span>{" "}
+                                  <span className="font-medium text-foreground">
+                                    ${margin.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="py-8 text-center text-muted-foreground">
+                        <Percent className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>Enter valid parameters to see calculations</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Info Section */}
+                <Card className="md:col-span-2 border-border/50">
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-3">Understanding Margin</h3>
+                    <div className="grid gap-4 md:grid-cols-3 text-sm text-muted-foreground">
+                      <div>
+                        <p className="font-medium text-foreground mb-1">What is Margin?</p>
+                        <p>Margin is the collateral required to open and maintain a leveraged position. Higher leverage = less margin required.</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground mb-1">Leverage Risk</p>
+                        <p>While leverage amplifies profits, it also amplifies losses. Always use proper risk management regardless of leverage.</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground mb-1">Free Margin</p>
+                        <p>Always maintain free margin (account equity minus used margin) to avoid margin calls during market volatility.</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
             {/* History Tab */}
             <TabsContent value="history">
               <Card className="border-border/50">
@@ -1348,6 +1654,13 @@ export default function CalculatorPage() {
                                       <p><span className="text-muted-foreground">Pair:</span> {calc.data.pair as string}</p>
                                       <p><span className="text-muted-foreground">Prices:</span> {calc.data.price1 as string} → {calc.data.price2 as string}</p>
                                       <p><span className="text-muted-foreground">Result:</span> <span className="font-semibold text-primary">{calc.data.pips as number} pips</span> = ${calc.data.totalValue as number}</p>
+                                    </div>
+                                  )}
+                                  {calc.type === "margin" && (
+                                    <div className="space-y-1">
+                                      <p><span className="text-muted-foreground">Pair:</span> {calc.data.pair as string} @ {calc.data.price as string}</p>
+                                      <p><span className="text-muted-foreground">Lots:</span> {calc.data.lotSize as string} | <span className="text-muted-foreground">Leverage:</span> 1:{calc.data.leverage as string}</p>
+                                      <p><span className="text-muted-foreground">Result:</span> <span className="font-semibold text-purple-500">${(calc.data.requiredMargin as number).toLocaleString()}</span> margin required</p>
                                     </div>
                                   )}
                                 </div>
