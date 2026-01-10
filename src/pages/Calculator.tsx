@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Calculator, DollarSign, TrendingUp, Target, Info, Scale, ArrowUpDown, Ruler, Save, Download, Trash2, History, Percent } from "lucide-react";
+import { Calculator, DollarSign, TrendingUp, Target, Info, Scale, ArrowUpDown, Ruler, Save, Download, Trash2, History, Percent, LineChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,7 +51,7 @@ type InstrumentKey = keyof typeof INSTRUMENTS;
 
 interface SavedCalculation {
   id: string;
-  type: "position" | "rr" | "pnl" | "pip" | "margin";
+  type: "position" | "rr" | "pnl" | "pip" | "margin" | "compound";
   timestamp: string;
   data: Record<string, unknown>;
 }
@@ -349,6 +349,88 @@ export default function CalculatorPage() {
     toast.success("Margin calculation saved!");
   };
 
+  // Compound Interest Calculator State
+  const [compoundStartBalance, setCompoundStartBalance] = useState<string>("10000");
+  const [compoundWinRate, setCompoundWinRate] = useState<string>("55");
+  const [compoundAvgWin, setCompoundAvgWin] = useState<string>("2");
+  const [compoundAvgLoss, setCompoundAvgLoss] = useState<string>("1");
+  const [compoundTradesPerMonth, setCompoundTradesPerMonth] = useState<string>("20");
+  const [compoundMonths, setCompoundMonths] = useState<string>("12");
+
+  const compoundCalculations = useMemo(() => {
+    const startBalance = parseFloat(compoundStartBalance) || 0;
+    const winRate = parseFloat(compoundWinRate) || 0;
+    const avgWin = parseFloat(compoundAvgWin) || 0;
+    const avgLoss = parseFloat(compoundAvgLoss) || 0;
+    const tradesPerMonth = parseFloat(compoundTradesPerMonth) || 0;
+    const months = parseFloat(compoundMonths) || 0;
+
+    if (startBalance <= 0 || winRate <= 0 || winRate > 100 || tradesPerMonth <= 0 || months <= 0) {
+      return { 
+        finalBalance: 0, 
+        totalProfit: 0, 
+        monthlyReturn: 0, 
+        expectedPerTrade: 0,
+        projections: [],
+        isValid: false 
+      };
+    }
+
+    // Calculate expected return per trade
+    const winProb = winRate / 100;
+    const lossProb = 1 - winProb;
+    const expectedPerTrade = (winProb * avgWin) - (lossProb * avgLoss);
+    
+    // Calculate monthly return
+    const monthlyReturn = expectedPerTrade * tradesPerMonth;
+    
+    // Generate month-by-month projections
+    const projections: { month: number; balance: number }[] = [];
+    let currentBalance = startBalance;
+    
+    for (let i = 0; i <= months; i++) {
+      projections.push({ month: i, balance: Math.round(currentBalance * 100) / 100 });
+      if (i < months) {
+        const monthGain = currentBalance * (monthlyReturn / 100);
+        currentBalance += monthGain;
+      }
+    }
+
+    const finalBalance = projections[projections.length - 1].balance;
+    const totalProfit = finalBalance - startBalance;
+
+    return {
+      finalBalance: Math.round(finalBalance * 100) / 100,
+      totalProfit: Math.round(totalProfit * 100) / 100,
+      monthlyReturn: Math.round(monthlyReturn * 100) / 100,
+      expectedPerTrade: Math.round(expectedPerTrade * 100) / 100,
+      projections,
+      isValid: true,
+    };
+  }, [compoundStartBalance, compoundWinRate, compoundAvgWin, compoundAvgLoss, compoundTradesPerMonth, compoundMonths]);
+
+  const saveCompoundCalc = () => {
+    if (!compoundCalculations.isValid) return;
+    const newCalc: SavedCalculation = {
+      id: Date.now().toString(),
+      type: "compound",
+      timestamp: new Date().toISOString(),
+      data: {
+        startBalance: compoundStartBalance,
+        winRate: compoundWinRate,
+        avgWin: compoundAvgWin,
+        avgLoss: compoundAvgLoss,
+        tradesPerMonth: compoundTradesPerMonth,
+        months: compoundMonths,
+        finalBalance: compoundCalculations.finalBalance,
+        totalProfit: compoundCalculations.totalProfit,
+        monthlyReturn: compoundCalculations.monthlyReturn,
+      },
+    };
+    saveToStorage([newCalc, ...savedCalculations].slice(0, 50));
+    toast.success("Compound growth calculation saved!");
+  };
+
   // Export calculations
   const exportCalculations = () => {
     if (savedCalculations.length === 0) {
@@ -376,6 +458,9 @@ export default function CalculatorPage() {
           break;
         case "margin":
           details = `${calc.data.pair} | Lots: ${calc.data.lotSize} | Leverage: 1:${calc.data.leverage} | Margin: $${calc.data.requiredMargin}`;
+          break;
+        case "compound":
+          details = `Start: $${calc.data.startBalance} | Win Rate: ${calc.data.winRate}% | Monthly: ${calc.data.monthlyReturn}% | Final: $${calc.data.finalBalance}`;
           break;
       }
       
@@ -410,6 +495,7 @@ export default function CalculatorPage() {
       case "pnl": return "P&L";
       case "pip": return "Pip Value";
       case "margin": return "Margin";
+      case "compound": return "Compound";
       default: return type;
     }
   };
@@ -421,6 +507,7 @@ export default function CalculatorPage() {
       case "pnl": return "bg-green-500/20 text-green-500";
       case "pip": return "bg-blue-500/20 text-blue-500";
       case "margin": return "bg-purple-500/20 text-purple-500";
+      case "compound": return "bg-teal-500/20 text-teal-500";
       default: return "bg-muted text-muted-foreground";
     }
   };
@@ -448,7 +535,7 @@ export default function CalculatorPage() {
           </div>
 
           <Tabs defaultValue="position" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6 max-w-3xl mx-auto">
+            <TabsList className="grid w-full grid-cols-7 max-w-4xl mx-auto">
               <TabsTrigger value="position" className="flex items-center gap-1.5">
                 <Target className="w-4 h-4" />
                 <span className="hidden sm:inline">Position</span>
@@ -468,6 +555,10 @@ export default function CalculatorPage() {
               <TabsTrigger value="margin" className="flex items-center gap-1.5">
                 <Percent className="w-4 h-4" />
                 <span className="hidden sm:inline">Margin</span>
+              </TabsTrigger>
+              <TabsTrigger value="compound" className="flex items-center gap-1.5">
+                <LineChart className="w-4 h-4" />
+                <span className="hidden sm:inline">Growth</span>
               </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center gap-1.5">
                 <History className="w-4 h-4" />
@@ -1559,6 +1650,310 @@ export default function CalculatorPage() {
                       <div>
                         <p className="font-medium text-foreground mb-1">Free Margin</p>
                         <p>Always maintain free margin (account equity minus used margin) to avoid margin calls during market volatility.</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Compound Interest Calculator Tab */}
+            <TabsContent value="compound">
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Input Card */}
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <LineChart className="w-5 h-5 text-primary" />
+                      Growth Parameters
+                    </CardTitle>
+                    <CardDescription>
+                      Project account growth based on your trading performance
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    {/* Starting Balance */}
+                    <div className="space-y-2">
+                      <Label htmlFor="compound-balance" className="flex items-center gap-2">
+                        Starting Balance (USD)
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Your initial trading account balance</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="compound-balance"
+                          type="number"
+                          min="0"
+                          step="100"
+                          value={compoundStartBalance}
+                          onChange={(e) => setCompoundStartBalance(e.target.value)}
+                          className="pl-9"
+                          placeholder="10000"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Win Rate */}
+                    <div className="space-y-2">
+                      <Label htmlFor="compound-winrate" className="flex items-center gap-2">
+                        Win Rate (%)
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Percentage of winning trades (e.g., 55 for 55%)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        id="compound-winrate"
+                        type="number"
+                        min="1"
+                        max="100"
+                        step="1"
+                        value={compoundWinRate}
+                        onChange={(e) => setCompoundWinRate(e.target.value)}
+                        placeholder="55"
+                      />
+                    </div>
+
+                    {/* Average Win */}
+                    <div className="space-y-2">
+                      <Label htmlFor="compound-avgwin" className="flex items-center gap-2">
+                        Average Win (% of account)
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Average profit per winning trade as % of account</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        id="compound-avgwin"
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        value={compoundAvgWin}
+                        onChange={(e) => setCompoundAvgWin(e.target.value)}
+                        placeholder="2"
+                      />
+                    </div>
+
+                    {/* Average Loss */}
+                    <div className="space-y-2">
+                      <Label htmlFor="compound-avgloss" className="flex items-center gap-2">
+                        Average Loss (% of account)
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Average loss per losing trade as % of account</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        id="compound-avgloss"
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        value={compoundAvgLoss}
+                        onChange={(e) => setCompoundAvgLoss(e.target.value)}
+                        placeholder="1"
+                      />
+                    </div>
+
+                    {/* Trades Per Month */}
+                    <div className="space-y-2">
+                      <Label htmlFor="compound-trades" className="flex items-center gap-2">
+                        Trades Per Month
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Average number of trades you take per month</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        id="compound-trades"
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={compoundTradesPerMonth}
+                        onChange={(e) => setCompoundTradesPerMonth(e.target.value)}
+                        placeholder="20"
+                      />
+                    </div>
+
+                    {/* Time Period (Months) */}
+                    <div className="space-y-2">
+                      <Label htmlFor="compound-months" className="flex items-center gap-2">
+                        Time Period (Months)
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Projection timeframe in months</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        id="compound-months"
+                        type="number"
+                        min="1"
+                        max="120"
+                        step="1"
+                        value={compoundMonths}
+                        onChange={(e) => setCompoundMonths(e.target.value)}
+                        placeholder="12"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setCompoundStartBalance("10000");
+                          setCompoundWinRate("55");
+                          setCompoundAvgWin("2");
+                          setCompoundAvgLoss("1");
+                          setCompoundTradesPerMonth("20");
+                          setCompoundMonths("12");
+                        }} 
+                        className="flex-1"
+                      >
+                        Reset
+                      </Button>
+                      <Button onClick={saveCompoundCalc} disabled={!compoundCalculations.isValid} className="flex-1">
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Results Card */}
+                <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-primary" />
+                      Projected Growth
+                    </CardTitle>
+                    <CardDescription>
+                      Account balance after {compoundMonths} months
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {compoundCalculations.isValid ? (
+                      <>
+                        {/* Final Balance - Main Result */}
+                        <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+                          <p className="text-sm text-muted-foreground mb-1">Projected Balance</p>
+                          <p className="text-4xl font-bold text-primary">
+                            ${compoundCalculations.finalBalance.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            after {compoundMonths} months
+                          </p>
+                        </div>
+
+                        {/* Secondary Results */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-4 rounded-xl bg-card border border-border/50">
+                            <p className="text-sm text-muted-foreground mb-1">Total Profit</p>
+                            <p className={`text-2xl font-semibold ${compoundCalculations.totalProfit >= 0 ? 'text-green-500' : 'text-destructive'}`}>
+                              {compoundCalculations.totalProfit >= 0 ? '+' : ''}${compoundCalculations.totalProfit.toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="p-4 rounded-xl bg-card border border-border/50">
+                            <p className="text-sm text-muted-foreground mb-1">Monthly Return</p>
+                            <p className={`text-2xl font-semibold ${compoundCalculations.monthlyReturn >= 0 ? 'text-green-500' : 'text-destructive'}`}>
+                              {compoundCalculations.monthlyReturn >= 0 ? '+' : ''}{compoundCalculations.monthlyReturn}%
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Expectancy */}
+                        <div className="p-4 rounded-xl bg-card border border-border/50">
+                          <p className="text-sm text-muted-foreground mb-1">Expected Return Per Trade</p>
+                          <p className={`text-xl font-semibold ${compoundCalculations.expectedPerTrade >= 0 ? 'text-green-500' : 'text-destructive'}`}>
+                            {compoundCalculations.expectedPerTrade >= 0 ? '+' : ''}{compoundCalculations.expectedPerTrade}%
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Based on {compoundWinRate}% win rate with {compoundAvgWin}% avg win / {compoundAvgLoss}% avg loss
+                          </p>
+                        </div>
+
+                        {/* Mini Projection Chart */}
+                        <div className="pt-2 border-t border-border/50">
+                          <p className="text-xs text-muted-foreground mb-2">Growth Projection:</p>
+                          <div className="space-y-2">
+                            {compoundCalculations.projections
+                              .filter((_, i) => i === 0 || i === Math.floor(compoundCalculations.projections.length / 3) || i === Math.floor(compoundCalculations.projections.length * 2 / 3) || i === compoundCalculations.projections.length - 1)
+                              .map((projection, idx, arr) => (
+                                <div key={projection.month} className="flex items-center gap-2">
+                                  <span className="text-xs text-muted-foreground w-20">Month {projection.month}</span>
+                                  <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                                    <div 
+                                      className="h-full bg-primary transition-all duration-500"
+                                      style={{ 
+                                        width: `${Math.min(100, (projection.balance / compoundCalculations.finalBalance) * 100)}%` 
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="text-xs font-medium text-foreground w-24 text-right">
+                                    ${projection.balance.toLocaleString()}
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+
+                        {/* Warning */}
+                        {compoundCalculations.expectedPerTrade < 0 && (
+                          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+                            ⚠️ Your current parameters result in a negative expectancy. Consider improving win rate or reward/risk ratio.
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="py-8 text-center text-muted-foreground">
+                        <LineChart className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>Enter valid parameters to see projections</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Info Section */}
+                <Card className="md:col-span-2 border-border/50">
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-3">Understanding Compound Growth</h3>
+                    <div className="grid gap-4 md:grid-cols-3 text-sm text-muted-foreground">
+                      <div>
+                        <p className="font-medium text-foreground mb-1">Expectancy Formula</p>
+                        <p>(Win Rate × Avg Win) - (Loss Rate × Avg Loss) = Expected return per trade.</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground mb-1">Compounding Effect</p>
+                        <p>Profits are reinvested, accelerating growth over time. Small consistent gains compound significantly.</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground mb-1">Realistic Expectations</p>
+                        <p>Past performance doesn't guarantee future results. These projections assume consistent trading performance.</p>
                       </div>
                     </div>
                   </CardContent>
