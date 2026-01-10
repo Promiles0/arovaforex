@@ -80,6 +80,30 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_history: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          date: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           category: string
@@ -520,6 +544,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          brand: string | null
+          created_at: string | null
+          exp_month: number | null
+          exp_year: number | null
+          holder_name: string | null
+          id: string
+          is_default: boolean | null
+          last4: string | null
+          user_id: string
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string | null
+          exp_month?: number | null
+          exp_year?: number | null
+          holder_name?: string | null
+          id?: string
+          is_default?: boolean | null
+          last4?: string | null
+          user_id: string
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string | null
+          exp_month?: number | null
+          exp_year?: number | null
+          holder_name?: string | null
+          id?: string
+          is_default?: boolean | null
+          last4?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       price_alerts: {
         Row: {
           created_at: string
@@ -640,6 +700,42 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          id: string
+          payment_method: string | null
+          reference_id: string | null
+          status: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          reference_id?: string | null
+          status?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          reference_id?: string | null
+          status?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_bookmarks: {
         Row: {
           bookmarked_at: string
@@ -686,6 +782,45 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_wallets: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          currency: string | null
+          equity: number | null
+          free_margin: number | null
+          id: string
+          margin_used: number | null
+          profit_loss: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          currency?: string | null
+          equity?: number | null
+          free_margin?: number | null
+          id?: string
+          margin_used?: number | null
+          profit_loss?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          currency?: string | null
+          equity?: number | null
+          free_margin?: number | null
+          id?: string
+          margin_used?: number | null
+          profit_loss?: number | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
