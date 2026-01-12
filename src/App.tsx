@@ -26,6 +26,7 @@ import Calendar from "./pages/Calendar";
 import Journal from "./pages/Journal";
 import Settings from "./pages/Settings";
 import Calculator from "./pages/Calculator";
+import LiveRoom from "./pages/LiveRoom";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
@@ -37,6 +38,7 @@ import AdminNotifications from "./pages/admin/Notifications";
 import AdminContact from "./pages/admin/Contact";
 import AdminContactAnalytics from "./pages/admin/ContactAnalytics";
 import AdminCalendarEvents from "./pages/admin/CalendarEvents";
+import LiveStreamControl from "./pages/admin/LiveStreamControl";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +77,7 @@ const App = () => (
                 <Route path="journal" element={<Journal />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="calculator" element={<Calculator />} />
+                <Route path="live-room" element={<LiveRoom />} />
               </Route>
 
               <Route path="/admin" element={
@@ -91,6 +94,7 @@ const App = () => (
                 <Route path="contact-analytics" element={<AdminContactAnalytics />} />
                 <Route path="calendar-events" element={<AdminCalendarEvents />} />
                 <Route path="journal" element={<Journal />} />
+                <Route path="live-stream" element={<LiveStreamControl />} />
               </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -15,13 +15,16 @@ import {
   Lock,
   NotebookPen,
   Calculator,
-  X
+  X,
+  Video
 } from "lucide-react";
+import { useLiveStreamStatus } from "@/hooks/useLiveStreamStatus";
 
 const navigationItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Forecasts", href: "/dashboard/forecasts", icon: TrendingUp },
   { name: "Premium Signals", href: "/dashboard/signals", icon: Signal, premium: true },
+  { name: "Live Room", href: "/dashboard/live-room", icon: Video, showLiveBadge: true },
   { name: "My Journal", href: "/dashboard/journal", icon: NotebookPen },
   { name: "Calculator", href: "/dashboard/calculator", icon: Calculator },
   { name: "My Wallet", href: "/dashboard/wallet", icon: Wallet },
@@ -45,6 +48,7 @@ export const ResponsiveSidebar = ({ isOpen, onClose }: ResponsiveSidebarProps) =
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
+  const { isLive } = useLiveStreamStatus();
 
   const isActive = (href: string) => location.pathname === href;
 
@@ -175,6 +179,7 @@ export const ResponsiveSidebar = ({ isOpen, onClose }: ResponsiveSidebarProps) =
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
+            const showLiveBadge = item.showLiveBadge && isLive;
             
             return (
               <Link 
@@ -200,13 +205,19 @@ export const ResponsiveSidebar = ({ isOpen, onClose }: ResponsiveSidebarProps) =
                 >
                   <Icon className={cn(
                     "w-5 h-5 mr-3 transition-colors duration-200",
-                    active ? "text-primary" : "text-muted-foreground group-hover:text-primary"
+                    active ? "text-primary" : "text-muted-foreground group-hover:text-primary",
+                    showLiveBadge && "text-red-500"
                   )} />
                   <span className="flex-1 text-left text-sm">
                     {item.name}
                   </span>
                   {item.premium && (
                     <Lock className="w-4 h-4 ml-auto opacity-50 text-premium" />
+                  )}
+                  {showLiveBadge && (
+                    <span className="ml-auto px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse">
+                      LIVE
+                    </span>
                   )}
                 </Button>
               </Link>
