@@ -83,7 +83,7 @@ const LiveRoom = () => {
             Live Trading Room
           </h1>
           <p className="text-muted-foreground mt-2">
-            Join Kojo's live trading sessions and interact in real-time
+            Join Arova's live trading sessions and interact in real-time
           </p>
         </div>
 
