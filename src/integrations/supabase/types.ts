@@ -490,6 +490,69 @@ export type Database = {
         }
         Relationships: []
       }
+      live_stream_config: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_live: boolean | null
+          scheduled_start: string | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string | null
+          video_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_live?: boolean | null
+          scheduled_start?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string | null
+          video_id?: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_live?: boolean | null
+          scheduled_start?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string | null
+          video_id?: string
+        }
+        Relationships: []
+      }
+      live_stream_views: {
+        Row: {
+          duration_minutes: number | null
+          id: string
+          joined_at: string | null
+          left_at: string | null
+          user_id: string
+          video_id: string | null
+        }
+        Insert: {
+          duration_minutes?: number | null
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          user_id: string
+          video_id?: string | null
+        }
+        Update: {
+          duration_minutes?: number | null
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          user_id?: string
+          video_id?: string | null
+        }
+        Relationships: []
+      }
       market_data_cache: {
         Row: {
           data: Json
