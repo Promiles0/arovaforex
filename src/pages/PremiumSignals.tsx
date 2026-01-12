@@ -1,8 +1,16 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Signal, Lock, TrendingUp, TrendingDown, Clock, Target, AlertTriangle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Signal, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import {
+  SignalsHero,
+  SignalPreview,
+  SignalsFeatures,
+  PerformanceMetrics,
+  SignalsTestimonials,
+  SignalsPricing,
+  SignalsFAQ,
+  SignalsFinalCTA,
+} from "@/components/signals";
 
 // Mock user premium status - in real app this would come from auth context
 const isPremiumUser = false;
@@ -84,62 +92,38 @@ const getConfidenceColor = (confidence: string) => {
 };
 
 export default function PremiumSignals() {
+  // Non-premium user view - conversion-focused landing page
   if (!isPremiumUser) {
     return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Signal className="w-6 h-6 text-premium" />
-            Premium Trading Signals
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Exclusive trading signals with detailed entry, stop loss, and take profit levels
-          </p>
-        </div>
+      <div className="space-y-6 pb-12">
+        {/* Hero Section */}
+        <SignalsHero />
 
-        {/* Locked View */}
-        <Card className="border-border/50">
-          <CardContent className="py-16 text-center">
-            <div className="w-20 h-20 bg-premium/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Lock className="w-10 h-10 text-premium" />
-            </div>
-            <h2 className="text-2xl font-bold mb-4">Upgrade to Access Premium Signals</h2>
-            <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
-              Get access to our exclusive trading signals with precise entry points, stop losses, and take profit levels. 
-              Our professional analysts provide high-probability setups with detailed market analysis.
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto mb-8">
-              <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                <Target className="w-8 h-8 text-primary mx-auto mb-2" />
-                <h3 className="font-semibold mb-1">Precise Entry Points</h3>
-                <p className="text-sm text-muted-foreground">Exact price levels for optimal trade entries</p>
-              </div>
-              <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                <AlertTriangle className="w-8 h-8 text-warning mx-auto mb-2" />
-                <h3 className="font-semibold mb-1">Risk Management</h3>
-                <p className="text-sm text-muted-foreground">Professional stop loss and take profit levels</p>
-              </div>
-              <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                <Clock className="w-8 h-8 text-success mx-auto mb-2" />
-                <h3 className="font-semibold mb-1">Real-time Alerts</h3>
-                <p className="text-sm text-muted-foreground">Instant notifications for new signals</p>
-              </div>
-            </div>
+        {/* Sample Signal Previews (Blurred) */}
+        <SignalPreview />
 
-            <Link to="/dashboard/wallet">
-              <Button size="lg" className="bg-premium hover:bg-premium/90 text-premium-foreground">
-                Upgrade to Premium
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        {/* Features Grid */}
+        <SignalsFeatures />
+
+        {/* Performance Metrics */}
+        <PerformanceMetrics />
+
+        {/* Testimonials */}
+        <SignalsTestimonials />
+
+        {/* Pricing Section */}
+        <SignalsPricing />
+
+        {/* FAQ Section */}
+        <SignalsFAQ />
+
+        {/* Final CTA */}
+        <SignalsFinalCTA />
       </div>
     );
   }
 
-  // Premium user view
+  // Premium user view - full signal access
   return (
     <div className="space-y-6">
       {/* Header */}
