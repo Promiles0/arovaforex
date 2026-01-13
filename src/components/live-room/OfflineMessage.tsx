@@ -44,7 +44,7 @@ export const OfflineMessage = () => {
         </div>
 
         {/* Schedule Section */}
-        {/* <motion.div 
+         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.4 }}
@@ -71,6 +71,6 @@ export const OfflineMessage = () => {
           </div>
         </motion.div>
       </div>
-    </motion.div> */}
+    </motion.div> 
   );
 };
