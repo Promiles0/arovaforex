@@ -57,7 +57,7 @@ export const OfflineMessage = () => {
             <div className="flex items-center justify-between p-4 bg-background/50 rounded-xl">
               <div className="text-left">
                 {/* <div className="text-foreground font-medium">Gold Analysis Session</div> */}
-                {/* <div className="text-sm text-muted-foreground">Wednesday, Jan 15</div> */}
+                 <div className="text-sm text-muted-foreground"> will appear here. Don’t miss it!</div> 
               </div>
               {/* <div className="text-primary font-semibold">6:00 PM GMT</div> */}
             </div>
