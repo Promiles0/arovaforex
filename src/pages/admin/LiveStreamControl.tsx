@@ -240,15 +240,16 @@ const LiveStreamControl = () => {
               {config.video_id ? (
                 <div className="space-y-4">
                   <div className="relative w-full rounded-xl overflow-hidden" style={{ paddingBottom: '56.25%' }}>
-                    <iframe
+<iframe
   className="absolute top-0 left-0 w-full h-full"
-  src={`https://www.youtube.com/embed/${config.video_id}?origin=${encodeURIComponent(window.location.origin)}&autoplay=1`}
+  src={`https://www.youtube-nocookie.com/embed/${config.video_id}?origin=${encodeURIComponent(window.location.origin)}&autoplay=1&mute=1`}
   title="Stream Preview"
   frameBorder="0"
   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
   referrerPolicy="strict-origin-when-cross-origin"
   allowFullScreen
 />
+
 
                   </div>
                   <div className="p-4 bg-muted rounded-xl">
