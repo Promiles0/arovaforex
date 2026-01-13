@@ -56,17 +56,17 @@ export const OfflineMessage = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between p-4 bg-background/50 rounded-xl">
               <div className="text-left">
-                <div className="text-foreground font-medium">Gold Analysis Session</div>
-                <div className="text-sm text-muted-foreground">Wednesday, Jan 15</div>
+                {/* <div className="text-foreground font-medium">Gold Analysis Session</div> */}
+                {/* <div className="text-sm text-muted-foreground">Wednesday, Jan 15</div> */}
               </div>
-              <div className="text-primary font-semibold">6:00 PM GMT</div>
+              {/* <div className="text-primary font-semibold">6:00 PM GMT</div> */}
             </div>
             <div className="flex items-center justify-between p-4 bg-background/50 rounded-xl">
               <div className="text-left">
-                <div className="text-foreground font-medium">Forex Market Breakdown</div>
-                <div className="text-sm text-muted-foreground">Friday, Jan 17</div>
+                {/* <div className="text-foreground font-medium">Forex Market Breakdown</div> */}
+                {/* <div className="text-sm text-muted-foreground">Friday, Jan 17</div> */}
               </div>
-              <div className="text-primary font-semibold">4:00 PM GMT</div>
+              {/* <div className="text-primary font-semibold">4:00 PM GMT</div> */}
             </div>
           </div>
         </motion.div>
