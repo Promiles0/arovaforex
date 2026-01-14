@@ -13,6 +13,7 @@ interface ChatMessagesProps {
   adminUserIds?: string[];
   onPin?: (messageId: string, pinned: boolean) => void;
   onDelete?: (messageId: string) => void;
+  onReact?: (messageId: string, emoji: string) => void;
 }
 
 export const ChatMessages = ({
@@ -24,6 +25,7 @@ export const ChatMessages = ({
   adminUserIds = [],
   onPin,
   onDelete,
+  onReact,
 }: ChatMessagesProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -66,6 +68,7 @@ export const ChatMessages = ({
                 isHostMessage={adminUserIds.includes(msg.user_id)}
                 onPin={onPin}
                 onDelete={onDelete}
+                onReact={onReact}
               />
             ))}
           </div>
@@ -81,6 +84,7 @@ export const ChatMessages = ({
             isHostMessage={adminUserIds.includes(msg.user_id)}
             onPin={onPin}
             onDelete={onDelete}
+            onReact={onReact}
           />
         ))}
 

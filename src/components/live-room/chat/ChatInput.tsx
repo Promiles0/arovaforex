@@ -1,5 +1,5 @@
-import { useState, useCallback, KeyboardEvent } from 'react';
-import { Send, Smile } from 'lucide-react';
+import { useState, useCallback, useEffect, KeyboardEvent } from 'react';
+import { Send, Smile, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -14,13 +14,36 @@ interface ChatInputProps {
   isSending: boolean;
   canSend: boolean;
   disabled?: boolean;
+  cooldownSeconds?: number;
+  slowModeEnabled?: boolean;
 }
 
-const QUICK_EMOJIS = ['👍', '🔥', '💰', '📈', '📉', '🎯', '💪', '🙏', '❤️', '😊', '🤔', '👀'];
+const QUICK_EMOJIS = ['👍', '🔥', '💰', '📈', '📉', '🎯', '💪', '🙏', '❤️', '😊', '🤔', '👀', '🚀', '👏', '⚡', '💯'];
 
-export const ChatInput = ({ onSend, isSending, canSend, disabled }: ChatInputProps) => {
+export const ChatInput = ({ 
+  onSend, 
+  isSending, 
+  canSend, 
+  disabled,
+  cooldownSeconds = 0,
+  slowModeEnabled = false,
+}: ChatInputProps) => {
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
+  const [displayCooldown, setDisplayCooldown] = useState(0);
+
+  // Update cooldown display
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      setDisplayCooldown(cooldownSeconds);
+      const interval = setInterval(() => {
+        setDisplayCooldown(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setDisplayCooldown(0);
+    }
+  }, [cooldownSeconds]);
 
   const handleSend = useCallback(async () => {
     if (!message.trim() || isSending || !canSend) return;
@@ -43,8 +66,20 @@ export const ChatInput = ({ onSend, isSending, canSend, disabled }: ChatInputPro
     setShowEmoji(false);
   };
 
+  const isOnCooldown = displayCooldown > 0;
+
   return (
     <div className="p-3 border-t border-border">
+      {/* Cooldown Indicator */}
+      {isOnCooldown && (
+        <div className="flex items-center gap-2 mb-2 px-2 py-1.5 bg-amber-500/10 rounded-lg">
+          <Timer className="h-4 w-4 text-amber-400" />
+          <span className="text-xs text-amber-400">
+            {slowModeEnabled ? 'Slow mode: ' : ''}Wait {displayCooldown}s before sending
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
         {/* Emoji Picker */}
         <Popover open={showEmoji} onOpenChange={setShowEmoji}>
@@ -63,7 +98,7 @@ export const ChatInput = ({ onSend, isSending, canSend, disabled }: ChatInputPro
             side="top" 
             align="start"
           >
-            <div className="grid grid-cols-6 gap-1">
+            <div className="grid grid-cols-8 gap-1">
               {QUICK_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
@@ -91,19 +126,19 @@ export const ChatInput = ({ onSend, isSending, canSend, disabled }: ChatInputPro
         {/* Send Button */}
         <Button
           onClick={handleSend}
-          disabled={!message.trim() || isSending || !canSend || disabled}
+          disabled={!message.trim() || isSending || !canSend || disabled || isOnCooldown}
           size="icon"
           className={cn(
             'h-9 w-9 flex-shrink-0 transition-all',
-            message.trim() && canSend ? 'bg-primary hover:bg-primary/90' : ''
+            message.trim() && canSend && !isOnCooldown ? 'bg-primary hover:bg-primary/90' : ''
           )}
         >
           <Send className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Rate Limit Warning */}
-      {!canSend && !isSending && (
+      {/* Rate Limit Warning (only show if no cooldown indicator) */}
+      {!canSend && !isSending && !isOnCooldown && (
         <p className="text-xs text-muted-foreground mt-1.5 text-center">
           Please wait before sending another message
         </p>

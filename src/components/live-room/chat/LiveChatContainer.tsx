@@ -22,7 +22,11 @@ export const LiveChatContainer = ({ streamId, isLive = true }: LiveChatContainer
     sendMessage,
     pinMessage,
     deleteMessage,
+    toggleReaction,
+    toggleSlowMode,
     canSendMessage,
+    getRemainingCooldown,
+    slowMode,
     isAdmin,
     user,
   } = useLiveChat({ streamId });
@@ -45,7 +49,13 @@ export const LiveChatContainer = ({ streamId, isLive = true }: LiveChatContainer
 
   return (
     <div className="flex flex-col h-full bg-card rounded-xl border border-border overflow-hidden">
-      <ChatHeader onlineCount={onlineCount} isLive={isLive} />
+      <ChatHeader 
+        onlineCount={onlineCount} 
+        isLive={isLive} 
+        isAdmin={isAdmin}
+        slowMode={slowMode}
+        onToggleSlowMode={toggleSlowMode}
+      />
       
       <ChatMessages
         messages={messages}
@@ -56,6 +66,7 @@ export const LiveChatContainer = ({ streamId, isLive = true }: LiveChatContainer
         adminUserIds={adminUserIds}
         onPin={pinMessage}
         onDelete={deleteMessage}
+        onReact={toggleReaction}
       />
 
       <ChatInput
@@ -63,6 +74,8 @@ export const LiveChatContainer = ({ streamId, isLive = true }: LiveChatContainer
         isSending={isSending}
         canSend={canSendMessage()}
         disabled={!user}
+        cooldownSeconds={getRemainingCooldown()}
+        slowModeEnabled={slowMode.enabled}
       />
     </div>
   );
