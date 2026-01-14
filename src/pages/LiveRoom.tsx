@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Video, Users, Clock, MessageCircle } from "lucide-react";
+import { Video, Users, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useLiveStreamStatus } from "@/hooks/useLiveStreamStatus";
@@ -153,15 +153,7 @@ const LiveRoom = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="lg:col-span-1"
           >
-            <div className="bg-card border border-border rounded-2xl overflow-hidden h-full min-h-[500px] lg:min-h-0">
-              <div className="p-4 border-b border-border">
-                <h3 className="font-semibold text-foreground flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5 text-primary" />
-                  <span>Live Chat</span>
-                </h3>
-              </div>
-              <LiveChat videoId={streamConfig.video_id} />
-            </div>
+            <LiveChat streamId={streamConfig.id} isLive={isLive} />
           </motion.div>
         </div>
       ) : (
