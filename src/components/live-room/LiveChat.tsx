@@ -1,22 +1,15 @@
+import { LiveChatContainer } from './chat';
+
 interface LiveChatProps {
-  videoId: string;
+  videoId?: string;
+  streamId?: string;
+  isLive?: boolean;
 }
 
-export const LiveChat = ({ videoId }: LiveChatProps) => {
-  const domain =
-    typeof window !== "undefined" ? window.location.hostname : "";
-
+export const LiveChat = ({ streamId, isLive = true }: LiveChatProps) => {
   return (
     <div className="relative w-full h-[500px] lg:h-full min-h-[400px]">
-      <iframe
-        className="w-full h-full"
-        src={`https://www.youtube.com/live_chat?v=${videoId}&embed_domain=${encodeURIComponent(
-          domain
-        )}`}
-        title="Live Chat"
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      />
+      <LiveChatContainer streamId={streamId} isLive={isLive} />
     </div>
   );
 };
