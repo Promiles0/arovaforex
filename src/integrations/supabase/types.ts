@@ -158,6 +158,38 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_reactions: {
+        Row: {
+          created_at: string | null
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "live_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_messages: {
         Row: {
           admin_response: string | null
@@ -535,6 +567,8 @@ export type Database = {
           id: string
           is_live: boolean | null
           scheduled_start: string | null
+          slow_mode_enabled: boolean | null
+          slow_mode_seconds: number | null
           thumbnail_url: string | null
           title: string | null
           updated_at: string | null
@@ -546,6 +580,8 @@ export type Database = {
           id?: string
           is_live?: boolean | null
           scheduled_start?: string | null
+          slow_mode_enabled?: boolean | null
+          slow_mode_seconds?: number | null
           thumbnail_url?: string | null
           title?: string | null
           updated_at?: string | null
@@ -557,6 +593,8 @@ export type Database = {
           id?: string
           is_live?: boolean | null
           scheduled_start?: string | null
+          slow_mode_enabled?: boolean | null
+          slow_mode_seconds?: number | null
           thumbnail_url?: string | null
           title?: string | null
           updated_at?: string | null

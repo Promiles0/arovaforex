@@ -4,6 +4,12 @@ import { useAuth } from './useAuth';
 import { useAdminCheck } from './useAdminCheck';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
+export interface ChatReaction {
+  emoji: string;
+  count: number;
+  userReacted: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   user_id: string;
@@ -17,6 +23,12 @@ export interface ChatMessage {
     telegram_handle: string | null;
     avatar_url: string | null;
   };
+  reactions?: ChatReaction[];
+}
+
+interface SlowModeConfig {
+  enabled: boolean;
+  seconds: number;
 }
 
 interface UseLiveChatOptions {
@@ -33,16 +45,81 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
   const [onlineCount, setOnlineCount] = useState(0);
   const [isSending, setIsSending] = useState(false);
   const [lastMessageTime, setLastMessageTime] = useState(0);
+  const [slowMode, setSlowMode] = useState<SlowModeConfig>({ enabled: false, seconds: 30 });
   const channelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
+  const reactionsChannelRef = useRef<RealtimeChannel | null>(null);
 
-  // Rate limiting: 2 seconds between messages
-  const RATE_LIMIT_MS = 2000;
+  // Rate limiting based on slow mode
+  const RATE_LIMIT_MS = slowMode.enabled ? slowMode.seconds * 1000 : 2000;
+
+  const getRemainingCooldown = useCallback(() => {
+    const elapsed = Date.now() - lastMessageTime;
+    const remaining = Math.max(0, RATE_LIMIT_MS - elapsed);
+    return Math.ceil(remaining / 1000);
+  }, [lastMessageTime, RATE_LIMIT_MS]);
 
   const canSendMessage = useCallback(() => {
     const now = Date.now();
     return now - lastMessageTime >= RATE_LIMIT_MS;
-  }, [lastMessageTime]);
+  }, [lastMessageTime, RATE_LIMIT_MS]);
+
+  // Fetch slow mode config
+  const fetchSlowModeConfig = useCallback(async () => {
+    if (!streamId) return;
+    
+    const { data } = await supabase
+      .from('live_stream_config')
+      .select('slow_mode_enabled, slow_mode_seconds')
+      .eq('id', streamId)
+      .single();
+    
+    if (data) {
+      setSlowMode({
+        enabled: data.slow_mode_enabled || false,
+        seconds: data.slow_mode_seconds || 30,
+      });
+    }
+  }, [streamId]);
+
+  // Fetch reactions for messages
+  const fetchReactionsForMessages = useCallback(async (messageIds: string[]) => {
+    if (!messageIds.length || !user) return new Map<string, ChatReaction[]>();
+
+    const { data: reactions } = await supabase
+      .from('chat_reactions')
+      .select('message_id, emoji, user_id')
+      .in('message_id', messageIds);
+
+    const reactionMap = new Map<string, ChatReaction[]>();
+    
+    if (reactions) {
+      const grouped = reactions.reduce((acc, r) => {
+        if (!acc[r.message_id]) acc[r.message_id] = {};
+        if (!acc[r.message_id][r.emoji]) {
+          acc[r.message_id][r.emoji] = { count: 0, userReacted: false };
+        }
+        acc[r.message_id][r.emoji].count++;
+        if (r.user_id === user.id) {
+          acc[r.message_id][r.emoji].userReacted = true;
+        }
+        return acc;
+      }, {} as Record<string, Record<string, { count: number; userReacted: boolean }>>);
+
+      Object.entries(grouped).forEach(([msgId, emojis]) => {
+        reactionMap.set(
+          msgId,
+          Object.entries(emojis).map(([emoji, data]) => ({
+            emoji,
+            count: data.count,
+            userReacted: data.userReacted,
+          }))
+        );
+      });
+    }
+
+    return reactionMap;
+  }, [user]);
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -72,9 +149,14 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
 
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
 
+      // Fetch reactions
+      const messageIds = data?.map(m => m.id) || [];
+      const reactionMap = await fetchReactionsForMessages(messageIds);
+
       const messagesWithUsers = (data || []).map(msg => ({
         ...msg,
         user: profileMap.get(msg.user_id) || null,
+        reactions: reactionMap.get(msg.id) || [],
       }));
 
       const pinned = messagesWithUsers.filter(m => m.is_pinned);
@@ -87,7 +169,7 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
     } finally {
       setIsLoading(false);
     }
-  }, [messageLimit]);
+  }, [messageLimit, fetchReactionsForMessages]);
 
   const sendMessage = useCallback(async (message: string) => {
     if (!user || !message.trim() || isSending) return false;
@@ -151,9 +233,82 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
     }
   }, [isAdmin]);
 
+  // Toggle reaction on a message
+  const toggleReaction = useCallback(async (messageId: string, emoji: string) => {
+    if (!user) return false;
+
+    try {
+      // Check if user already reacted with this emoji
+      const { data: existing } = await supabase
+        .from('chat_reactions')
+        .select('id')
+        .eq('message_id', messageId)
+        .eq('user_id', user.id)
+        .eq('emoji', emoji)
+        .single();
+
+      if (existing) {
+        // Remove reaction
+        await supabase
+          .from('chat_reactions')
+          .delete()
+          .eq('id', existing.id);
+      } else {
+        // Add reaction
+        await supabase
+          .from('chat_reactions')
+          .insert({
+            message_id: messageId,
+            user_id: user.id,
+            emoji,
+          });
+      }
+      return true;
+    } catch (error) {
+      console.error('Error toggling reaction:', error);
+      return false;
+    }
+  }, [user]);
+
+  // Toggle slow mode (admin only)
+  const toggleSlowMode = useCallback(async (enabled: boolean, seconds?: number) => {
+    if (!isAdmin || !streamId) return false;
+
+    try {
+      const { error } = await supabase
+        .from('live_stream_config')
+        .update({
+          slow_mode_enabled: enabled,
+          slow_mode_seconds: seconds || slowMode.seconds,
+        })
+        .eq('id', streamId);
+
+      if (error) throw error;
+      setSlowMode(prev => ({ ...prev, enabled, seconds: seconds || prev.seconds }));
+      return true;
+    } catch (error) {
+      console.error('Error toggling slow mode:', error);
+      return false;
+    }
+  }, [isAdmin, streamId, slowMode.seconds]);
+
+  // Update reactions in state
+  const updateMessageReactions = useCallback(async (messageId: string) => {
+    const reactionMap = await fetchReactionsForMessages([messageId]);
+    const newReactions = reactionMap.get(messageId) || [];
+
+    setMessages(prev => prev.map(m => 
+      m.id === messageId ? { ...m, reactions: newReactions } : m
+    ));
+    setPinnedMessages(prev => prev.map(m => 
+      m.id === messageId ? { ...m, reactions: newReactions } : m
+    ));
+  }, [fetchReactionsForMessages]);
+
   // Set up realtime subscription
   useEffect(() => {
     fetchMessages();
+    fetchSlowModeConfig();
 
     // Subscribe to new messages
     channelRef.current = supabase
@@ -176,7 +331,7 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
               .eq('user_id', newMsg.user_id)
               .single();
 
-            const msgWithUser = { ...newMsg, user: profile || null };
+            const msgWithUser = { ...newMsg, user: profile || null, reactions: [] };
             
             if (newMsg.is_pinned) {
               setPinnedMessages(prev => [...prev, msgWithUser]);
@@ -215,6 +370,26 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
       )
       .subscribe();
 
+    // Subscribe to reactions
+    reactionsChannelRef.current = supabase
+      .channel('chat_reactions_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_reactions',
+        },
+        async (payload) => {
+          const messageId = (payload.new as { message_id?: string })?.message_id || 
+                           (payload.old as { message_id?: string })?.message_id;
+          if (messageId) {
+            updateMessageReactions(messageId);
+          }
+        }
+      )
+      .subscribe();
+
     // Set up presence channel for online count
     if (user) {
       presenceChannelRef.current = supabase
@@ -237,8 +412,9 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
     return () => {
       channelRef.current?.unsubscribe();
       presenceChannelRef.current?.unsubscribe();
+      reactionsChannelRef.current?.unsubscribe();
     };
-  }, [user, fetchMessages, messageLimit]);
+  }, [user, fetchMessages, fetchSlowModeConfig, messageLimit, updateMessageReactions]);
 
   return {
     messages,
@@ -249,7 +425,11 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
     sendMessage,
     pinMessage,
     deleteMessage,
+    toggleReaction,
+    toggleSlowMode,
     canSendMessage,
+    getRemainingCooldown,
+    slowMode,
     isAdmin,
     user,
   };

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Pin, Trash2, Crown, MoreVertical } from 'lucide-react';
+import { Pin, Trash2, Crown, MoreVertical, SmilePlus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,8 +9,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { ChatMessage as ChatMessageType } from '@/hooks/useLiveChat';
+
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🚀', '👏'];
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -19,6 +26,7 @@ interface ChatMessageProps {
   isHostMessage: boolean;
   onPin?: (messageId: string, pinned: boolean) => void;
   onDelete?: (messageId: string) => void;
+  onReact?: (messageId: string, emoji: string) => void;
 }
 
 export const ChatMessage = ({
@@ -28,8 +36,10 @@ export const ChatMessage = ({
   isHostMessage,
   onPin,
   onDelete,
+  onReact,
 }: ChatMessageProps) => {
   const [showActions, setShowActions] = useState(false);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
 
   const displayName = message.user?.telegram_handle 
     ? `@${message.user.telegram_handle}` 
@@ -44,6 +54,11 @@ export const ChatMessage = ({
 
   const timeAgo = formatDistanceToNow(new Date(message.created_at), { addSuffix: false });
   const formattedTime = timeAgo === 'less than a minute' ? 'Just now' : `${timeAgo} ago`;
+
+  const handleReaction = (emoji: string) => {
+    onReact?.(message.id, emoji);
+    setShowReactionPicker(false);
+  };
 
   return (
     <div
@@ -106,34 +121,86 @@ export const ChatMessage = ({
           <p className="text-sm text-foreground/90 mt-0.5 break-words">
             {message.message}
           </p>
+
+          {/* Reactions */}
+          {message.reactions && message.reactions.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {message.reactions.map((reaction) => (
+                <button
+                  key={reaction.emoji}
+                  onClick={() => onReact?.(message.id, reaction.emoji)}
+                  className={cn(
+                    'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs transition-colors',
+                    reaction.userReacted
+                      ? 'bg-primary/20 border border-primary/40'
+                      : 'bg-muted/50 border border-transparent hover:bg-muted'
+                  )}
+                >
+                  <span>{reaction.emoji}</span>
+                  <span className="text-muted-foreground">{reaction.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Admin Actions */}
-        {isAdmin && showActions && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onPin?.(message.id, !message.is_pinned)}>
-                <Pin className="h-4 w-4 mr-2" />
-                {message.is_pinned ? 'Unpin' : 'Pin'} Message
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => onDelete?.(message.id)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Message
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        {/* Actions */}
+        {showActions && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Reaction Picker */}
+            <Popover open={showReactionPicker} onOpenChange={setShowReactionPicker}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                >
+                  <SmilePlus className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2" align="end">
+                <div className="flex gap-1">
+                  {REACTION_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => handleReaction(emoji)}
+                      className="p-1.5 hover:bg-muted rounded transition-colors text-lg"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Admin Actions */}
+            {isAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onPin?.(message.id, !message.is_pinned)}>
+                    <Pin className="h-4 w-4 mr-2" />
+                    {message.is_pinned ? 'Unpin' : 'Pin'} Message
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => onDelete?.(message.id)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Message
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         )}
       </div>
     </div>
