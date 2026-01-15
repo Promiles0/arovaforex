@@ -14,6 +14,7 @@ interface ChatMessagesProps {
   onPin?: (messageId: string, pinned: boolean) => void;
   onDelete?: (messageId: string) => void;
   onReact?: (messageId: string, emoji: string) => void;
+  onReply?: (message: ChatMessageType) => void;
 }
 
 export const ChatMessages = ({
@@ -26,6 +27,7 @@ export const ChatMessages = ({
   onPin,
   onDelete,
   onReact,
+  onReply,
 }: ChatMessagesProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -69,6 +71,7 @@ export const ChatMessages = ({
                 onPin={onPin}
                 onDelete={onDelete}
                 onReact={onReact}
+                onReply={onReply}
               />
             ))}
           </div>
@@ -85,6 +88,7 @@ export const ChatMessages = ({
             onPin={onPin}
             onDelete={onDelete}
             onReact={onReact}
+            onReply={onReply}
           />
         ))}
 

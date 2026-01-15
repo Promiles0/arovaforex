@@ -18,6 +18,8 @@ export interface ChatMessage {
   is_pinned: boolean;
   is_deleted: boolean;
   created_at: string;
+  reply_to_id: string | null;
+  reply_preview: string | null;
   user?: {
     full_name: string | null;
     telegram_handle: string | null;
@@ -46,6 +48,8 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
   const [isSending, setIsSending] = useState(false);
   const [lastMessageTime, setLastMessageTime] = useState(0);
   const [slowMode, setSlowMode] = useState<SlowModeConfig>({ enabled: false, seconds: 30 });
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [currentStreamId, setCurrentStreamId] = useState<string | null>(streamId || null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const reactionsChannelRef = useRef<RealtimeChannel | null>(null);
@@ -60,27 +64,26 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
   }, [lastMessageTime, RATE_LIMIT_MS]);
 
   const canSendMessage = useCallback(() => {
+    if (isAdmin) return true;
     const now = Date.now();
     return now - lastMessageTime >= RATE_LIMIT_MS;
-  }, [lastMessageTime, RATE_LIMIT_MS]);
+  }, [lastMessageTime, RATE_LIMIT_MS, isAdmin]);
 
   // Fetch slow mode config
   const fetchSlowModeConfig = useCallback(async () => {
-    if (!streamId) return;
-    
     const { data } = await supabase
       .from('live_stream_config')
-      .select('slow_mode_enabled, slow_mode_seconds')
-      .eq('id', streamId)
+      .select('id, slow_mode_enabled, slow_mode_seconds')
       .single();
     
     if (data) {
+      setCurrentStreamId(data.id);
       setSlowMode({
         enabled: data.slow_mode_enabled || false,
         seconds: data.slow_mode_seconds || 30,
       });
     }
-  }, [streamId]);
+  }, []);
 
   // Fetch reactions for messages
   const fetchReactionsForMessages = useCallback(async (messageIds: string[]) => {
@@ -132,7 +135,9 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
           message,
           is_pinned,
           is_deleted,
-          created_at
+          created_at,
+          reply_to_id,
+          reply_preview
         `)
         .eq('is_deleted', false)
         .order('created_at', { ascending: true })
@@ -171,7 +176,7 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
     }
   }, [messageLimit, fetchReactionsForMessages]);
 
-  const sendMessage = useCallback(async (message: string) => {
+  const sendMessage = useCallback(async (message: string, replyToId?: string) => {
     if (!user || !message.trim() || isSending) return false;
 
     if (!canSendMessage()) {
@@ -180,16 +185,27 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
 
     setIsSending(true);
     try {
+      // Create reply preview if replying
+      let replyPreviewText: string | null = null;
+      if (replyToId && replyTo) {
+        const senderName = replyTo.user?.full_name || replyTo.user?.telegram_handle || 'User';
+        const msgPreview = replyTo.message.substring(0, 50);
+        replyPreviewText = `${senderName}: ${msgPreview}${replyTo.message.length > 50 ? '...' : ''}`;
+      }
+
       const { error } = await supabase
         .from('live_chat_messages')
         .insert({
           user_id: user.id,
-          stream_id: streamId || null,
+          stream_id: currentStreamId || null,
           message: message.trim(),
+          reply_to_id: replyToId || null,
+          reply_preview: replyPreviewText,
         });
 
       if (error) throw error;
       setLastMessageTime(Date.now());
+      setReplyTo(null);
       return true;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -197,7 +213,7 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
     } finally {
       setIsSending(false);
     }
-  }, [user, streamId, isSending, canSendMessage]);
+  }, [user, currentStreamId, isSending, canSendMessage, replyTo]);
 
   const pinMessage = useCallback(async (messageId: string, pinned: boolean) => {
     if (!isAdmin) return false;
@@ -272,7 +288,7 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
 
   // Toggle slow mode (admin only)
   const toggleSlowMode = useCallback(async (enabled: boolean, seconds?: number) => {
-    if (!isAdmin || !streamId) return false;
+    if (!isAdmin || !currentStreamId) return false;
 
     try {
       const { error } = await supabase
@@ -281,7 +297,7 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
           slow_mode_enabled: enabled,
           slow_mode_seconds: seconds || slowMode.seconds,
         })
-        .eq('id', streamId);
+        .eq('id', currentStreamId);
 
       if (error) throw error;
       setSlowMode(prev => ({ ...prev, enabled, seconds: seconds || prev.seconds }));
@@ -290,7 +306,7 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
       console.error('Error toggling slow mode:', error);
       return false;
     }
-  }, [isAdmin, streamId, slowMode.seconds]);
+  }, [isAdmin, currentStreamId, slowMode.seconds]);
 
   // Update reactions in state
   const updateMessageReactions = useCallback(async (messageId: string) => {
@@ -432,5 +448,8 @@ export function useLiveChat({ streamId, messageLimit = 100 }: UseLiveChatOptions
     slowMode,
     isAdmin,
     user,
+    replyTo,
+    setReplyTo,
+    streamId: currentStreamId,
   };
 }

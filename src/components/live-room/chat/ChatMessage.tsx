@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Pin, Trash2, Crown, MoreVertical, SmilePlus } from 'lucide-react';
+import { Pin, Trash2, Crown, MoreVertical, SmilePlus, Reply } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +19,38 @@ import type { ChatMessage as ChatMessageType } from '@/hooks/useLiveChat';
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🚀', '👏'];
 
+// Parse and highlight @mentions in message text
+const renderMessageWithMentions = (text: string) => {
+  const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+  const parts: (string | JSX.Element)[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(text)) !== null) {
+    // Add text before the mention
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+    // Add the mention as a styled span
+    parts.push(
+      <span 
+        key={match.index} 
+        className="text-primary font-medium hover:underline cursor-pointer"
+      >
+        @{match[1]}
+      </span>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : text;
+};
+
 interface ChatMessageProps {
   message: ChatMessageType;
   isOwnMessage: boolean;
@@ -27,6 +59,7 @@ interface ChatMessageProps {
   onPin?: (messageId: string, pinned: boolean) => void;
   onDelete?: (messageId: string) => void;
   onReact?: (messageId: string, emoji: string) => void;
+  onReply?: (message: ChatMessageType) => void;
 }
 
 export const ChatMessage = ({
@@ -37,6 +70,7 @@ export const ChatMessage = ({
   onPin,
   onDelete,
   onReact,
+  onReply,
 }: ChatMessageProps) => {
   const [showActions, setShowActions] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -117,9 +151,17 @@ export const ChatMessage = ({
             </span>
           </div>
 
+          {/* Reply Preview */}
+          {message.reply_preview && (
+            <div className="mt-1 mb-1 px-2 py-1 bg-muted/50 border-l-2 border-muted-foreground/30 rounded text-xs text-muted-foreground truncate">
+              <Reply className="w-3 h-3 inline mr-1" />
+              {message.reply_preview}
+            </div>
+          )}
+
           {/* Message Text */}
           <p className="text-sm text-foreground/90 mt-0.5 break-words">
-            {message.message}
+            {renderMessageWithMentions(message.message)}
           </p>
 
           {/* Reactions */}
@@ -147,6 +189,19 @@ export const ChatMessage = ({
         {/* Actions */}
         {showActions && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Reply Button */}
+            {onReply && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => onReply(message)}
+                title="Reply"
+              >
+                <Reply className="h-4 w-4" />
+              </Button>
+            )}
+
             {/* Reaction Picker */}
             <Popover open={showReactionPicker} onOpenChange={setShowReactionPicker}>
               <PopoverTrigger asChild>

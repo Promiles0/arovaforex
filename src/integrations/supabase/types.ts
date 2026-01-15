@@ -529,6 +529,8 @@ export type Database = {
           is_deleted: boolean | null
           is_pinned: boolean | null
           message: string
+          reply_preview: string | null
+          reply_to_id: string | null
           stream_id: string | null
           user_id: string
         }
@@ -538,6 +540,8 @@ export type Database = {
           is_deleted?: boolean | null
           is_pinned?: boolean | null
           message: string
+          reply_preview?: string | null
+          reply_to_id?: string | null
           stream_id?: string | null
           user_id: string
         }
@@ -547,10 +551,19 @@ export type Database = {
           is_deleted?: boolean | null
           is_pinned?: boolean | null
           message?: string
+          reply_preview?: string | null
+          reply_to_id?: string | null
           stream_id?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "live_chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "live_chat_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "live_chat_messages_stream_id_fkey"
             columns: ["stream_id"]
@@ -562,6 +575,7 @@ export type Database = {
       }
       live_stream_config: {
         Row: {
+          clear_chat_on_end: boolean | null
           created_at: string | null
           description: string | null
           id: string
@@ -575,6 +589,7 @@ export type Database = {
           video_id: string
         }
         Insert: {
+          clear_chat_on_end?: boolean | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -588,6 +603,7 @@ export type Database = {
           video_id?: string
         }
         Update: {
+          clear_chat_on_end?: boolean | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -978,6 +994,7 @@ export type Database = {
         }
         Returns: number
       }
+      cleanup_chat_messages: { Args: { p_stream_id: string }; Returns: number }
       create_notification: {
         Args: {
           p_content: string
