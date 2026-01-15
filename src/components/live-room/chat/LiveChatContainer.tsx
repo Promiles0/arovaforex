@@ -29,6 +29,8 @@ export const LiveChatContainer = ({ streamId, isLive = true }: LiveChatContainer
     slowMode,
     isAdmin,
     user,
+    replyTo,
+    setReplyTo,
   } = useLiveChat({ streamId });
 
   // Fetch admin user IDs for host badge display
@@ -67,6 +69,7 @@ export const LiveChatContainer = ({ streamId, isLive = true }: LiveChatContainer
         onPin={pinMessage}
         onDelete={deleteMessage}
         onReact={toggleReaction}
+        onReply={setReplyTo}
       />
 
       <ChatInput
@@ -76,6 +79,8 @@ export const LiveChatContainer = ({ streamId, isLive = true }: LiveChatContainer
         disabled={!user}
         cooldownSeconds={getRemainingCooldown()}
         slowModeEnabled={slowMode.enabled}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
       />
     </div>
   );
