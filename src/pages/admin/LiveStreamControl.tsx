@@ -1,12 +1,23 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Video, Save, Eye, EyeOff, Radio } from "lucide-react";
+import { Video, Save, Eye, EyeOff, Radio, Trash2, MessageSquare, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -18,6 +29,7 @@ interface StreamConfig {
   description: string | null;
   scheduled_start: string | null;
   thumbnail_url: string | null;
+  clear_chat_on_end: boolean;
 }
 
 const LiveStreamControl = () => {
@@ -29,9 +41,11 @@ const LiveStreamControl = () => {
     description: '',
     scheduled_start: null,
     thumbnail_url: null,
+    clear_chat_on_end: true,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     fetchConfig();
@@ -50,6 +64,7 @@ const LiveStreamControl = () => {
         setConfig({
           ...data,
           description: data.description || '',
+          clear_chat_on_end: data.clear_chat_on_end ?? true,
         });
       }
     } catch (error) {
@@ -70,6 +85,7 @@ const LiveStreamControl = () => {
           is_live: config.is_live,
           title: config.title,
           description: config.description || null,
+          clear_chat_on_end: config.clear_chat_on_end,
           updated_at: new Date().toISOString(),
         })
         .eq('id', config.id);
@@ -85,8 +101,31 @@ const LiveStreamControl = () => {
     }
   };
 
+  const clearChatMessages = async (silent = false) => {
+    setIsClearing(true);
+    try {
+      const { data, error } = await supabase.rpc('cleanup_chat_messages', {
+        p_stream_id: config.id
+      });
+
+      if (error) throw error;
+
+      if (!silent) {
+        toast.success(`Cleared ${data || 0} chat messages`);
+      }
+    } catch (error) {
+      console.error('Error clearing chat:', error);
+      if (!silent) {
+        toast.error('Failed to clear chat messages');
+      }
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const toggleLiveStatus = async () => {
     const newStatus = !config.is_live;
+    const wasLive = config.is_live;
     setConfig({ ...config, is_live: newStatus });
     
     try {
@@ -100,7 +139,13 @@ const LiveStreamControl = () => {
 
       if (error) throw error;
 
-      toast.success(newStatus ? '🔴 Stream is now LIVE!' : 'Stream is now offline');
+      // Auto-cleanup when going offline if enabled
+      if (wasLive && !newStatus && config.clear_chat_on_end) {
+        await clearChatMessages(true);
+        toast.success('Stream is now offline. Chat messages cleared.');
+      } else {
+        toast.success(newStatus ? '🔴 Stream is now LIVE!' : 'Stream is now offline');
+      }
     } catch (error) {
       console.error('Error toggling status:', error);
       setConfig({ ...config, is_live: !newStatus });
@@ -240,17 +285,15 @@ const LiveStreamControl = () => {
               {config.video_id ? (
                 <div className="space-y-4">
                   <div className="relative w-full rounded-xl overflow-hidden" style={{ paddingBottom: '56.25%' }}>
-<iframe
-  className="absolute top-0 left-0 w-full h-full"
-  src={`https://www.youtube-nocookie.com/embed/${config.video_id}?origin=${encodeURIComponent(window.location.origin)}&autoplay=1&mute=1`}
-  title="Stream Preview"
-  frameBorder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-  referrerPolicy="strict-origin-when-cross-origin"
-  allowFullScreen
-/>
-
-
+                    <iframe
+                      className="absolute top-0 left-0 w-full h-full"
+                      src={`https://www.youtube-nocookie.com/embed/${config.video_id}?origin=${encodeURIComponent(window.location.origin)}&autoplay=1&mute=1`}
+                      title="Stream Preview"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
                   </div>
                   <div className="p-4 bg-muted rounded-xl">
                     <h4 className="font-semibold text-foreground">{config.title}</h4>
@@ -268,7 +311,7 @@ const LiveStreamControl = () => {
             </CardContent>
           </Card>
 
-          {/* Quick Stats */}
+          {/* Quick Actions */}
           <Card className="mt-6">
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
@@ -291,6 +334,79 @@ const LiveStreamControl = () => {
                 <Video className="w-4 h-4" />
                 Open YouTube Studio
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Chat Management Card */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-primary" />
+                Chat Management
+              </CardTitle>
+              <CardDescription>
+                Control chat cleanup settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Auto-cleanup Toggle */}
+              <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Trash2 className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium text-foreground">Auto-clear on end</div>
+                    <div className="text-sm text-muted-foreground">
+                      Automatically delete messages when stream ends
+                    </div>
+                  </div>
+                </div>
+                <Switch
+                  checked={config.clear_chat_on_end}
+                  onCheckedChange={(checked) => 
+                    setConfig({ ...config, clear_chat_on_end: checked })
+                  }
+                />
+              </div>
+
+              {/* Clear Chat Now Button with Confirmation */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    className="w-full gap-2"
+                    disabled={isClearing}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {isClearing ? 'Clearing...' : 'Clear Chat Now'}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-destructive" />
+                      Clear All Chat Messages?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all chat messages from this stream 
+                      (except pinned messages). This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => clearChatMessages(false)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Yes, Clear Chat
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              {/* Info Note */}
+              <p className="text-xs text-muted-foreground text-center">
+                Pinned messages will be preserved when clearing chat
+              </p>
             </CardContent>
           </Card>
         </motion.div>
