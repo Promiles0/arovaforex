@@ -39,6 +39,7 @@ import AdminContact from "./pages/admin/Contact";
 import AdminContactAnalytics from "./pages/admin/ContactAnalytics";
 import AdminCalendarEvents from "./pages/admin/CalendarEvents";
 import LiveStreamControl from "./pages/admin/LiveStreamControl";
+import AIAssistant from "./pages/admin/AIAssistant";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,7 @@ const App = () => (
                 <Route path="calendar-events" element={<AdminCalendarEvents />} />
                 <Route path="journal" element={<Journal />} />
                 <Route path="live-stream" element={<LiveStreamControl />} />
+                <Route path="ai-assistant" element={<AIAssistant />} />
               </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

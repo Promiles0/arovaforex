@@ -80,6 +80,107 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_knowledge_base: {
+        Row: {
+          active: boolean | null
+          answer: string
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          intent: string
+          keywords: string[]
+          priority: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          answer: string
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          intent: string
+          keywords: string[]
+          priority?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          answer?: string
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          intent?: string
+          keywords?: string[]
+          priority?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      assistant_chat_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          matched_intent: string | null
+          message: string
+          sender: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          matched_intent?: string | null
+          message: string
+          sender: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          matched_intent?: string | null
+          message?: string
+          sender?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assistant_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assistant_chat_sessions: {
+        Row: {
+          ended_at: string | null
+          id: string
+          message_count: number | null
+          started_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ended_at?: string | null
+          id?: string
+          message_count?: number | null
+          started_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ended_at?: string | null
+          id?: string
+          message_count?: number | null
+          started_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       balance_history: {
         Row: {
           balance: number | null
@@ -792,6 +893,7 @@ export type Database = {
           phone_number: string | null
           push_notifications_enabled: boolean
           risk_tolerance: string | null
+          subscription_tier: string | null
           telegram_handle: string | null
           trading_goals: string | null
           trading_style: string | null
@@ -819,6 +921,7 @@ export type Database = {
           phone_number?: string | null
           push_notifications_enabled?: boolean
           risk_tolerance?: string | null
+          subscription_tier?: string | null
           telegram_handle?: string | null
           trading_goals?: string | null
           trading_style?: string | null
@@ -846,6 +949,7 @@ export type Database = {
           phone_number?: string | null
           push_notifications_enabled?: boolean
           risk_tolerance?: string | null
+          subscription_tier?: string | null
           telegram_handle?: string | null
           trading_goals?: string | null
           trading_style?: string | null
