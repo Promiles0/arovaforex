@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { ResponsiveSidebar } from "./ResponsiveSidebar";
 import { MobileHeader } from "./MobileHeader";
 import { Header } from "./Header";
+import { ArovaAssistant } from "@/components/assistant";
 
 export const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -29,6 +30,9 @@ export const DashboardLayout = () => {
           <Outlet />
         </main>
       </div>
+      
+      {/* AI Assistant Widget */}
+      <ArovaAssistant />
     </div>
   );
 };
