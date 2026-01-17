@@ -166,7 +166,7 @@ export function useArovaAssistant(): UseArovaAssistantReturn {
 
     try {
       // Get AI response
-      const { response, matchedIntent } = await getAssistantResponse(messageText);
+      const { response, matchedIntent, isUnmatched } = await getAssistantResponse(messageText);
 
       // Small delay for natural feel
       await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 300));
@@ -191,6 +191,7 @@ export function useArovaAssistant(): UseArovaAssistantReturn {
             message: response,
             sender: 'assistant',
             matched_intent: matchedIntent,
+            original_query: isUnmatched ? messageText : null,
           }]);
         } catch (error) {
           console.error('Error saving assistant message:', error);
