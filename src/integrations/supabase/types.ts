@@ -125,6 +125,7 @@ export type Database = {
           id: string
           matched_intent: string | null
           message: string
+          original_query: string | null
           sender: string
           session_id: string
           user_id: string
@@ -134,6 +135,7 @@ export type Database = {
           id?: string
           matched_intent?: string | null
           message: string
+          original_query?: string | null
           sender: string
           session_id: string
           user_id: string
@@ -143,6 +145,7 @@ export type Database = {
           id?: string
           matched_intent?: string | null
           message?: string
+          original_query?: string | null
           sender?: string
           session_id?: string
           user_id?: string
@@ -1108,6 +1111,7 @@ export type Database = {
         }
         Returns: string
       }
+      get_assistant_analytics: { Args: { p_days?: number }; Returns: Json }
       get_platform_stats: { Args: never; Returns: Json }
       has_role: {
         Args: {

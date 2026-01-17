@@ -81,23 +81,27 @@ export function findBestMatch(
 }
 
 /**
- * Get response from AI assistant
+ * Get AI assistant response based on user message
  */
 export async function getAssistantResponse(
   userMessage: string
-): Promise<{ response: string; matchedIntent?: string }> {
+): Promise<{ response: string; matchedIntent?: string; isUnmatched: boolean }> {
   try {
-    // Fetch active knowledge base
+    // Fetch active knowledge base entries
     const { data: knowledgeBase, error } = await supabase
       .from('ai_knowledge_base')
       .select('*')
       .eq('active', true);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching knowledge base:', error);
+      throw error;
+    }
 
     if (!knowledgeBase || knowledgeBase.length === 0) {
       return {
-        response: "I'm currently being set up. Please try again later or contact support for immediate assistance."
+        response: "I'm still learning! Our team is adding more information to help you better. In the meantime, contact support@arovaforex.com for assistance. 😊",
+        isUnmatched: true,
       };
     }
 
@@ -107,19 +111,21 @@ export async function getAssistantResponse(
     if (match) {
       return {
         response: match.entry.answer,
-        matchedIntent: match.entry.intent
+        matchedIntent: match.entry.intent,
+        isUnmatched: false,
       };
     }
 
     // Fallback response
     return {
-      response: "I'm not sure I understand that question. Could you try rephrasing it?\n\nI can help you with:\n• Platform features (Wallet, Calculator, Live Room, etc.)\n• Trading education (Risk management, position sizing)\n• General support\n\nOr visit the Support page to contact our team directly. 😊"
+      response: "I'm not sure I understand that question. Could you rephrase it? You can ask about:\n\n• Platform features (wallet, calculator, live room)\n• Trading education (risk management, position sizing)\n• General support\n\nOr contact support@arovaforex.com for personalized help. 😊",
+      isUnmatched: true,
     };
-    
   } catch (error) {
     console.error('Error getting assistant response:', error);
     return {
-      response: "Sorry, I'm experiencing technical difficulties. Please try again or visit the Support page for help."
+      response: "Sorry, I'm experiencing technical difficulties. Please try again or contact support@arovaforex.com.",
+      isUnmatched: true,
     };
   }
 }

@@ -3,15 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bot, Plus, Pencil, Trash2, Search, X, Tag } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bot, Plus, Pencil, Trash2, Search, X, Tag, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
+import { AssistantAnalytics } from "@/components/admin/AssistantAnalytics";
 
 interface KnowledgeEntry {
   id: string;
@@ -95,7 +97,6 @@ const AIAssistant = () => {
       };
 
       if (editingEntry.id) {
-        // Update existing
         const { error } = await supabase
           .from('ai_knowledge_base')
           .update(entryData)
@@ -104,7 +105,6 @@ const AIAssistant = () => {
         if (error) throw error;
         toast.success('Entry updated successfully');
       } else {
-        // Create new
         const { error } = await supabase
           .from('ai_knowledge_base')
           .insert([entryData]);
@@ -183,8 +183,11 @@ const AIAssistant = () => {
     setIsModalOpen(true);
   };
 
-  const openCreateModal = () => {
-    setEditingEntry(defaultEntry);
+  const openCreateModal = (prefillKeywords?: string) => {
+    setEditingEntry({
+      ...defaultEntry,
+      keywords: prefillKeywords ? [prefillKeywords] : [],
+    });
     setKeywordInput("");
     setIsModalOpen(true);
   };
@@ -223,180 +226,206 @@ const AIAssistant = () => {
             AI Assistant Manager
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage knowledge base entries for Arova Assistant
+            Manage knowledge base and view conversation analytics
           </p>
         </div>
-        <Button onClick={openCreateModal} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Add New Entry
-        </Button>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by intent, keywords, or answer..."
-                className="pl-9"
-              />
-            </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-[150px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="platform">Platform</SelectItem>
-                <SelectItem value="trading">Trading</SelectItem>
-                <SelectItem value="general">General</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[130px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="disabled">Disabled</SelectItem>
-              </SelectContent>
-            </Select>
+      {/* Tabs */}
+      <Tabs defaultValue="knowledge-base" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="knowledge-base" className="gap-2">
+            <Bot className="w-4 h-4" />
+            Knowledge Base
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Knowledge Base Tab */}
+        <TabsContent value="knowledge-base" className="space-y-6">
+          {/* Add Button */}
+          <div className="flex justify-end">
+            <Button onClick={() => openCreateModal()} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Add New Entry
+            </Button>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{knowledgeBase.length}</div>
-            <p className="text-sm text-muted-foreground">Total Entries</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-emerald-500">
-              {knowledgeBase.filter(e => e.active).length}
-            </div>
-            <p className="text-sm text-muted-foreground">Active</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-500">
-              {knowledgeBase.filter(e => e.category === 'platform').length}
-            </div>
-            <p className="text-sm text-muted-foreground">Platform</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-purple-500">
-              {knowledgeBase.filter(e => e.category === 'trading').length}
-            </div>
-            <p className="text-sm text-muted-foreground">Trading</p>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Filters */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by intent, keywords, or answer..."
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-full sm:w-[150px]">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="platform">Platform</SelectItem>
+                    <SelectItem value="trading">Trading</SelectItem>
+                    <SelectItem value="general">General</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-[130px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="disabled">Disabled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Intent</TableHead>
-                  <TableHead>Keywords</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                ) : filteredEntries.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No entries found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredEntries.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>
-                        <span className="font-medium">{entry.intent}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-[200px]">
-                          {entry.keywords.slice(0, 3).map((kw, i) => (
-                            <Badge key={i} variant="outline" className="text-xs">
-                              {kw}
-                            </Badge>
-                          ))}
-                          {entry.keywords.length > 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{entry.keywords.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getCategoryColor(entry.category)}>
-                          {entry.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{entry.priority}</TableCell>
-                      <TableCell>
-                        <button
-                          onClick={() => toggleActive(entry.id, entry.active)}
-                          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                            entry.active
-                              ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                          }`}
-                        >
-                          {entry.active ? 'Active' : 'Disabled'}
-                        </button>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditModal(entry)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(entry.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+          {/* Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold">{knowledgeBase.length}</div>
+                <p className="text-sm text-muted-foreground">Total Entries</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-emerald-500">
+                  {knowledgeBase.filter(e => e.active).length}
+                </div>
+                <p className="text-sm text-muted-foreground">Active</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-blue-500">
+                  {knowledgeBase.filter(e => e.category === 'platform').length}
+                </div>
+                <p className="text-sm text-muted-foreground">Platform</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-purple-500">
+                  {knowledgeBase.filter(e => e.category === 'trading').length}
+                </div>
+                <p className="text-sm text-muted-foreground">Trading</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Table */}
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Intent</TableHead>
+                      <TableHead>Keywords</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Priority</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8">
+                          Loading...
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredEntries.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          No entries found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredEntries.map((entry) => (
+                        <TableRow key={entry.id}>
+                          <TableCell>
+                            <span className="font-medium">{entry.intent}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                              {entry.keywords.slice(0, 3).map((kw, i) => (
+                                <Badge key={i} variant="outline" className="text-xs">
+                                  {kw}
+                                </Badge>
+                              ))}
+                              {entry.keywords.length > 3 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  +{entry.keywords.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getCategoryColor(entry.category)}>
+                              {entry.category}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{entry.priority}</TableCell>
+                          <TableCell>
+                            <button
+                              onClick={() => toggleActive(entry.id, entry.active)}
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                entry.active
+                                  ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                              }`}
+                            >
+                              {entry.active ? 'Active' : 'Disabled'}
+                            </button>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openEditModal(entry)}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(entry.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics">
+          <AssistantAnalytics onAddToKnowledgeBase={(query) => openCreateModal(query)} />
+        </TabsContent>
+      </Tabs>
 
       {/* Create/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
