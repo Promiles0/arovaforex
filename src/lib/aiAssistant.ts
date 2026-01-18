@@ -16,6 +16,14 @@ interface MatchResult {
   matchedKeywords: string[];
 }
 
+export interface DetailedMatchResult {
+  entry: KnowledgeEntry;
+  score: number;
+  baseScore: number;
+  priorityMultiplier: number;
+  matchedKeywords: string[];
+}
+
 /**
  * Smart matching algorithm
  * Returns best matching knowledge base entry
@@ -78,6 +86,66 @@ export function findBestMatch(
   }
 
   return null;
+}
+
+/**
+ * Find all matches with detailed scoring information
+ * Used for testing and analysis in admin panel
+ */
+export function findAllMatches(
+  userMessage: string,
+  knowledgeBase: KnowledgeEntry[]
+): DetailedMatchResult[] {
+  const messageLower = userMessage.toLowerCase().trim();
+  const messageWords = messageLower.split(/\s+/).filter(w => w.length > 1);
+  
+  const matches: DetailedMatchResult[] = [];
+
+  for (const entry of knowledgeBase) {
+    if (!entry.active) continue;
+
+    const matchedKeywords: string[] = [];
+    let baseScore = 0;
+
+    for (const keyword of entry.keywords) {
+      const keywordLower = keyword.toLowerCase();
+      
+      // Exact phrase match (highest score)
+      if (messageLower.includes(keywordLower)) {
+        matchedKeywords.push(keyword);
+        baseScore += 10 + (keywordLower.split(' ').length - 1) * 3;
+        continue;
+      }
+
+      // Individual word matches
+      const keywordWords = keywordLower.split(/\s+/);
+      const matchingWords = keywordWords.filter(kw => 
+        messageWords.some(mw => mw.includes(kw) || kw.includes(mw))
+      );
+
+      if (matchingWords.length > 0) {
+        matchedKeywords.push(keyword);
+        baseScore += matchingWords.length * 3;
+      }
+    }
+
+    if (matchedKeywords.length > 0) {
+      const priorityMultiplier = 1 + (entry.priority - 1) / 10;
+      const finalScore = baseScore * priorityMultiplier;
+      
+      matches.push({ 
+        entry, 
+        score: finalScore, 
+        baseScore,
+        priorityMultiplier,
+        matchedKeywords 
+      });
+    }
+  }
+
+  // Sort by score descending
+  matches.sort((a, b) => b.score - a.score);
+  return matches;
 }
 
 /**
