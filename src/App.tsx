@@ -20,7 +20,7 @@ import Forecasts from "./pages/Forecasts";
 import PremiumSignals from "./pages/PremiumSignals";
 import Wallet from "./pages/Wallet";
 import Profile from "./pages/Profile";
-import ContactUs from "./pages/Support";
+import ContactUs from "./pages/Contact";
 import JoinAcademy from "./pages/JoinAcademy";
 import Calendar from "./pages/Calendar";
 import Journal from "./pages/Journal";

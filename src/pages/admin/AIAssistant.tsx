@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bot, Plus, Pencil, Trash2, Search, X, Tag, BarChart3, FlaskConical } from "lucide-react";
+import { Bot, Plus, Pencil, Trash2, Search, X, Tag, BarChart3, FlaskConical, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { AssistantAnalytics } from "@/components/admin/AssistantAnalytics";
 import { AssistantTestMode } from "@/components/admin/AssistantTestMode";
+import { AssistantChatPreview } from "@/components/admin/AssistantChatPreview";
 
 interface KnowledgeEntry {
   id: string;
@@ -247,6 +248,10 @@ const AIAssistant = () => {
             <FlaskConical className="w-4 h-4" />
             Test Mode
           </TabsTrigger>
+          <TabsTrigger value="chat-preview" className="gap-2">
+            <MessageCircle className="w-4 h-4" />
+            Chat Preview
+          </TabsTrigger>
         </TabsList>
 
         {/* Knowledge Base Tab */}
@@ -434,6 +439,14 @@ const AIAssistant = () => {
         {/* Test Mode Tab */}
         <TabsContent value="test-mode">
           <AssistantTestMode 
+            knowledgeBase={knowledgeBase}
+            onEditEntry={(entry) => openEditModal(entry as KnowledgeEntry)}
+          />
+        </TabsContent>
+
+        {/* Chat Preview Tab */}
+        <TabsContent value="chat-preview">
+          <AssistantChatPreview 
             knowledgeBase={knowledgeBase}
             onEditEntry={(entry) => openEditModal(entry as KnowledgeEntry)}
           />
