@@ -304,6 +304,7 @@ export type Database = {
           id: string
           message: string
           name: string
+          priority: string | null
           responded_at: string | null
           status: string
           subject: string | null
@@ -319,6 +320,7 @@ export type Database = {
           id?: string
           message: string
           name: string
+          priority?: string | null
           responded_at?: string | null
           status?: string
           subject?: string | null
@@ -334,6 +336,7 @@ export type Database = {
           id?: string
           message?: string
           name?: string
+          priority?: string | null
           responded_at?: string | null
           status?: string
           subject?: string | null
@@ -347,6 +350,44 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      contact_responses: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          message_id: string
+          responder_id: string | null
+          responder_name: string
+          responder_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          message_id: string
+          responder_id?: string | null
+          responder_name: string
+          responder_type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          message_id?: string
+          responder_id?: string | null
+          responder_name?: string
+          responder_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_responses_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "contact_messages"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1112,6 +1153,7 @@ export type Database = {
         Returns: string
       }
       get_assistant_analytics: { Args: { p_days?: number }; Returns: Json }
+      get_keyword_effectiveness: { Args: { p_days?: number }; Returns: Json }
       get_platform_stats: { Args: never; Returns: Json }
       has_role: {
         Args: {
