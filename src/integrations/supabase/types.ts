@@ -517,6 +517,39 @@ export type Database = {
           },
         ]
       }
+      journal_backup_history: {
+        Row: {
+          backup_type: string | null
+          backup_url: string
+          created_at: string | null
+          entries_count: number
+          file_size: number
+          id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          backup_type?: string | null
+          backup_url: string
+          created_at?: string | null
+          entries_count: number
+          file_size: number
+          id?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          backup_type?: string | null
+          backup_url?: string
+          created_at?: string | null
+          entries_count?: number
+          file_size?: number
+          id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       journal_entries: {
         Row: {
           auto_review_enabled: boolean | null
@@ -664,6 +697,144 @@ export type Database = {
           what_to_improve?: string | null
           what_went_well?: string | null
           win_rate?: number | null
+        }
+        Relationships: []
+      }
+      journal_settings: {
+        Row: {
+          allow_mentors_comment: boolean | null
+          allow_mentors_view: boolean | null
+          anonymous_sharing: boolean | null
+          auto_backup_enabled: boolean | null
+          auto_calculate_statistics: boolean | null
+          auto_fill_last_values: boolean | null
+          backup_frequency: string | null
+          created_at: string | null
+          data_retention_days: number | null
+          date_format: string | null
+          default_currency: string | null
+          default_position_size_method: string | null
+          default_risk_percentage: number | null
+          default_risk_reward_ratio: number | null
+          enable_animations: boolean | null
+          enable_goal_tracking: boolean | null
+          entries_per_page: number | null
+          id: string
+          inactivity_days: number | null
+          journal_visibility: string | null
+          max_drawdown_limit: number | null
+          monthly_profit_target: number | null
+          notification_method: string | null
+          notify_goal_reminder: boolean | null
+          notify_inactivity: boolean | null
+          notify_mentor_feedback: boolean | null
+          notify_milestone_achieved: boolean | null
+          notify_monthly_report: boolean | null
+          notify_weekly_summary: boolean | null
+          require_post_trade_review: boolean | null
+          require_screenshots: boolean | null
+          require_trade_plan: boolean | null
+          share_link: string | null
+          share_statistics: boolean | null
+          show_advanced_metrics: boolean | null
+          show_emotion_tracking: boolean | null
+          time_format: string | null
+          timezone: string | null
+          track_trading_psychology: boolean | null
+          updated_at: string | null
+          user_id: string
+          weekly_summary_day: string | null
+          win_rate_target: number | null
+        }
+        Insert: {
+          allow_mentors_comment?: boolean | null
+          allow_mentors_view?: boolean | null
+          anonymous_sharing?: boolean | null
+          auto_backup_enabled?: boolean | null
+          auto_calculate_statistics?: boolean | null
+          auto_fill_last_values?: boolean | null
+          backup_frequency?: string | null
+          created_at?: string | null
+          data_retention_days?: number | null
+          date_format?: string | null
+          default_currency?: string | null
+          default_position_size_method?: string | null
+          default_risk_percentage?: number | null
+          default_risk_reward_ratio?: number | null
+          enable_animations?: boolean | null
+          enable_goal_tracking?: boolean | null
+          entries_per_page?: number | null
+          id?: string
+          inactivity_days?: number | null
+          journal_visibility?: string | null
+          max_drawdown_limit?: number | null
+          monthly_profit_target?: number | null
+          notification_method?: string | null
+          notify_goal_reminder?: boolean | null
+          notify_inactivity?: boolean | null
+          notify_mentor_feedback?: boolean | null
+          notify_milestone_achieved?: boolean | null
+          notify_monthly_report?: boolean | null
+          notify_weekly_summary?: boolean | null
+          require_post_trade_review?: boolean | null
+          require_screenshots?: boolean | null
+          require_trade_plan?: boolean | null
+          share_link?: string | null
+          share_statistics?: boolean | null
+          show_advanced_metrics?: boolean | null
+          show_emotion_tracking?: boolean | null
+          time_format?: string | null
+          timezone?: string | null
+          track_trading_psychology?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          weekly_summary_day?: string | null
+          win_rate_target?: number | null
+        }
+        Update: {
+          allow_mentors_comment?: boolean | null
+          allow_mentors_view?: boolean | null
+          anonymous_sharing?: boolean | null
+          auto_backup_enabled?: boolean | null
+          auto_calculate_statistics?: boolean | null
+          auto_fill_last_values?: boolean | null
+          backup_frequency?: string | null
+          created_at?: string | null
+          data_retention_days?: number | null
+          date_format?: string | null
+          default_currency?: string | null
+          default_position_size_method?: string | null
+          default_risk_percentage?: number | null
+          default_risk_reward_ratio?: number | null
+          enable_animations?: boolean | null
+          enable_goal_tracking?: boolean | null
+          entries_per_page?: number | null
+          id?: string
+          inactivity_days?: number | null
+          journal_visibility?: string | null
+          max_drawdown_limit?: number | null
+          monthly_profit_target?: number | null
+          notification_method?: string | null
+          notify_goal_reminder?: boolean | null
+          notify_inactivity?: boolean | null
+          notify_mentor_feedback?: boolean | null
+          notify_milestone_achieved?: boolean | null
+          notify_monthly_report?: boolean | null
+          notify_weekly_summary?: boolean | null
+          require_post_trade_review?: boolean | null
+          require_screenshots?: boolean | null
+          require_trade_plan?: boolean | null
+          share_link?: string | null
+          share_statistics?: boolean | null
+          show_advanced_metrics?: boolean | null
+          show_emotion_tracking?: boolean | null
+          time_format?: string | null
+          timezone?: string | null
+          track_trading_psychology?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          weekly_summary_day?: string | null
+          win_rate_target?: number | null
         }
         Relationships: []
       }

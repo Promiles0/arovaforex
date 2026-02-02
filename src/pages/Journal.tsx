@@ -30,6 +30,7 @@ import RiskRewardScatter from "@/components/journal/analytics/RiskRewardScatter"
 import DrawdownChart from "@/components/journal/analytics/DrawdownChart";
 import TimePeriodFilter, { TimePeriod } from "@/components/journal/analytics/TimePeriodFilter";
 import { useJournalAnalytics } from "@/hooks/useJournalAnalytics";
+import { JournalSettings } from "@/components/journal/settings";
 
 interface JournalEntry {
   id: string;
@@ -565,22 +566,8 @@ export default function Journal() {
           )}
         </TabsContent>
 
-        <TabsContent value="settings">
-          <Card className="journal-glassmorphism">
-            <CardHeader>
-              <CardTitle>Journal Settings</CardTitle>
-              <CardDescription>
-                Configure your journal preferences and sharing options
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">
-                  Settings panel coming soon.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="settings" className="mt-6">
+          <JournalSettings />
         </TabsContent>
       </Tabs>
 
