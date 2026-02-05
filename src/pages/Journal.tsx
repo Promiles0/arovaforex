@@ -15,8 +15,10 @@ import {
   Filter, 
   Grid3x3,
   List,
-  X
+  X,
+  Calendar as CalendarIcon
 } from "lucide-react";
+import { JournalCalendar } from "@/components/journal/calendar";
 import { cn } from "@/lib/utils";
 import JournalEntryForm from "@/components/journal/JournalEntryForm";
 import JournalEntryCard from "@/components/journal/JournalEntryCard";
@@ -370,8 +372,12 @@ export default function Journal() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="entries">Entries</TabsTrigger>
+          <TabsTrigger value="calendar" className="flex items-center gap-1.5">
+            <CalendarIcon className="w-3.5 h-3.5" />
+            Calendar
+          </TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -511,6 +517,15 @@ export default function Journal() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="calendar" className="space-y-6 mt-6">
+          <JournalCalendar
+            entries={entries as Array<{ id: string; title: string; entry_date: string; pnl?: number | null; outcome?: 'win' | 'loss' | 'breakeven' | 'open' | null; instrument?: string | null; direction?: 'long' | 'short' | 'neutral' | null }>}
+            loading={loading}
+            onAddEntry={() => setShowEntryForm(true)}
+            onViewEntry={(entry) => setSelectedEntry(entries.find(e => e.id === entry.id) || null)}
+          />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6 mt-6">
