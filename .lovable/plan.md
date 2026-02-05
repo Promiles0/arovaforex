@@ -1,552 +1,405 @@
 
 
-# Trading Journal Settings Page - Implementation Plan
+# Trading Journal Calendar Enhancement - Premium Modern Design
 
 ## Overview
 
-Build a comprehensive, fully-functional Settings panel for the Trading Journal feature, replacing the current "Settings panel coming soon" placeholder. The implementation will use real Supabase database integration with auto-save functionality, collapsible accordion sections, and a mobile-first responsive design matching ArovaForex's brand styling.
+Add a sophisticated, premium Calendar view to the Trading Journal page with interactive P&L visualization, weekly summaries, and modern glassmorphic design with fluid Framer Motion animations. All data will be fetched from the existing `journal_entries` table in Supabase.
 
 ---
 
-## Database Changes
+## Data Source
 
-### New Table: `journal_settings`
+The calendar will use **real data** from the existing `journal_entries` table which already contains:
+- `entry_date` - Trade date
+- `pnl` - Profit/loss amount
+- `outcome` - win/loss/breakeven/open
 
-Create a new table to store user-specific journal preferences:
-
-```sql
-CREATE TABLE public.journal_settings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE NOT NULL,
-  
-  -- Display Preferences
-  default_currency TEXT DEFAULT 'USD',
-  timezone TEXT DEFAULT 'UTC',
-  date_format TEXT DEFAULT 'MM/DD/YYYY',
-  time_format TEXT DEFAULT '12h' CHECK (time_format IN ('12h', '24h')),
-  entries_per_page INTEGER DEFAULT 20,
-  enable_animations BOOLEAN DEFAULT true,
-  
-  -- Entry Defaults  
-  default_risk_reward_ratio DECIMAL DEFAULT 2.0,
-  default_risk_percentage DECIMAL DEFAULT 1.0,
-  default_position_size_method TEXT DEFAULT 'percentage' 
-    CHECK (default_position_size_method IN ('percentage', 'fixed', 'units')),
-  require_screenshots BOOLEAN DEFAULT false,
-  require_trade_plan BOOLEAN DEFAULT false,
-  require_post_trade_review BOOLEAN DEFAULT false,
-  auto_fill_last_values BOOLEAN DEFAULT true,
-  
-  -- Privacy & Sharing
-  journal_visibility TEXT DEFAULT 'private' 
-    CHECK (journal_visibility IN ('private', 'mentors_only', 'public')),
-  allow_mentors_view BOOLEAN DEFAULT true,
-  allow_mentors_comment BOOLEAN DEFAULT true,
-  share_statistics BOOLEAN DEFAULT false,
-  anonymous_sharing BOOLEAN DEFAULT false,
-  share_link TEXT,
-  
-  -- Notifications
-  notify_milestone_achieved BOOLEAN DEFAULT true,
-  notify_weekly_summary BOOLEAN DEFAULT true,
-  notify_monthly_report BOOLEAN DEFAULT true,
-  notify_mentor_feedback BOOLEAN DEFAULT true,
-  notify_goal_reminder BOOLEAN DEFAULT true,
-  notify_inactivity BOOLEAN DEFAULT true,
-  inactivity_days INTEGER DEFAULT 7,
-  notification_method TEXT DEFAULT 'both' 
-    CHECK (notification_method IN ('email', 'in_app', 'both', 'disabled')),
-  weekly_summary_day TEXT DEFAULT 'sunday',
-  
-  -- Analytics Preferences
-  show_emotion_tracking BOOLEAN DEFAULT true,
-  show_advanced_metrics BOOLEAN DEFAULT true,
-  track_trading_psychology BOOLEAN DEFAULT true,
-  auto_calculate_statistics BOOLEAN DEFAULT true,
-  enable_goal_tracking BOOLEAN DEFAULT true,
-  monthly_profit_target DECIMAL,
-  win_rate_target DECIMAL,
-  max_drawdown_limit DECIMAL,
-  
-  -- Data Management
-  auto_backup_enabled BOOLEAN DEFAULT true,
-  backup_frequency TEXT DEFAULT 'weekly' 
-    CHECK (backup_frequency IN ('daily', 'weekly', 'monthly')),
-  data_retention_days INTEGER DEFAULT 365,
-  
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Enable RLS
-ALTER TABLE public.journal_settings ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies
-CREATE POLICY "Users can view own settings"
-  ON public.journal_settings FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own settings"
-  ON public.journal_settings FOR UPDATE
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own settings"
-  ON public.journal_settings FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
--- Create index for performance
-CREATE INDEX idx_journal_settings_user_id ON public.journal_settings(user_id);
-
--- Auto-update timestamp trigger
-CREATE OR REPLACE FUNCTION update_journal_settings_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_journal_settings_updated_at
-  BEFORE UPDATE ON public.journal_settings
-  FOR EACH ROW
-  EXECUTE FUNCTION update_journal_settings_timestamp();
-```
-
-### New Table: `journal_backup_history`
-
-Track backup history for the data management section:
-
-```sql
-CREATE TABLE public.journal_backup_history (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  backup_type TEXT CHECK (backup_type IN ('manual', 'automatic')),
-  backup_url TEXT NOT NULL,
-  file_size INTEGER NOT NULL,
-  entries_count INTEGER NOT NULL,
-  status TEXT DEFAULT 'completed' CHECK (status IN ('processing', 'completed', 'failed')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Enable RLS
-ALTER TABLE public.journal_backup_history ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own backups"
-  ON public.journal_backup_history FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own backups"
-  ON public.journal_backup_history FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own backups"
-  ON public.journal_backup_history FOR DELETE
-  USING (auth.uid() = user_id);
-
--- Create indexes
-CREATE INDEX idx_backup_history_user_id ON public.journal_backup_history(user_id);
-CREATE INDEX idx_backup_history_created_at ON public.journal_backup_history(created_at DESC);
-```
-
-### Storage Bucket
-
-Create a storage bucket for journal backups and exports:
-
-```sql
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('journal-backups', 'journal-backups', false);
-
--- RLS for the bucket
-CREATE POLICY "Users can upload own backups"
-  ON storage.objects FOR INSERT
-  WITH CHECK (
-    bucket_id = 'journal-backups' AND
-    auth.uid()::text = (storage.foldername(name))[1]
-  );
-
-CREATE POLICY "Users can view own backups"
-  ON storage.objects FOR SELECT
-  USING (
-    bucket_id = 'journal-backups' AND
-    auth.uid()::text = (storage.foldername(name))[1]
-  );
-
-CREATE POLICY "Users can delete own backups"
-  ON storage.objects FOR DELETE
-  USING (
-    bucket_id = 'journal-backups' AND
-    auth.uid()::text = (storage.foldername(name))[1]
-  );
-```
+No database changes required - all data already exists.
 
 ---
 
 ## File Changes
 
-### Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/journal/settings/JournalSettings.tsx` | Main settings component with all sections |
-| `src/components/journal/settings/DisplayPreferencesSection.tsx` | Display & format settings section |
-| `src/components/journal/settings/EntryDefaultsSection.tsx` | Default entry settings section |
-| `src/components/journal/settings/PrivacySharingSection.tsx` | Privacy & sharing settings section |
-| `src/components/journal/settings/NotificationsSection.tsx` | Notification preferences section |
-| `src/components/journal/settings/AnalyticsSection.tsx` | Analytics preferences section |
-| `src/components/journal/settings/DataManagementSection.tsx` | Data & backup management section |
-| `src/components/journal/settings/DangerZoneSection.tsx` | Danger zone for destructive actions |
-| `src/hooks/useJournalSettings.ts` | Custom hook for fetching/saving settings with auto-save |
-| `src/components/journal/settings/index.ts` | Barrel export file |
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/Journal.tsx` | Replace placeholder with `<JournalSettings />` component |
-| `src/integrations/supabase/types.ts` | Auto-updated after migration |
+| Action | File | Purpose |
+|--------|------|---------|
+| CREATE | `src/components/journal/calendar/JournalCalendar.tsx` | Main calendar component |
+| CREATE | `src/components/journal/calendar/CalendarCell.tsx` | Individual date cell with P&L |
+| CREATE | `src/components/journal/calendar/CalendarHeader.tsx` | Month navigation & stats summary |
+| CREATE | `src/components/journal/calendar/WeeklySummary.tsx` | Weekly accordion breakdown |
+| CREATE | `src/components/journal/calendar/CalendarSkeleton.tsx` | Loading skeleton with shimmer |
+| CREATE | `src/components/journal/calendar/DayDetailModal.tsx` | Trade details for selected day |
+| CREATE | `src/components/journal/calendar/index.ts` | Barrel exports |
+| CREATE | `src/hooks/useCalendarData.ts` | Calendar data aggregation hook |
+| MODIFY | `src/pages/Journal.tsx` | Add Calendar tab |
+| MODIFY | `src/index.css` | Add calendar-specific styles |
 
 ---
 
 ## Component Architecture
 
-### Main Component: `JournalSettings.tsx`
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Journal Settings                                            │
-│ Configure your journal preferences and sharing options      │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ ✓ Saved • Last updated: 2 minutes ago                  │ │
-│ └─────────────────────────────────────────────────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ 🎨 Display & Format Preferences                    [v]  │ │
-│ │─────────────────────────────────────────────────────────│ │
-│ │ [Expanded content: currency, timezone, date/time, etc] │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ ✍️ Default Entry Settings                          [>]  │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ 🔒 Privacy & Sharing                               [>]  │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ 🔔 Notifications                                   [>]  │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ 📊 Analytics & Tracking                            [>]  │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ 💾 Data & Backup Management                        [>]  │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ ⚠️ Danger Zone                    [border-destructive] │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+```text
+JournalCalendar
+|-- CalendarHeader (month nav, today button, stats)
+|-- CalendarGrid (7x6 grid)
+|   |-- CalendarCell (x42 cells)
+|       |-- Date number
+|       |-- Trade count indicator
+|       |-- P&L display
+|       |-- Hover tooltip
+|-- WeeklySummary (sidebar/bottom on mobile)
+|   |-- Week accordion cards (collapsible)
+|       |-- Weekly P&L
+|       |-- Trading days count
+|       |-- Mini day previews
+|-- DayDetailModal (click to view day's trades)
 ```
 
-### Auto-Save Hook: `useJournalSettings.ts`
+---
 
-Key features:
-- Fetches settings on mount (creates defaults if none exist)
-- Debounced auto-save (1 second after last change)
-- Save status tracking: `idle`, `saving`, `saved`, `error`
-- Optimistic updates with rollback on error
-- Returns: `{ settings, updateSetting, saveStatus, lastSaved, resetToDefaults }`
+## Design Specifications
 
-```typescript
-interface UseJournalSettingsReturn {
-  settings: JournalSettings | null;
-  loading: boolean;
-  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
-  lastSaved: Date | null;
-  updateSetting: <K extends keyof JournalSettings>(key: K, value: JournalSettings[K]) => void;
-  updateSettings: (updates: Partial<JournalSettings>) => void;
-  resetToDefaults: () => Promise<void>;
+### Color Palette (Brand Consistent)
+
+| Element | Color |
+|---------|-------|
+| Profit cells | `#10b981` (emerald-500) with gradient glow |
+| Loss cells | `#ef4444` (red-500) with subtle pulse |
+| No trades | `#1e293b` (slate-800) neutral |
+| Current day | Gold/amber border ring |
+| Card background | `rgba(255,255,255,0.03)` glassmorphic |
+| Hover glow | 30px spread, color-matched |
+
+### Glassmorphism Effects
+
+```css
+.calendar-glass {
+  background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 
+    0 4px 30px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.05);
 }
 ```
 
 ---
 
-## Section Details
+## Animation Specifications
 
-### Section 1: Display & Format Preferences
+### Page Load Sequence
 
-**Icon:** Palette (lucide-react)
+1. **Skeleton Phase (0-500ms)**
+   - Shimmer gradient sweep across placeholder cells
+   - Staggered opacity 0.3 -> 0.6 -> 0.3
 
-| Setting | Type | Options/Range |
-|---------|------|---------------|
-| Currency | Select | USD, EUR, GBP, JPY, CHF, CAD, AUD, NZD, RWF |
-| Timezone | Searchable Select | All IANA timezones + "Detect my timezone" button |
-| Date Format | Radio Group | MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD, DD MMM YYYY |
-| Time Format | Toggle | 12h / 24h with live preview |
-| Entries Per Page | Slider | 10-100, step 10 |
-| Enable Animations | Switch | On/Off |
+2. **Grid Reveal (500-1500ms)**
+   - Cells fade + slide up from bottom
+   - Stagger delay: `index * 30ms`
+   - Spring physics: `stiffness: 100, damping: 15`
 
-**Live Preview:** Shows current date/time in selected format
+3. **Number Count-Up (1000-2000ms)**
+   - P&L values animate from 0 to actual value
+   - Smooth easing with spring bounce
 
-### Section 2: Default Entry Settings
-
-**Icon:** FileEdit (lucide-react)
-
-| Setting | Type | Options/Range |
-|---------|------|---------------|
-| Default R:R Ratio | Number Input | 0.5-10.0, step 0.1 |
-| Default Risk % | Number Input | 0.1%-5.0%, step 0.1 |
-| Position Size Method | Radio Group | Percentage, Fixed Amount, Units/Lots |
-| Require Screenshots | Switch | On/Off |
-| Require Trade Plan | Switch | On/Off |
-| Require Post-Trade Review | Switch | On/Off |
-| Auto-fill Last Values | Switch | On/Off |
-
-### Section 3: Privacy & Sharing
-
-**Icon:** Lock (lucide-react)
-
-| Setting | Type | Options/Range |
-|---------|------|---------------|
-| Journal Visibility | Radio Cards | Private, Mentors Only, Public |
-| Allow Mentors View | Switch | On/Off (conditional) |
-| Allow Mentors Comment | Switch | On/Off (conditional) |
-| Share Statistics | Switch | On/Off |
-| Anonymous Sharing | Switch | On/Off |
-| Share Link | Button + Copy | Generate/Revoke/Copy link |
-
-### Section 4: Notifications
-
-**Icon:** Bell (lucide-react)
-
-| Setting | Type | Options/Range |
-|---------|------|---------------|
-| Notification Method | Radio Group | Email, In-App, Both, Disabled |
-| Milestone Achievements | Switch | On/Off |
-| Weekly Summary | Switch + Day Select | On/Off + weekday dropdown |
-| Monthly Report | Switch | On/Off |
-| Mentor Feedback | Switch | On/Off |
-| Goal Reminders | Switch | On/Off |
-| Inactivity Reminder | Switch + Days Input | On/Off + 3/7/14 days dropdown |
-
-### Section 5: Analytics & Tracking
-
-**Icon:** BarChart3 (lucide-react)
-
-| Setting | Type | Options/Range |
-|---------|------|---------------|
-| Emotion Tracking | Switch | On/Off |
-| Advanced Metrics | Switch + Info Tooltip | On/Off |
-| Trading Psychology | Switch | On/Off |
-| Auto-Calculate Stats | Switch | On/Off |
-| Enable Goal Tracking | Switch | On/Off |
-| Monthly Profit Target | Number Input | Conditional on goal tracking |
-| Win Rate Target | Number Input (%) | Conditional on goal tracking |
-| Max Drawdown Limit | Number Input (%) | Conditional on goal tracking |
-
-### Section 6: Data & Backup Management
-
-**Icon:** Database (lucide-react)
-
-| Feature | Type | Description |
-|---------|------|-------------|
-| Auto Backup | Switch + Frequency Select | On/Off + daily/weekly/monthly |
-| Manual Backup | Button | Create backup now with progress |
-| Backup History | Table | Date, Type, Size, Entries, Download, Delete |
-| Export Data | Button Group + Date Range | CSV, JSON, PDF formats |
-| Import Data | File Upload + Dropzone | CSV, JSON with validation preview |
-| Data Retention | Select | Forever, 1yr, 2yrs, 5yrs |
-
-### Section 7: Danger Zone
-
-**Icon:** AlertTriangle (lucide-react)  
-**Border:** `border-destructive`
-
-| Action | Type | Confirmation |
-|--------|------|--------------|
-| Reset Settings | Button (outline) | Confirmation dialog |
-| Delete All Journal Data | Button (destructive) | Type "DELETE" + password |
-
----
-
-## UI/UX Specifications
-
-### Save Status Indicator
-
-Located in the header, shows real-time save status:
-
-```
-┌─────────────────────────────────────────────────┐
-│ ⏳ Saving...          (gray, spinner)           │
-│ ✓ Saved               (emerald, checkmark)      │
-│ ✗ Failed to save      (red, retry button)       │
-│ Last saved: 2 min ago (muted text)              │
-└─────────────────────────────────────────────────┘
-```
-
-### Accordion Behavior
-
-- **Mobile:** Single section open at a time (type="single")
-- **Desktop:** Multiple sections can be open (type="multiple")
-- Smooth animation using existing `animate-accordion-down/up` classes
-- Chevron rotation on expand/collapse
-
-### Toggle Switch Styling
-
-- Uses existing `Switch` component from shadcn/ui
-- Emerald color when ON (matches brand)
-- Gray when OFF
-- Disabled state at 50% opacity
-
-### Form Input Styling
-
-- Uses existing `journal-input` class for consistent styling
-- Focus state with emerald ring
-- Helper text in `text-muted-foreground`
-- Error state with red border
-
----
-
-## Responsive Design
-
-### Mobile (< 768px)
-
-- All sections collapsed by default
-- Single accordion mode
-- Full-width inputs and selects
-- Stacked layout for setting rows
-- Native select dropdowns
-- Larger touch targets (min 44px)
-
-### Tablet (768px - 1024px)
-
-- 2-column grid for some settings
-- Multiple accordion mode
-- Standard select components
-
-### Desktop (> 1024px)
-
-- Multi-column layouts where appropriate
-- Multiple accordion mode
-- Hover effects enabled
-- Side-by-side labels and controls
-
----
-
-## Technical Implementation
-
-### Settings State Management
+### Cell Interactions (Framer Motion)
 
 ```typescript
-// useJournalSettings.ts
-const useJournalSettings = () => {
-  const [settings, setSettings] = useState<JournalSettings | null>(null);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
-
-  // Debounced save function
-  const debouncedSave = useCallback((newSettings: JournalSettings) => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    
-    saveTimeoutRef.current = setTimeout(async () => {
-      setSaveStatus('saving');
-      try {
-        await supabase
-          .from('journal_settings')
-          .upsert(newSettings, { onConflict: 'user_id' });
-        setSaveStatus('saved');
-        setLastSaved(new Date());
-        setTimeout(() => setSaveStatus('idle'), 2000);
-      } catch (error) {
-        setSaveStatus('error');
-      }
-    }, 1000);
-  }, []);
-
-  // ... fetch, update, reset functions
+const cellVariants = {
+  initial: { opacity: 0, y: 20, scale: 0.9 },
+  animate: (i: number) => ({
+    opacity: 1, y: 0, scale: 1,
+    transition: { delay: i * 0.03, type: "spring", stiffness: 100, damping: 15 }
+  }),
+  hover: {
+    scale: 1.08,
+    rotateX: 5, rotateY: 5, // 3D tilt effect
+    boxShadow: "0 20px 40px rgba(16,185,129,0.3)",
+    transition: { type: "spring", stiffness: 400, damping: 25 }
+  },
+  tap: { scale: 0.98 }
 };
 ```
 
-### Export Implementation
+### Tab Navigation
 
-```typescript
-const exportData = async (format: 'csv' | 'json' | 'pdf', dateRange: DateRange) => {
-  const { data: entries } = await supabase
-    .from('journal_entries')
-    .select('*')
-    .eq('user_id', user.id)
-    .gte('created_at', dateRange.start)
-    .lte('created_at', dateRange.end);
+- Floating pill indicator morphs between tabs
+- Content crossfade with blur: `scale 0.95->1, blur 10px->0`
+- Duration: 400ms with elastic easing
 
-  if (format === 'csv') {
-    const csv = convertToCSV(entries);
-    downloadFile(csv, 'journal-export.csv', 'text/csv');
-  } else if (format === 'json') {
-    downloadFile(JSON.stringify(entries, null, 2), 'journal-export.json', 'application/json');
-  }
-  // PDF would require additional library (e.g., jspdf)
-};
+### Weekly Summary Accordion
+
+- Spring physics expansion with slight overshoot
+- Mini day previews stagger fade-in (100ms each)
+- Chevron rotates 180deg smoothly
+
+---
+
+## Component Details
+
+### 1. CalendarHeader
+
+```text
++----------------------------------------------------------+
+|  < January 2026 >     [Today]   | Total P&L: +$2,450.00  |
+|                                 | Trading Days: 12        |
+|                                 | Win Rate: 65%           |
++----------------------------------------------------------+
 ```
 
-### Backup Implementation
+**Features:**
+- Month/year display with animated arrow navigation
+- "Today" button with pulse glow effect
+- Monthly stats card (glassmorphic)
+- Stats animate with count-up effect
+
+### 2. CalendarCell
+
+```text
++---------------+
+| 15        2⇅  |  <- Date + trade count
+|               |
+|  +$2,027.10   |  <- Large P&L (glowing if profit)
+|               |
+| ▓▓▓▓▓▓▓░░░░  |  <- Optional: mini progress bar
++---------------+
+```
+
+**States:**
+
+| State | Background | Border | Effects |
+|-------|------------|--------|---------|
+| Profit | emerald gradient tint | Animated gradient rotation | Upward floating particles (optional) |
+| Loss | red gradient tint | Dashed animated offset | Subtle pulse |
+| No trades | slate-800 | Default border | None |
+| Today | Any | Gold ring animation | Glow pulse |
+| Hover | Lifted | Neon underglow | 3D tilt, scale 1.08 |
+
+### 3. WeeklySummary
+
+```text
++--------------------------------+
+| Week Two       Dec 7 - Dec 13  |
+| [Chevron ▼]                    |
++--------------------------------+
+|  P&L: -$3,327.90               |
+|  Days: 2  |  Win Rate: 50%    |
+|  +--------+  +--------+        |
+|  | Dec 11 |  | Dec 12 |        |
+|  | +$2027 |  | -$5355 |        |
+|  +--------+  +--------+        |
++--------------------------------+
+```
+
+### 4. DayDetailModal
+
+Triggered on cell click:
+- Shows all trades for that date
+- Uses existing `JournalEntryCard` component
+- Animated modal with scale-in
+- Click-through to full entry detail
+
+---
+
+## Hook: useCalendarData
 
 ```typescript
-const createBackup = async () => {
-  setBackupLoading(true);
-  
-  // 1. Fetch all journal data
-  const { data: entries } = await supabase
-    .from('journal_entries')
-    .select('*')
-    .eq('user_id', user.id);
+interface DayData {
+  date: string;
+  trades: number;
+  pnl: number;
+  wins: number;
+  losses: number;
+  breakeven: number;
+  outcome: 'profit' | 'loss' | 'breakeven' | 'none';
+  entries: JournalEntry[];
+}
 
-  // 2. Create backup object
-  const backupData = {
-    version: '1.0',
-    created_at: new Date().toISOString(),
-    entries,
-    settings
-  };
+interface WeekData {
+  weekNumber: number;
+  startDate: string;
+  endDate: string;
+  totalPnl: number;
+  tradingDays: number;
+  winRate: number;
+  days: DayData[];
+}
 
-  // 3. Upload to storage
-  const fileName = `${user.id}/backup-${Date.now()}.json`;
-  const blob = new Blob([JSON.stringify(backupData)], { type: 'application/json' });
-  
-  await supabase.storage
-    .from('journal-backups')
-    .upload(fileName, blob);
+interface CalendarData {
+  month: number;
+  year: number;
+  days: Map<string, DayData>;
+  weeks: WeekData[];
+  totalPnl: number;
+  tradingDays: number;
+  winRate: number;
+}
 
-  // 4. Record in history
-  await supabase.from('journal_backup_history').insert({
-    user_id: user.id,
-    backup_type: 'manual',
-    backup_url: fileName,
-    file_size: blob.size,
-    entries_count: entries.length
-  });
-};
+const useCalendarData = (entries: JournalEntry[], month: number, year: number): CalendarData
 ```
 
 ---
 
-## Integration with Journal Page
+## Responsive Breakpoints
 
-Update `src/pages/Journal.tsx` to use the new settings component:
+### Desktop (>1024px)
+- Full 7-column calendar grid
+- Weekly summary sidebar (right side)
+- All animations enabled
+- Cursor 3D tilt effects
+
+### Tablet (768-1024px)
+- Full 7-column calendar
+- Collapsible sidebar (drawer)
+- Standard animations
+
+### Mobile (<768px)
+- Compact calendar (keeps 7 cols, smaller cells)
+- Weekly summary as bottom sheet (swipe up)
+- Simplified animations for performance
+- Touch-optimized (44px min targets)
+
+---
+
+## Tab Integration
+
+**Current tabs:** Entries | Analytics | Settings
+
+**New tabs:** Entries | **Calendar** | Analytics | Settings
 
 ```tsx
-// In the Settings TabsContent (line 568-584)
-<TabsContent value="settings" className="space-y-6 mt-6">
-  <JournalSettings />
-</TabsContent>
+<TabsList className="grid w-full grid-cols-4 max-w-lg">
+  <TabsTrigger value="entries">Entries</TabsTrigger>
+  <TabsTrigger value="calendar" className="flex items-center gap-1.5">
+    <CalendarIcon className="w-4 h-4" />
+    Calendar
+  </TabsTrigger>
+  <TabsTrigger value="analytics">Analytics</TabsTrigger>
+  <TabsTrigger value="settings">Settings</TabsTrigger>
+</TabsList>
 ```
+
+---
+
+## Performance Optimizations
+
+1. **Lazy Loading**: Only fetch current month's entries
+2. **Memoization**: `useMemo` for calendar grid calculations
+3. **GPU Acceleration**: Use `transform` and `opacity` only
+4. **Virtualization**: If >10 weeks in view, virtualize weekly summary
+5. **Reduced Motion**: Respect `prefers-reduced-motion`
+6. **Debounced Hover**: 100ms threshold for hover effects
+
+---
+
+## CSS Additions (index.css)
+
+```css
+/* Calendar Premium Styles */
+.calendar-cell {
+  @apply relative overflow-hidden rounded-xl transition-all duration-300;
+  background: linear-gradient(145deg, hsl(var(--card)), hsl(var(--muted)) / 0.3);
+  backdrop-filter: blur(8px);
+}
+
+.calendar-cell-profit {
+  background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
+  border: 1px solid rgba(16,185,129,0.3);
+  box-shadow: 0 0 30px rgba(16,185,129,0.2), inset 0 0 60px rgba(16,185,129,0.05);
+}
+
+.calendar-cell-loss {
+  background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
+  border: 1px solid rgba(239,68,68,0.3);
+}
+
+.calendar-cell-today {
+  @apply ring-2 ring-amber-500/50;
+  animation: today-pulse 2s ease-in-out infinite;
+}
+
+@keyframes today-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(245,158,11,0); }
+}
+
+.calendar-header-glass {
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Number count-up animation */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-count-up {
+  animation: count-up 0.6s ease-out forwards;
+}
+
+/* Stagger animation for grid */
+.calendar-grid-item {
+  opacity: 0;
+  animation: calendar-reveal 0.5s ease-out forwards;
+}
+
+@keyframes calendar-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+```
+
+---
+
+## Empty State
+
+When no trades exist for the month:
+
+```text
++----------------------------------------+
+|       [Calendar illustration]          |
+|                                         |
+|       No trades this month              |
+|   Start logging to see your calendar    |
+|                                         |
+|      [+ Add First Trade] (pulsing)      |
++----------------------------------------+
+```
+
+---
+
+## Accessibility
+
+- Keyboard navigation with visible focus states
+- ARIA labels for all interactive elements
+- `prefers-reduced-motion` support (disable 3D effects)
+- High contrast mode support
+- Screen reader announcements for P&L values
+
+---
+
+## Implementation Priority
+
+1. Core calendar grid with basic styling
+2. Data hook for aggregating entries by day
+3. Profit/loss cell styling with gradients
+4. Page load stagger animation
+5. Cell hover effects (scale, glow)
+6. 3D tilt effect on hover
+7. Weekly summary accordion
+8. Tab navigation integration
+9. Month navigation with animations
+10. Mobile responsive layout
+11. Day detail modal
+12. Performance optimizations
 
 ---
 
@@ -554,43 +407,14 @@ Update `src/pages/Journal.tsx` to use the new settings component:
 
 | Action | File |
 |--------|------|
-| DATABASE | Migration for `journal_settings`, `journal_backup_history`, storage bucket |
-| CREATE | `src/components/journal/settings/JournalSettings.tsx` |
-| CREATE | `src/components/journal/settings/DisplayPreferencesSection.tsx` |
-| CREATE | `src/components/journal/settings/EntryDefaultsSection.tsx` |
-| CREATE | `src/components/journal/settings/PrivacySharingSection.tsx` |
-| CREATE | `src/components/journal/settings/NotificationsSection.tsx` |
-| CREATE | `src/components/journal/settings/AnalyticsSection.tsx` |
-| CREATE | `src/components/journal/settings/DataManagementSection.tsx` |
-| CREATE | `src/components/journal/settings/DangerZoneSection.tsx` |
-| CREATE | `src/hooks/useJournalSettings.ts` |
-| CREATE | `src/components/journal/settings/index.ts` |
+| CREATE | `src/components/journal/calendar/JournalCalendar.tsx` |
+| CREATE | `src/components/journal/calendar/CalendarCell.tsx` |
+| CREATE | `src/components/journal/calendar/CalendarHeader.tsx` |
+| CREATE | `src/components/journal/calendar/WeeklySummary.tsx` |
+| CREATE | `src/components/journal/calendar/CalendarSkeleton.tsx` |
+| CREATE | `src/components/journal/calendar/DayDetailModal.tsx` |
+| CREATE | `src/components/journal/calendar/index.ts` |
+| CREATE | `src/hooks/useCalendarData.ts` |
 | MODIFY | `src/pages/Journal.tsx` |
-| MODIFY | `src/integrations/supabase/types.ts` (auto-updated) |
-
----
-
-## Animations
-
-Uses existing journal animation classes plus:
-
-- Accordion expand/collapse: `animate-accordion-down/up`
-- Save indicator: fade in/out with Framer Motion
-- Section cards: `journal-glassmorphism` class
-- Hover effects: scale 1.02 on interactive elements
-- Toggle transitions: 300ms ease
-
----
-
-## Key Features Summary
-
-1. **Real Database Integration** - All settings stored in Supabase with RLS
-2. **Auto-Save** - 1-second debounced saves with visual feedback
-3. **Collapsible Sections** - Accordion-style sections using Radix UI
-4. **Responsive Design** - Mobile-first with proper touch targets
-5. **Brand Consistent** - Uses existing journal styles and emerald theme
-6. **Data Export/Import** - CSV, JSON formats with date range selection
-7. **Backup System** - Manual and automatic backups to Supabase Storage
-8. **Live Previews** - Date/time format previews update in real-time
-9. **Danger Zone** - Protected destructive actions with confirmations
+| MODIFY | `src/index.css` |
 
