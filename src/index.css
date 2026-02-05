@@ -382,3 +382,135 @@ body.menu-open {
   border-color: hsl(var(--ring));
   box-shadow: 0 0 0 2px hsl(var(--ring)) / 0.2;
 }
+
+/* ========================================
+   Trading Journal Calendar Premium Styles
+   ======================================== */
+
+/* Glassmorphic header */
+.calendar-header-glass {
+  background: linear-gradient(135deg, hsl(var(--card)) / 0.8, hsl(var(--muted)) / 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid hsl(var(--border)) / 0.3;
+  box-shadow: 
+    0 4px 30px hsl(var(--foreground)) / 0.05,
+    inset 0 1px 0 hsl(var(--foreground)) / 0.02;
+}
+
+/* Profit cell styling */
+.calendar-cell-profit {
+  background: linear-gradient(135deg, hsl(var(--success)) / 0.15, hsl(var(--success)) / 0.05);
+  border: 1px solid hsl(var(--success)) / 0.3;
+  box-shadow: 
+    0 0 30px hsl(var(--success)) / 0.15,
+    inset 0 0 60px hsl(var(--success)) / 0.05;
+}
+
+.calendar-cell-profit:hover {
+  box-shadow: 
+    0 0 40px hsl(var(--success)) / 0.25,
+    inset 0 0 60px hsl(var(--success)) / 0.08;
+}
+
+/* Loss cell styling */
+.calendar-cell-loss {
+  background: linear-gradient(135deg, hsl(var(--destructive)) / 0.15, hsl(var(--destructive)) / 0.05);
+  border: 1px solid hsl(var(--destructive)) / 0.3;
+  box-shadow: 
+    0 0 20px hsl(var(--destructive)) / 0.1,
+    inset 0 0 40px hsl(var(--destructive)) / 0.03;
+}
+
+.calendar-cell-loss:hover {
+  box-shadow: 
+    0 0 40px hsl(var(--destructive)) / 0.2,
+    inset 0 0 60px hsl(var(--destructive)) / 0.06;
+}
+
+/* Today cell styling with pulse animation */
+.calendar-cell-today {
+  position: relative;
+  box-shadow: 0 0 0 2px hsl(var(--warning)) / 0.5;
+}
+
+.calendar-cell-today::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px hsl(var(--warning)) / 0.3;
+  animation: calendar-today-pulse 2s ease-in-out infinite;
+}
+
+@keyframes calendar-today-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 hsl(var(--warning)) / 0.4; 
+    opacity: 1;
+  }
+  50% { 
+    box-shadow: 0 0 0 8px hsl(var(--warning)) / 0; 
+    opacity: 0;
+  }
+}
+
+/* Calendar tooltip styling */
+.calendar-tooltip {
+  animation: tooltip-fade-in 0.2s ease-out;
+}
+
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Calendar shimmer animation for skeleton */
+@keyframes calendar-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.calendar-shimmer {
+  animation: calendar-shimmer 2s infinite;
+}
+
+/* Calendar grid reveal animation */
+@keyframes calendar-grid-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.calendar-grid-reveal {
+  animation: calendar-grid-reveal 0.5s ease-out forwards;
+}
+
+/* Count-up animation for stats */
+@keyframes calendar-count-up {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.animate-calendar-count-up {
+  animation: calendar-count-up 0.6s ease-out forwards;
+}
