@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,19 @@ import DrawdownChart from "@/components/journal/analytics/DrawdownChart";
 import TimePeriodFilter, { TimePeriod } from "@/components/journal/analytics/TimePeriodFilter";
 import { useJournalAnalytics } from "@/hooks/useJournalAnalytics";
 import { JournalSettings } from "@/components/journal/settings";
+import { useJournalMode, type JournalMode } from "@/hooks/useJournalMode";
+import { useBrokerConnections, type BrokerConnection } from "@/hooks/useBrokerConnections";
+import {
+  JournalModeToggle,
+  AutoModeWelcome,
+  ConnectionMethodSelector,
+  MetaTraderSetup,
+  FileUploadSetup,
+  EmailSetup,
+  ConnectionSuccess,
+  ConnectionStatusBar,
+} from "@/components/journal/mode";
+import { AutoEntryCard } from "@/components/journal/auto";
 
 interface JournalEntry {
   id: string;
@@ -79,11 +93,28 @@ interface JournalEntry {
   created_at: string;
   updated_at: string;
   user_id: string;
+  // Auto-import fields
+  import_source?: string;
+  auto_imported?: boolean;
+  external_ticket?: string;
+  broker_name?: string;
+  notes_added?: boolean;
+  trade_reasoning?: string;
 }
+
+type SetupStep = 'welcome' | 'method' | 'metatrader' | 'file' | 'email' | 'success' | null;
 
 export default function Journal() {
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Mode and connection state
+  const { mode, setMode, isFirstTimeAuto, hasConnections, isLoading: modeLoading, isTransitioning } = useJournalMode();
+  const { connections, activeConnection, refreshConnections } = useBrokerConnections();
+  
+  // Setup flow state
+  const [setupStep, setSetupStep] = useState<SetupStep>(null);
+  const [successConnection, setSuccessConnection] = useState<BrokerConnection | null>(null);
   
   // State
   const [activeTab, setActiveTab] = useState("entries");
@@ -105,6 +136,46 @@ export default function Journal() {
   const [analyticsPeriod, setAnalyticsPeriod] = useState<TimePeriod>('month');
   const [analyticsStartDate, setAnalyticsStartDate] = useState<Date | undefined>();
   const [analyticsEndDate, setAnalyticsEndDate] = useState<Date | undefined>();
+
+  // Handle mode toggle
+  const handleModeToggle = async (newMode: JournalMode) => {
+    if (newMode === 'auto' && isFirstTimeAuto && !hasConnections) {
+      // Show welcome modal for first-time auto mode
+      setSetupStep('welcome');
+    }
+    await setMode(newMode);
+  };
+
+  // Setup flow handlers
+  const handleSetupWelcomeGetStarted = () => {
+    setSetupStep('method');
+  };
+
+  const handleSetupWelcomeSkip = () => {
+    setSetupStep(null);
+  };
+
+  const handleSelectMethod = (method: 'metatrader' | 'file_upload' | 'email') => {
+    if (method === 'metatrader') {
+      setSetupStep('metatrader');
+    } else if (method === 'file_upload') {
+      setSetupStep('file');
+    } else {
+      setSetupStep('email');
+    }
+  };
+
+  const handleSetupSuccess = (connection: BrokerConnection) => {
+    setSuccessConnection(connection);
+    setSetupStep('success');
+    refreshConnections();
+  };
+
+  const handleConnectionSuccessContinue = () => {
+    setSetupStep(null);
+    setSuccessConnection(null);
+    setActiveTab('entries');
+  };
 
   // Fetch entries
   useEffect(() => {
@@ -336,7 +407,12 @@ export default function Journal() {
     setAnalyticsEndDate(end);
   };
 
-  if (loading) {
+  // Separate entries by import type
+  const manualEntries = filteredEntries.filter(e => !e.auto_imported);
+  const autoEntries = filteredEntries.filter(e => e.auto_imported);
+  const displayEntries = mode === 'auto' ? filteredEntries : manualEntries;
+
+  if (loading || modeLoading) {
     return (
       <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -350,7 +426,7 @@ export default function Journal() {
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl sm:text-4xl font-bold flex items-center gap-3">
             <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
@@ -360,231 +436,278 @@ export default function Journal() {
             Track your trades, analyze performance, and improve your strategy
           </p>
         </div>
-        <Button
-          onClick={() => setShowEntryForm(true)}
-          size="lg"
-          className="journal-submit-btn w-full sm:w-auto"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          New Entry
-        </Button>
+        
+        {/* Mode Toggle and New Entry Button */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
+          <JournalModeToggle
+            mode={mode}
+            onToggle={handleModeToggle}
+            disabled={isTransitioning}
+          />
+          <Button
+            onClick={() => setShowEntryForm(true)}
+            size="lg"
+            className="journal-submit-btn w-full sm:w-auto"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            New Entry
+          </Button>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 max-w-lg">
-          <TabsTrigger value="entries">Entries</TabsTrigger>
-          <TabsTrigger value="calendar" className="flex items-center gap-1.5">
-            <CalendarIcon className="w-3.5 h-3.5" />
-            Calendar
-          </TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="entries" className="space-y-6 mt-6">
-          {/* Filters */}
-          <Card className="journal-glassmorphism">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search entries..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 journal-input"
-                  />
-                </div>
-
-                {/* Outcome Filter */}
-                <Select value={filterOutcome} onValueChange={setFilterOutcome}>
-                  <SelectTrigger className="journal-input">
-                    <SelectValue placeholder="All Outcomes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Outcomes</SelectItem>
-                    <SelectItem value="win">Win</SelectItem>
-                    <SelectItem value="loss">Loss</SelectItem>
-                    <SelectItem value="breakeven">Breakeven</SelectItem>
-                    <SelectItem value="open">Open</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Tag Filter */}
-                <Select value={filterTag} onValueChange={setFilterTag}>
-                  <SelectTrigger className="journal-input">
-                    <SelectValue placeholder="All Tags" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Tags</SelectItem>
-                    {allTags.map(tag => (
-                      <SelectItem key={tag} value={tag}>{tag}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* View Mode */}
-                <div className="flex gap-2">
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "outline"}
-                    size="icon"
-                    onClick={() => setViewMode("grid")}
-                    className="flex-1"
-                  >
-                    <Grid3x3 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === "timeline" ? "default" : "outline"}
-                    size="icon"
-                    onClick={() => setViewMode("timeline")}
-                    className="flex-1"
-                  >
-                    <List className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Active Filters */}
-              {(searchTerm || filterOutcome !== "all" || (filterTag && filterTag !== "all")) && (
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t">
-                  <Filter className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Active filters:</span>
-                  {searchTerm && (
-                    <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs flex items-center gap-1">
-                      Search: {searchTerm}
-                      <button onClick={() => setSearchTerm("")}>
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  )}
-                  {filterOutcome !== "all" && (
-                    <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs flex items-center gap-1">
-                      Outcome: {filterOutcome}
-                      <button onClick={() => setFilterOutcome("all")}>
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  )}
-                  {filterTag && filterTag !== "all" && (
-                    <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs flex items-center gap-1">
-                      Tag: {filterTag}
-                      <button onClick={() => setFilterTag("all")}>
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Entries Display */}
-          {filteredEntries.length > 0 ? (
-            <div className={cn(
-              viewMode === "grid" 
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" 
-                : "space-y-4"
-            )}>
-              {filteredEntries.map(entry => (
-                <JournalEntryCard
-                  key={entry.id}
-                  entry={entry}
-                  onClick={() => setSelectedEntry(entry)}
-                />
-              ))}
-            </div>
-          ) : (
-            <Card className="journal-glassmorphism">
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <BookOpen className="w-20 h-20 text-muted-foreground mb-4 opacity-50" />
-                <h3 className="text-xl font-semibold mb-2">
-                  {entries.length === 0 ? "Start Your Trading Journey" : "No Entries Found"}
-                </h3>
-                <p className="text-muted-foreground text-center mb-6 max-w-md">
-                  {entries.length === 0 
-                    ? "Create your first journal entry to begin tracking your trades and improving your performance."
-                    : "Try adjusting your filters or search terms to find specific entries."
-                  }
-                </p>
-                {entries.length === 0 && (
-                  <Button onClick={() => setShowEntryForm(true)} size="lg" className="journal-submit-btn">
-                    <Plus className="w-5 h-5 mr-2" />
-                    Create First Entry
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="calendar" className="space-y-6 mt-6">
-          <JournalCalendar
-            entries={entries as Array<{ id: string; title: string; entry_date: string; pnl?: number | null; outcome?: 'win' | 'loss' | 'breakeven' | 'open' | null; instrument?: string | null; direction?: 'long' | 'short' | 'neutral' | null }>}
-            loading={loading}
-            onAddEntry={() => setShowEntryForm(true)}
-            onViewEntry={(entry) => setSelectedEntry(entries.find(e => e.id === entry.id) || null)}
+      {/* Connection Status Bar (Auto Mode) */}
+      <AnimatePresence>
+        {mode === 'auto' && activeConnection && (
+          <ConnectionStatusBar
+            connection={activeConnection}
+            onSettings={() => setActiveTab('settings')}
           />
-        </TabsContent>
+        )}
+      </AnimatePresence>
 
-        <TabsContent value="analytics" className="space-y-6 mt-6">
-          {/* Time Period Filter */}
-          <Card className="journal-glassmorphism">
-            <CardContent className="p-4">
-              <TimePeriodFilter
-                period={analyticsPeriod}
-                onPeriodChange={handlePeriodChange}
-                startDate={analyticsStartDate}
-                endDate={analyticsEndDate}
-                onDateChange={handleDateChange}
+      {/* Page Content with Mode Transition */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={mode}
+          initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
+          transition={{ duration: 0.3 }}
+        >
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-4 max-w-lg">
+              <TabsTrigger value="entries">Entries</TabsTrigger>
+              <TabsTrigger value="calendar" className="flex items-center gap-1.5">
+                <CalendarIcon className="w-3.5 h-3.5" />
+                Calendar
+              </TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="entries" className="space-y-6 mt-6">
+              {/* Filters */}
+              <Card className="journal-glassmorphism">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Search */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search entries..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 journal-input"
+                      />
+                    </div>
+
+                    {/* Outcome Filter */}
+                    <Select value={filterOutcome} onValueChange={setFilterOutcome}>
+                      <SelectTrigger className="journal-input">
+                        <SelectValue placeholder="All Outcomes" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Outcomes</SelectItem>
+                        <SelectItem value="win">Win</SelectItem>
+                        <SelectItem value="loss">Loss</SelectItem>
+                        <SelectItem value="breakeven">Breakeven</SelectItem>
+                        <SelectItem value="open">Open</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Tag Filter */}
+                    <Select value={filterTag} onValueChange={setFilterTag}>
+                      <SelectTrigger className="journal-input">
+                        <SelectValue placeholder="All Tags" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Tags</SelectItem>
+                        {allTags.map(tag => (
+                          <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {/* View Mode */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant={viewMode === "grid" ? "default" : "outline"}
+                        size="icon"
+                        onClick={() => setViewMode("grid")}
+                        className="flex-1"
+                      >
+                        <Grid3x3 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant={viewMode === "timeline" ? "default" : "outline"}
+                        size="icon"
+                        onClick={() => setViewMode("timeline")}
+                        className="flex-1"
+                      >
+                        <List className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Active Filters */}
+                  {(searchTerm || filterOutcome !== "all" || (filterTag && filterTag !== "all")) && (
+                    <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+                      <Filter className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Active filters:</span>
+                      {searchTerm && (
+                        <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs flex items-center gap-1">
+                          Search: {searchTerm}
+                          <button onClick={() => setSearchTerm("")}>
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                      {filterOutcome !== "all" && (
+                        <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs flex items-center gap-1">
+                          Outcome: {filterOutcome}
+                          <button onClick={() => setFilterOutcome("all")}>
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                      {filterTag && filterTag !== "all" && (
+                        <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs flex items-center gap-1">
+                          Tag: {filterTag}
+                          <button onClick={() => setFilterTag("all")}>
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Entries Display */}
+              {displayEntries.length > 0 ? (
+                <div className={cn(
+                  viewMode === "grid" 
+                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" 
+                    : "space-y-4"
+                )}>
+                  {displayEntries.map(entry => (
+                    mode === 'auto' && entry.auto_imported ? (
+                      <AutoEntryCard
+                        key={entry.id}
+                        entry={entry}
+                        onViewDetails={() => setSelectedEntry(entry)}
+                      />
+                    ) : (
+                      <JournalEntryCard
+                        key={entry.id}
+                        entry={entry}
+                        onClick={() => setSelectedEntry(entry)}
+                      />
+                    )
+                  ))}
+                </div>
+              ) : (
+                <Card className="journal-glassmorphism">
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <BookOpen className="w-20 h-20 text-muted-foreground mb-4 opacity-50" />
+                    <h3 className="text-xl font-semibold mb-2">
+                      {entries.length === 0 ? "Start Your Trading Journey" : "No Entries Found"}
+                    </h3>
+                    <p className="text-muted-foreground text-center mb-6 max-w-md">
+                      {entries.length === 0 
+                        ? mode === 'auto' 
+                          ? "Connect your broker or upload trades to get started."
+                          : "Create your first journal entry to begin tracking your trades and improving your performance."
+                        : "Try adjusting your filters or search terms to find specific entries."
+                      }
+                    </p>
+                    {entries.length === 0 && (
+                      mode === 'auto' ? (
+                        <Button onClick={() => setSetupStep('method')} size="lg" className="journal-submit-btn">
+                          <Plus className="w-5 h-5 mr-2" />
+                          Connect Broker
+                        </Button>
+                      ) : (
+                        <Button onClick={() => setShowEntryForm(true)} size="lg" className="journal-submit-btn">
+                          <Plus className="w-5 h-5 mr-2" />
+                          Create First Entry
+                        </Button>
+                      )
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="calendar" className="space-y-6 mt-6">
+              <JournalCalendar
+                entries={entries as Array<{ id: string; title: string; entry_date: string; pnl?: number | null; outcome?: 'win' | 'loss' | 'breakeven' | 'open' | null; instrument?: string | null; direction?: 'long' | 'short' | 'neutral' | null }>}
+                loading={loading}
+                onAddEntry={() => setShowEntryForm(true)}
+                onViewEntry={(entry) => setSelectedEntry(entries.find(e => e.id === entry.id) || null)}
               />
-            </CardContent>
-          </Card>
+            </TabsContent>
 
-          {/* Stats Cards */}
-          {entries.length > 0 ? (
-            <>
-              <AnalyticsStats metrics={analytics} />
-              
-              {/* Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <PnLChart metrics={analytics} />
-                <WinRateChart metrics={analytics} />
-              </div>
+            <TabsContent value="analytics" className="space-y-6 mt-6">
+              {/* Time Period Filter */}
+              <Card className="journal-glassmorphism">
+                <CardContent className="p-4">
+                  <TimePeriodFilter
+                    period={analyticsPeriod}
+                    onPeriodChange={handlePeriodChange}
+                    startDate={analyticsStartDate}
+                    endDate={analyticsEndDate}
+                    onDateChange={handleDateChange}
+                  />
+                </CardContent>
+              </Card>
 
-              {/* Advanced Analytics */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <InstrumentPerformanceChart metrics={analytics} />
-                <TimeHeatmap metrics={analytics} />
-              </div>
+              {/* Stats Cards */}
+              {entries.length > 0 ? (
+                <>
+                  <AnalyticsStats metrics={analytics} />
+                  
+                  {/* Charts */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <PnLChart metrics={analytics} />
+                    <WinRateChart metrics={analytics} />
+                  </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <RiskRewardScatter metrics={analytics} />
-                <DrawdownChart metrics={analytics} />
-              </div>
-            </>
-          ) : (
-            <Card className="journal-glassmorphism">
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <BookOpen className="w-20 h-20 text-muted-foreground mb-4 opacity-50" />
-                <h3 className="text-xl font-semibold mb-2">No Data Yet</h3>
-                <p className="text-muted-foreground text-center mb-6 max-w-md">
-                  Start creating journal entries to see your performance analytics
-                </p>
-                <Button onClick={() => setShowEntryForm(true)} size="lg" className="journal-submit-btn">
-                  <Plus className="w-5 h-5 mr-2" />
-                  Create First Entry
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+                  {/* Advanced Analytics */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <InstrumentPerformanceChart metrics={analytics} />
+                    <TimeHeatmap metrics={analytics} />
+                  </div>
 
-        <TabsContent value="settings" className="mt-6">
-          <JournalSettings />
-        </TabsContent>
-      </Tabs>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <RiskRewardScatter metrics={analytics} />
+                    <DrawdownChart metrics={analytics} />
+                  </div>
+                </>
+              ) : (
+                <Card className="journal-glassmorphism">
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <BookOpen className="w-20 h-20 text-muted-foreground mb-4 opacity-50" />
+                    <h3 className="text-xl font-semibold mb-2">No Data Yet</h3>
+                    <p className="text-muted-foreground text-center mb-6 max-w-md">
+                      Start creating journal entries to see your performance analytics
+                    </p>
+                    <Button onClick={() => setShowEntryForm(true)} size="lg" className="journal-submit-btn">
+                      <Plus className="w-5 h-5 mr-2" />
+                      Create First Entry
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="settings" className="mt-6">
+              <JournalSettings />
+            </TabsContent>
+          </Tabs>
+        </motion.div>
+      </AnimatePresence>
 
       {/* Entry Form Modal */}
       <Dialog open={showEntryForm} onOpenChange={(open) => !open && resetForm()}>
@@ -617,6 +740,55 @@ export default function Journal() {
         onNext={handleNext}
         hasPrevious={getSelectedEntryIndex() > 0}
         hasNext={getSelectedEntryIndex() < filteredEntries.length - 1}
+      />
+
+      {/* Auto Mode Setup Flow */}
+      <AutoModeWelcome
+        open={setupStep === 'welcome'}
+        onClose={() => setSetupStep(null)}
+        onGetStarted={handleSetupWelcomeGetStarted}
+        onSkip={handleSetupWelcomeSkip}
+      />
+      
+      <ConnectionMethodSelector
+        open={setupStep === 'method'}
+        onClose={() => setSetupStep(null)}
+        onSelectMethod={handleSelectMethod}
+        onBack={() => setSetupStep('welcome')}
+      />
+      
+      <MetaTraderSetup
+        open={setupStep === 'metatrader'}
+        onClose={() => setSetupStep(null)}
+        onBack={() => setSetupStep('method')}
+        onSuccess={handleSetupSuccess}
+      />
+      
+      <FileUploadSetup
+        open={setupStep === 'file'}
+        onClose={() => setSetupStep(null)}
+        onBack={() => setSetupStep('method')}
+        onSuccess={() => {
+          refreshConnections();
+          setSetupStep(null);
+        }}
+      />
+      
+      <EmailSetup
+        open={setupStep === 'email'}
+        onClose={() => setSetupStep(null)}
+        onBack={() => setSetupStep('method')}
+        onSuccess={() => {
+          refreshConnections();
+          setSetupStep(null);
+        }}
+      />
+      
+      <ConnectionSuccess
+        open={setupStep === 'success'}
+        onClose={() => setSetupStep(null)}
+        onContinue={handleConnectionSuccessContinue}
+        connection={successConnection}
       />
 
       {/* Floating Action Button (Mobile) */}

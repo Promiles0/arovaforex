@@ -208,6 +208,54 @@ export type Database = {
         }
         Relationships: []
       }
+      broker_connections: {
+        Row: {
+          account_number: string | null
+          broker_name: string | null
+          connection_code: string | null
+          connection_type: string
+          created_at: string | null
+          id: string
+          last_sync_at: string | null
+          metadata: Json | null
+          platform: string | null
+          status: string | null
+          sync_frequency: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_number?: string | null
+          broker_name?: string | null
+          connection_code?: string | null
+          connection_type: string
+          created_at?: string | null
+          id?: string
+          last_sync_at?: string | null
+          metadata?: Json | null
+          platform?: string | null
+          status?: string | null
+          sync_frequency?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_number?: string | null
+          broker_name?: string | null
+          connection_code?: string | null
+          connection_type?: string
+          created_at?: string | null
+          id?: string
+          last_sync_at?: string | null
+          metadata?: Json | null
+          platform?: string | null
+          status?: string | null
+          sync_frequency?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           category: string
@@ -517,6 +565,56 @@ export type Database = {
           },
         ]
       }
+      import_history: {
+        Row: {
+          connection_id: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          import_type: string
+          metadata: Json | null
+          source_name: string | null
+          status: string | null
+          trades_imported: number | null
+          trades_skipped: number | null
+          user_id: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          import_type: string
+          metadata?: Json | null
+          source_name?: string | null
+          status?: string | null
+          trades_imported?: number | null
+          trades_skipped?: number | null
+          user_id: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          import_type?: string
+          metadata?: Json | null
+          source_name?: string | null
+          status?: string | null
+          trades_imported?: number | null
+          trades_skipped?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_history_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "broker_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_backup_history: {
         Row: {
           backup_type: string | null
@@ -552,7 +650,9 @@ export type Database = {
       }
       journal_entries: {
         Row: {
+          auto_imported: boolean | null
           auto_review_enabled: boolean | null
+          broker_name: string | null
           chart_screenshot_url: string | null
           chart_screenshot_urls: string[] | null
           commission: number | null
@@ -567,14 +667,18 @@ export type Database = {
           execution_method: string | null
           exit_price: number | null
           external_id: string | null
+          external_ticket: string | null
           hold_time_minutes: number | null
           id: string
+          import_id: string | null
+          import_source: string | null
           instrument: string | null
           is_draft: boolean
           is_shared: boolean
           lessons_learned: string | null
           market_analysis: string | null
           market_volatility: string | null
+          notes_added: boolean | null
           outcome: string | null
           pnl: number | null
           post_screenshots_urls: string[] | null
@@ -593,6 +697,7 @@ export type Database = {
           title: string
           trade_rating: number | null
           trade_rationale: string | null
+          trade_reasoning: string | null
           updated_at: string
           user_id: string
           webhook_data: Json | null
@@ -601,7 +706,9 @@ export type Database = {
           win_rate: number | null
         }
         Insert: {
+          auto_imported?: boolean | null
           auto_review_enabled?: boolean | null
+          broker_name?: string | null
           chart_screenshot_url?: string | null
           chart_screenshot_urls?: string[] | null
           commission?: number | null
@@ -616,14 +723,18 @@ export type Database = {
           execution_method?: string | null
           exit_price?: number | null
           external_id?: string | null
+          external_ticket?: string | null
           hold_time_minutes?: number | null
           id?: string
+          import_id?: string | null
+          import_source?: string | null
           instrument?: string | null
           is_draft?: boolean
           is_shared?: boolean
           lessons_learned?: string | null
           market_analysis?: string | null
           market_volatility?: string | null
+          notes_added?: boolean | null
           outcome?: string | null
           pnl?: number | null
           post_screenshots_urls?: string[] | null
@@ -642,6 +753,7 @@ export type Database = {
           title: string
           trade_rating?: number | null
           trade_rationale?: string | null
+          trade_reasoning?: string | null
           updated_at?: string
           user_id: string
           webhook_data?: Json | null
@@ -650,7 +762,9 @@ export type Database = {
           win_rate?: number | null
         }
         Update: {
+          auto_imported?: boolean | null
           auto_review_enabled?: boolean | null
+          broker_name?: string | null
           chart_screenshot_url?: string | null
           chart_screenshot_urls?: string[] | null
           commission?: number | null
@@ -665,14 +779,18 @@ export type Database = {
           execution_method?: string | null
           exit_price?: number | null
           external_id?: string | null
+          external_ticket?: string | null
           hold_time_minutes?: number | null
           id?: string
+          import_id?: string | null
+          import_source?: string | null
           instrument?: string | null
           is_draft?: boolean
           is_shared?: boolean
           lessons_learned?: string | null
           market_analysis?: string | null
           market_volatility?: string | null
+          notes_added?: boolean | null
           outcome?: string | null
           pnl?: number | null
           post_screenshots_urls?: string[] | null
@@ -691,6 +809,7 @@ export type Database = {
           title?: string
           trade_rating?: number | null
           trade_rationale?: string | null
+          trade_reasoning?: string | null
           updated_at?: string
           user_id?: string
           webhook_data?: Json | null
@@ -707,7 +826,9 @@ export type Database = {
           anonymous_sharing: boolean | null
           auto_backup_enabled: boolean | null
           auto_calculate_statistics: boolean | null
+          auto_categorize: boolean | null
           auto_fill_last_values: boolean | null
+          auto_sync_enabled: boolean | null
           backup_frequency: string | null
           created_at: string | null
           data_retention_days: number | null
@@ -719,8 +840,11 @@ export type Database = {
           enable_animations: boolean | null
           enable_goal_tracking: boolean | null
           entries_per_page: number | null
+          first_auto_setup_complete: boolean | null
           id: string
+          import_closed_only: boolean | null
           inactivity_days: number | null
+          journal_mode: string | null
           journal_visibility: string | null
           max_drawdown_limit: number | null
           monthly_profit_target: number | null
@@ -730,6 +854,7 @@ export type Database = {
           notify_mentor_feedback: boolean | null
           notify_milestone_achieved: boolean | null
           notify_monthly_report: boolean | null
+          notify_new_trades: boolean | null
           notify_weekly_summary: boolean | null
           require_post_trade_review: boolean | null
           require_screenshots: boolean | null
@@ -738,6 +863,8 @@ export type Database = {
           share_statistics: boolean | null
           show_advanced_metrics: boolean | null
           show_emotion_tracking: boolean | null
+          skip_duplicates: boolean | null
+          sync_frequency: string | null
           time_format: string | null
           timezone: string | null
           track_trading_psychology: boolean | null
@@ -752,7 +879,9 @@ export type Database = {
           anonymous_sharing?: boolean | null
           auto_backup_enabled?: boolean | null
           auto_calculate_statistics?: boolean | null
+          auto_categorize?: boolean | null
           auto_fill_last_values?: boolean | null
+          auto_sync_enabled?: boolean | null
           backup_frequency?: string | null
           created_at?: string | null
           data_retention_days?: number | null
@@ -764,8 +893,11 @@ export type Database = {
           enable_animations?: boolean | null
           enable_goal_tracking?: boolean | null
           entries_per_page?: number | null
+          first_auto_setup_complete?: boolean | null
           id?: string
+          import_closed_only?: boolean | null
           inactivity_days?: number | null
+          journal_mode?: string | null
           journal_visibility?: string | null
           max_drawdown_limit?: number | null
           monthly_profit_target?: number | null
@@ -775,6 +907,7 @@ export type Database = {
           notify_mentor_feedback?: boolean | null
           notify_milestone_achieved?: boolean | null
           notify_monthly_report?: boolean | null
+          notify_new_trades?: boolean | null
           notify_weekly_summary?: boolean | null
           require_post_trade_review?: boolean | null
           require_screenshots?: boolean | null
@@ -783,6 +916,8 @@ export type Database = {
           share_statistics?: boolean | null
           show_advanced_metrics?: boolean | null
           show_emotion_tracking?: boolean | null
+          skip_duplicates?: boolean | null
+          sync_frequency?: string | null
           time_format?: string | null
           timezone?: string | null
           track_trading_psychology?: boolean | null
@@ -797,7 +932,9 @@ export type Database = {
           anonymous_sharing?: boolean | null
           auto_backup_enabled?: boolean | null
           auto_calculate_statistics?: boolean | null
+          auto_categorize?: boolean | null
           auto_fill_last_values?: boolean | null
+          auto_sync_enabled?: boolean | null
           backup_frequency?: string | null
           created_at?: string | null
           data_retention_days?: number | null
@@ -809,8 +946,11 @@ export type Database = {
           enable_animations?: boolean | null
           enable_goal_tracking?: boolean | null
           entries_per_page?: number | null
+          first_auto_setup_complete?: boolean | null
           id?: string
+          import_closed_only?: boolean | null
           inactivity_days?: number | null
+          journal_mode?: string | null
           journal_visibility?: string | null
           max_drawdown_limit?: number | null
           monthly_profit_target?: number | null
@@ -820,6 +960,7 @@ export type Database = {
           notify_mentor_feedback?: boolean | null
           notify_milestone_achieved?: boolean | null
           notify_monthly_report?: boolean | null
+          notify_new_trades?: boolean | null
           notify_weekly_summary?: boolean | null
           require_post_trade_review?: boolean | null
           require_screenshots?: boolean | null
@@ -828,6 +969,8 @@ export type Database = {
           share_statistics?: boolean | null
           show_advanced_metrics?: boolean | null
           show_emotion_tracking?: boolean | null
+          skip_duplicates?: boolean | null
+          sync_frequency?: string | null
           time_format?: string | null
           timezone?: string | null
           track_trading_psychology?: boolean | null
