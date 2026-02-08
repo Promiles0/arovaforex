@@ -46,7 +46,7 @@ import {
   ConnectionSuccess,
   ConnectionStatusBar,
 } from "@/components/journal/mode";
-import { AutoEntryCard } from "@/components/journal/auto";
+import { AutoEntryCard, AutoEntriesTable } from "@/components/journal/auto";
 
 interface JournalEntry {
   id: string;
@@ -177,12 +177,12 @@ export default function Journal() {
     setActiveTab('entries');
   };
 
-  // Fetch entries
+  // Fetch entries - now filters by mode
   useEffect(() => {
     if (user?.id) {
       fetchEntries();
     }
-  }, [user]);
+  }, [user, mode]);
 
   // Apply filters
   useEffect(() => {
@@ -212,11 +212,23 @@ export default function Journal() {
       setLoading(true);
       if (!user?.id) return;
 
-      const { data, error } = await supabase
+      // Build query based on mode - SEPARATE DATA SOURCES
+      let query = supabase
         .from('journal_entries')
         .select('*')
         .eq('user_id', user.id)
         .order('entry_date', { ascending: false });
+
+      // Filter by import_source based on mode
+      if (mode === 'manual') {
+        // Manual mode: show only manual entries (import_source is null, 'manual', or not auto-imported)
+        query = query.or('import_source.is.null,import_source.eq.manual');
+      } else {
+        // Auto mode: show only auto-imported entries
+        query = query.in('import_source', ['mt4', 'mt5', 'file_upload', 'email']);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setEntries((data || []) as JournalEntry[]);
@@ -407,10 +419,8 @@ export default function Journal() {
     setAnalyticsEndDate(end);
   };
 
-  // Separate entries by import type
-  const manualEntries = filteredEntries.filter(e => !e.auto_imported);
-  const autoEntries = filteredEntries.filter(e => e.auto_imported);
-  const displayEntries = mode === 'auto' ? filteredEntries : manualEntries;
+  // No longer need to filter entries in render since we fetch by mode
+  const displayEntries = filteredEntries;
 
   if (loading || modeLoading) {
     return (
@@ -584,59 +594,51 @@ export default function Journal() {
                 </CardContent>
               </Card>
 
-              {/* Entries Display */}
-              {displayEntries.length > 0 ? (
-                <div className={cn(
-                  viewMode === "grid" 
-                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" 
-                    : "space-y-4"
-                )}>
-                  {displayEntries.map(entry => (
-                    mode === 'auto' && entry.auto_imported ? (
-                      <AutoEntryCard
-                        key={entry.id}
-                        entry={entry}
-                        onViewDetails={() => setSelectedEntry(entry)}
-                      />
-                    ) : (
+              {/* Entries Display - Different layouts for Manual vs Auto mode */}
+              {mode === 'auto' ? (
+                /* AUTO MODE: Table-based layout */
+                <AutoEntriesTable
+                  entries={displayEntries}
+                  isConnected={!!activeConnection && activeConnection.status === 'active'}
+                  lastSyncAt={activeConnection?.last_sync_at}
+                  onRefresh={fetchEntries}
+                  onViewDetails={(entry) => setSelectedEntry(entries.find(e => e.id === entry.id) || null)}
+                />
+              ) : (
+                /* MANUAL MODE: Card grid layout */
+                displayEntries.length > 0 ? (
+                  <div className={cn(
+                    viewMode === "grid" 
+                      ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" 
+                      : "space-y-4"
+                  )}>
+                    {displayEntries.map(entry => (
                       <JournalEntryCard
                         key={entry.id}
                         entry={entry}
                         onClick={() => setSelectedEntry(entry)}
                       />
-                    )
-                  ))}
-                </div>
-              ) : (
-                <Card className="journal-glassmorphism">
-                  <CardContent className="flex flex-col items-center justify-center py-16">
-                    <BookOpen className="w-20 h-20 text-muted-foreground mb-4 opacity-50" />
-                    <h3 className="text-xl font-semibold mb-2">
-                      {entries.length === 0 ? "Start Your Trading Journey" : "No Entries Found"}
-                    </h3>
-                    <p className="text-muted-foreground text-center mb-6 max-w-md">
-                      {entries.length === 0 
-                        ? mode === 'auto' 
-                          ? "Connect your broker or upload trades to get started."
-                          : "Create your first journal entry to begin tracking your trades and improving your performance."
-                        : "Try adjusting your filters or search terms to find specific entries."
-                      }
-                    </p>
-                    {entries.length === 0 && (
-                      mode === 'auto' ? (
-                        <Button onClick={() => setSetupStep('method')} size="lg" className="journal-submit-btn">
-                          <Plus className="w-5 h-5 mr-2" />
-                          Connect Broker
-                        </Button>
-                      ) : (
+                    ))}
+                  </div>
+                ) : (
+                  <Card className="journal-glassmorphism">
+                    <CardContent className="flex flex-col items-center justify-center py-16">
+                      <BookOpen className="w-20 h-20 text-muted-foreground mb-4 opacity-50" />
+                      <h3 className="text-xl font-semibold mb-2">
+                        {entries.length === 0 ? "Start Your Trading Journey" : "No Entries Found"}
+                      </h3>
+                      <p className="text-muted-foreground text-center mb-6 max-w-md">
+                        Create your first journal entry to begin tracking your trades and improving your performance.
+                      </p>
+                      {entries.length === 0 && (
                         <Button onClick={() => setShowEntryForm(true)} size="lg" className="journal-submit-btn">
                           <Plus className="w-5 h-5 mr-2" />
                           Create First Entry
                         </Button>
-                      )
-                    )}
-                  </CardContent>
-                </Card>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
               )}
             </TabsContent>
 

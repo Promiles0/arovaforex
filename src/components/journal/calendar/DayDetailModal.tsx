@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { format, parseISO } from 'date-fns';
 import { 
@@ -107,6 +107,9 @@ export const DayDetailModal = ({ day, open, onClose, onViewEntry }: DayDetailMod
             <CalendarDays className="w-5 h-5 text-primary" />
             <span>{formattedDate}</span>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            View trades and performance details for {formattedDate}
+          </DialogDescription>
         </DialogHeader>
         
         <div className="overflow-y-auto p-6 space-y-6">
