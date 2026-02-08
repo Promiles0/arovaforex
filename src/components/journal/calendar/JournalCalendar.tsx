@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCalendarData, DayData, JournalEntry } from '@/hooks/useCalendarData';
 import { CalendarHeader } from './CalendarHeader';
@@ -44,6 +44,7 @@ export const JournalCalendar = ({
 }: JournalCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
   
   const calendarData = useCalendarData(
     entries,
@@ -95,9 +96,10 @@ export const JournalCalendar = ({
         onPreviousMonth={handlePreviousMonth}
         onNextMonth={handleNextMonth}
         onToday={handleToday}
+        calendarRef={calendarRef}
       />
       
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+      <div ref={calendarRef} id="trading-calendar" className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
         {/* Calendar Grid */}
         <div className="lg:col-span-3">
           <AnimatePresence mode="wait">

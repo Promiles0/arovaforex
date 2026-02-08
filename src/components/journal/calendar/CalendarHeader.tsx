@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, CalendarDays, TrendingUp, TrendingDown, Targ
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { CalendarData } from '@/hooks/useCalendarData';
+import { CalendarExport } from './CalendarExport';
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -11,6 +12,7 @@ interface CalendarHeaderProps {
   onPreviousMonth: () => void;
   onNextMonth: () => void;
   onToday: () => void;
+  calendarRef?: React.RefObject<HTMLDivElement>;
 }
 
 const StatCard = ({ 
@@ -59,9 +61,11 @@ export const CalendarHeader = ({
   calendarData,
   onPreviousMonth,
   onNextMonth,
-  onToday
+  onToday,
+  calendarRef
 }: CalendarHeaderProps) => {
   const isCurrentMonth = format(new Date(), 'yyyy-MM') === format(currentDate, 'yyyy-MM');
+  const monthLabel = format(currentDate, 'MMMM yyyy');
   
   const formatPnl = (value: number): string => {
     const prefix = value >= 0 ? '+' : '';
@@ -93,7 +97,7 @@ export const CalendarHeader = ({
           </motion.div>
           
           <h2 className="text-xl sm:text-2xl font-bold min-w-[180px] text-center">
-            {format(currentDate, 'MMMM yyyy')}
+            {monthLabel}
           </h2>
           
           <motion.div
@@ -130,7 +134,7 @@ export const CalendarHeader = ({
           )}
         </div>
         
-        {/* Monthly Stats */}
+        {/* Monthly Stats & Export */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <StatCard
             label="Total P&L"
@@ -152,6 +156,10 @@ export const CalendarHeader = ({
             icon={Target}
             color={calendarData.winRate >= 50 ? 'profit' : calendarData.winRate > 0 ? 'loss' : 'neutral'}
           />
+
+          {calendarRef && (
+            <CalendarExport calendarRef={calendarRef} monthLabel={monthLabel} />
+          )}
         </div>
       </div>
     </motion.div>

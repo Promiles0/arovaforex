@@ -61,16 +61,37 @@ export function FileUploadSetup({ open, onClose, onBack, onSuccess }: FileUpload
     setStatus('uploading');
     setErrorMessage(null);
 
-    // Simulate upload and processing
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setStatus('processing');
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Simulate success
-    setStatus('success');
-    setTimeout(() => {
-      onSuccess();
-    }, 1500);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-trade-file`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed');
+      }
+
+      setStatus('success');
+      setTimeout(() => {
+        onSuccess();
+      }, 1500);
+    } catch (error: any) {
+      setStatus('error');
+      setErrorMessage(error.message || 'Failed to process file');
+    }
   }, [onSuccess]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
