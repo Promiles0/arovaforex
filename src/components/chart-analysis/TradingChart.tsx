@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { createChart, IChartApi, ISeriesApi, CandlestickData, LineStyle, CrosshairMode } from 'lightweight-charts';
+import { DrawingToolbar } from './DrawingToolbar';
+import { useDrawingTools } from '@/hooks/useDrawingTools';
 
 interface CandleData {
   time: number;
@@ -42,36 +44,26 @@ function calculateEMA(data: CandleData[], period: number) {
   return result;
 }
 
-function calculateRSI(data: CandleData[], period: number = 14) {
-  const result: { time: number; value: number }[] = [];
-  if (data.length < period + 1) return result;
-
-  let gains = 0, losses = 0;
-  for (let i = 1; i <= period; i++) {
-    const change = data[i].close - data[i - 1].close;
-    if (change > 0) gains += change;
-    else losses -= change;
-  }
-  let avgGain = gains / period;
-  let avgLoss = losses / period;
-  const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-  result.push({ time: data[period].time, value: 100 - 100 / (1 + rs) });
-
-  for (let i = period + 1; i < data.length; i++) {
-    const change = data[i].close - data[i - 1].close;
-    avgGain = (avgGain * (period - 1) + (change > 0 ? change : 0)) / period;
-    avgLoss = (avgLoss * (period - 1) + (change < 0 ? -change : 0)) / period;
-    const rsi = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
-    result.push({ time: data[i].time, value: rsi });
-  }
-  return result;
-}
-
 export function TradingChart({ chartData, currentIndex, symbol, timeframe, onChartReady, indicators }: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const indicatorSeriesRef = useRef<Record<string, ISeriesApi<'Line'>>>({});
+
+  const {
+    activeTool,
+    setActiveTool,
+    isLocked,
+    isVisible,
+    initCanvas,
+    renderAll,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    clearDrawings,
+    toggleLock,
+    toggleVisibility,
+  } = useDrawingTools();
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -117,9 +109,14 @@ export function TradingChart({ chartData, currentIndex, symbol, timeframe, onCha
 
     if (onChartReady) onChartReady(chart);
 
+    // Initialize drawing canvas
+    initCanvas(chartContainerRef.current);
+
     const handleResize = () => {
       if (chartContainerRef.current) {
         chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+        initCanvas(chartContainerRef.current);
+        renderAll();
       }
     };
     window.addEventListener('resize', handleResize);
@@ -136,13 +133,12 @@ export function TradingChart({ chartData, currentIndex, symbol, timeframe, onCha
     const visibleData = chartData.slice(0, currentIndex + 1);
     candleSeriesRef.current.setData(visibleData as CandlestickData[]);
 
-    // Update indicators
     const chart = chartRef.current;
     if (!chart) return;
 
     // Remove old indicator series
     Object.values(indicatorSeriesRef.current).forEach(s => {
-      try { chart.removeSeries(s); } catch {}
+      try { chart.removeSeries(s); } catch { }
     });
     indicatorSeriesRef.current = {};
 
@@ -162,12 +158,41 @@ export function TradingChart({ chartData, currentIndex, symbol, timeframe, onCha
     if (chartRef.current) {
       chartRef.current.timeScale().scrollToPosition(2, false);
     }
-  }, [currentIndex, chartData, indicators]);
+
+    // Re-render drawings after chart update
+    renderAll();
+  }, [currentIndex, chartData, indicators, renderAll]);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!chartContainerRef.current) return;
+    handleMouseDown(e, chartContainerRef.current);
+  }, [handleMouseDown]);
+
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!chartContainerRef.current) return;
+    handleMouseMove(e, chartContainerRef.current);
+  }, [handleMouseMove]);
 
   return (
-    <div className="relative w-full rounded-xl overflow-hidden border border-border bg-card">
+    <div
+      className={`relative w-full rounded-xl overflow-hidden border border-border bg-card ${
+        activeTool !== 'cursor' ? 'cursor-crosshair' : ''
+      }`}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={handleMouseUp}
+    >
+      <DrawingToolbar
+        activeTool={activeTool}
+        onSelectTool={setActiveTool}
+        onClearDrawings={clearDrawings}
+        isLocked={isLocked}
+        onToggleLock={toggleLock}
+        isVisible={isVisible}
+        onToggleVisibility={toggleVisibility}
+      />
       <div ref={chartContainerRef} className="w-full" />
-      <div className="absolute top-3 left-3 text-xs text-muted-foreground/60 font-medium pointer-events-none select-none">
+      <div className="absolute top-3 left-14 text-xs text-muted-foreground/60 font-medium pointer-events-none select-none">
         {symbol} · {timeframe} · Practice Mode
       </div>
     </div>
