@@ -27,6 +27,7 @@ import Journal from "./pages/Journal";
 import Settings from "./pages/Settings";
 import Calculator from "./pages/Calculator";
 import LiveRoom from "./pages/LiveRoom";
+import ChartAnalysis from "./pages/ChartAnalysis";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
@@ -79,6 +80,7 @@ const App = () => (
                 <Route path="settings" element={<Settings />} />
                 <Route path="calculator" element={<Calculator />} />
                 <Route path="live-room" element={<LiveRoom />} />
+                <Route path="chart-analysis" element={<ChartAnalysis />} />
               </Route>
 
               <Route path="/admin" element={

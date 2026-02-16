@@ -16,7 +16,8 @@ import {
   NotebookPen,
   Calculator,
   X,
-  Video
+  Video,
+  BarChart3
 } from "lucide-react";
 import { useLiveStreamStatus } from "@/hooks/useLiveStreamStatus";
 
@@ -27,6 +28,7 @@ const navigationItems = [
   { name: "Live Room", href: "/dashboard/live-room", icon: Video, showLiveBadge: true },
   { name: "My Journal", href: "/dashboard/journal", icon: NotebookPen },
   { name: "Calculator", href: "/dashboard/calculator", icon: Calculator },
+  { name: "Chart Analysis", href: "/dashboard/chart-analysis", icon: BarChart3 },
   { name: "My Wallet", href: "/dashboard/wallet", icon: Wallet },
   { name: "Join Academy", href: "/dashboard/academy", icon: BookOpen },
   { name: "Contact Us", href: "/dashboard/contact", icon: MessageCircle },

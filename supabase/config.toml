@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.mt-webhook]
 verify_jwt = false
+
+[functions.fetch-chart-data]
+verify_jwt = false

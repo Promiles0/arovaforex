@@ -16,7 +16,8 @@ import {
   ChevronRight,
   Bell,
   Lock,
-  NotebookPen
+  NotebookPen,
+  BarChart3
 } from "lucide-react";
 
 const navigationItems = [
@@ -24,6 +25,7 @@ const navigationItems = [
   { name: "Forecasts", href: "/dashboard/forecasts", icon: TrendingUp },
   { name: "Premium Signals", href: "/dashboard/signals", icon: Signal, premium: true },
   { name: "My Journal", href: "/dashboard/journal", icon: NotebookPen },
+  { name: "Chart Analysis", href: "/dashboard/chart-analysis", icon: BarChart3 },
   { name: "My Wallet", href: "/dashboard/wallet", icon: Wallet },
   { name: "Join Academy", href: "/dashboard/academy", icon: BookOpen },
   { name: "Contact Us", href: "/dashboard/contact", icon: MessageCircle },
