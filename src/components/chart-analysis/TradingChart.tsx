@@ -80,8 +80,8 @@ export function TradingChart({ chartData, currentIndex, symbol, timeframe, onCha
       width: chartContainerRef.current.clientWidth,
       height: 500,
       layout: {
-        background: { color: 'transparent' },
-        textColor: 'hsl(240, 5%, 64.9%)',
+        background: { color: '#0f1419' },
+        textColor: '#9ca3af',
         fontFamily: 'inherit',
       },
       grid: {
@@ -105,11 +105,11 @@ export function TradingChart({ chartData, currentIndex, symbol, timeframe, onCha
     });
 
     const candleSeries = chart.addCandlestickSeries({
-      upColor: 'hsl(142, 71%, 45%)',
-      downColor: 'hsl(0, 84%, 60%)',
+      upColor: '#22c55e',
+      downColor: '#ef4444',
       borderVisible: false,
-      wickUpColor: 'hsl(142, 71%, 45%)',
-      wickDownColor: 'hsl(0, 84%, 60%)',
+      wickUpColor: '#22c55e',
+      wickDownColor: '#ef4444',
     });
 
     chartRef.current = chart;
