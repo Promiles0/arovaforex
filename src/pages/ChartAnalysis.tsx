@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { TradingChart } from '@/components/chart-analysis/TradingChart';
 import { ReplayControls } from '@/components/chart-analysis/ReplayControls';
 import { TradingPanel } from '@/components/chart-analysis/TradingPanel';
 import { IndicatorsPanel } from '@/components/chart-analysis/IndicatorsPanel';
-import { RefreshCw, BarChart3, X } from 'lucide-react';
+import { RefreshCw, BarChart3, X, Construction, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SEO } from '@/components/seo/SEO';
@@ -56,6 +59,11 @@ const timeframes = [
 ];
 
 export default function ChartAnalysis() {
+  const [showNotice, setShowNotice] = useState(true);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Trader";
+
   const [symbol, setSymbol] = useState('EURUSD');
   const [timeframe, setTimeframe] = useState('15m');
   const [chartData, setChartData] = useState<CandleData[]>([]);
@@ -198,6 +206,31 @@ export default function ChartAnalysis() {
   return (
     <div className="space-y-4">
       <SEO title="Chart Analysis | ArovaForex" description="Practice trading with historical data replay" />
+
+      {/* Development Notice Dialog */}
+      <Dialog open={showNotice} onOpenChange={setShowNotice}>
+        <DialogContent className="sm:max-w-md border-primary/20">
+          <DialogHeader className="text-center items-center">
+            <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Construction className="w-8 h-8 text-amber-500" />
+            </div>
+            <DialogTitle className="text-xl">Under Development 🚧</DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground pt-2 text-sm leading-relaxed">
+              Hey <span className="font-semibold text-foreground">{displayName}</span>, this page is still under development so you may find things not working well — don't be surprised! Some features may also be removed.
+              <br /><br />
+              For any enquiry, contact our support team or chat with <span className="font-semibold text-primary">Arova AI</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+            <Button variant="outline" className="flex-1 gap-2" onClick={() => { setShowNotice(false); navigate("/dashboard/contact"); }}>
+              <MessageCircle className="w-4 h-4" /> Contact Us
+            </Button>
+            <Button className="flex-1" onClick={() => setShowNotice(false)}>
+              Got it, continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
