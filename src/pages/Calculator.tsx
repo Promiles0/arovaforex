@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { Calculator, DollarSign, TrendingUp, Target, Info, Scale, ArrowUpDown, Ruler, Save, Download, Trash2, History, Percent, LineChart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { Calculator, DollarSign, TrendingUp, Target, Info, Scale, ArrowUpDown, Ruler, Save, Download, Trash2, History, Percent, LineChart, Construction, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SEO } from "@/components/seo/SEO";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 // Pip values and contract sizes for different instruments
 const INSTRUMENTS = {
@@ -59,6 +62,11 @@ interface SavedCalculation {
 const STORAGE_KEY = "arovaforex_calculator_history";
 
 export default function CalculatorPage() {
+  const [showNotice, setShowNotice] = useState(true);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Trader";
+
   const [accountBalance, setAccountBalance] = useState<string>("10000");
   const [riskPercent, setRiskPercent] = useState<string>("1");
   const [stopLossPips, setStopLossPips] = useState<string>("50");
@@ -514,6 +522,31 @@ export default function CalculatorPage() {
 
   return (
     <>
+      {/* Development Notice Dialog */}
+      <Dialog open={showNotice} onOpenChange={setShowNotice}>
+        <DialogContent className="sm:max-w-md border-primary/20">
+          <DialogHeader className="text-center items-center">
+            <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Construction className="w-8 h-8 text-amber-500" />
+            </div>
+            <DialogTitle className="text-xl">Under Development 🚧</DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground pt-2 text-sm leading-relaxed">
+              Hey <span className="font-semibold text-foreground">{displayName}</span>, this page is still under development so you may find things not working well — don't be surprised! Some features may also be removed.
+              <br /><br />
+              For any enquiry, contact our support team or chat with <span className="font-semibold text-primary">Arova AI</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+            <Button variant="outline" className="flex-1 gap-2" onClick={() => { setShowNotice(false); navigate("/dashboard/contact"); }}>
+              <MessageCircle className="w-4 h-4" /> Contact Us
+            </Button>
+            <Button className="flex-1" onClick={() => setShowNotice(false)}>
+              Got it, continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <SEO 
         title="Trading Calculators | ArovaForex"
         description="Position size, risk:reward, profit/loss, and pip calculators for Forex and Gold trading."
