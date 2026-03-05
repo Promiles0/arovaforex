@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Video, Save, Eye, EyeOff, Radio, Trash2, MessageSquare, AlertTriangle } from "lucide-react";
+import { Video, Save, Eye, EyeOff, Radio, Trash2, MessageSquare, AlertTriangle, CalendarIcon, Clock, X } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -337,6 +341,48 @@ const LiveStreamControl = () => {
             </CardContent>
           </Card>
 
+          {/* Schedule Session Card */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarIcon className="w-5 h-5 text-primary" />
+                Schedule Session
+              </CardTitle>
+              <CardDescription>
+                Set a future date/time so users see a countdown
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {config.scheduled_start ? (
+                <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">Scheduled for</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => {
+                      await supabase.from('live_stream_config').update({ scheduled_start: null }).eq('id', config.id);
+                      setConfig({ ...config, scheduled_start: null });
+                      toast.success('Schedule cleared');
+                    }}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <p className="text-lg font-semibold text-primary">
+                    {format(new Date(config.scheduled_start), "PPP 'at' p")}
+                  </p>
+                </div>
+              ) : (
+                <SchedulePicker
+                  onSchedule={async (date: Date) => {
+                    const iso = date.toISOString();
+                    const { error } = await supabase.from('live_stream_config').update({ scheduled_start: iso }).eq('id', config.id);
+                    if (error) { toast.error('Failed to schedule'); return; }
+                    setConfig({ ...config, scheduled_start: iso });
+                    toast.success('Session scheduled!');
+                  }}
+                />
+              )}
+            </CardContent>
+          </Card>
+
           {/* Chat Management Card */}
           <Card className="mt-6">
             <CardHeader>
@@ -410,6 +456,53 @@ const LiveStreamControl = () => {
             </CardContent>
           </Card>
         </motion.div>
+      </div>
+    </div>
+  );
+};
+
+// Schedule picker sub-component
+const SchedulePicker = ({ onSchedule }: { onSchedule: (date: Date) => void }) => {
+  const [date, setDate] = useState<Date>();
+  const [time, setTime] = useState("18:00");
+
+  const handleSchedule = () => {
+    if (!date) return;
+    const [h, m] = time.split(":").map(Number);
+    const scheduled = new Date(date);
+    scheduled.setHours(h, m, 0, 0);
+    if (scheduled <= new Date()) { toast.error("Must be in the future"); return; }
+    onSchedule(scheduled);
+  };
+
+  return (
+    <div className="space-y-3">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {date ? format(date, "PPP") : "Pick a date"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={setDate}
+            disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
+            initialFocus
+            className="p-3 pointer-events-auto"
+          />
+        </PopoverContent>
+      </Popover>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="pl-10" />
+        </div>
+        <Button onClick={handleSchedule} disabled={!date} className="gap-2">
+          <CalendarIcon className="w-4 h-4" /> Schedule
+        </Button>
       </div>
     </div>
   );
