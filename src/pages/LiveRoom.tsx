@@ -157,7 +157,10 @@ const LiveRoom = () => {
           </motion.div>
         </div>
       ) : (
-        <OfflineMessage />
+        <OfflineMessage
+          scheduledStart={streamConfig?.scheduled_start}
+          title={streamConfig?.title}
+        />
       )}
     </div>
   );
