@@ -1,80 +1,51 @@
 
 
-## Admin Dashboard Enhancement Plan
+## Plan: Three Enhancements
 
-### 1. Sidebar Redesign (`AdminSidebar.tsx`)
-- Add Arova logo at top of sidebar
-- Group nav items into logical sections: **Overview** (Home, Analytics), **Content** (Content, Calendar Events, Journal), **Communication** (Notifications, Contact, Contact Analytics, Live Stream, AI Assistant), **Users** (Users)
-- Add a "Back to App" link and logout button at bottom
-- Staggered fade-in animation on sidebar items using framer-motion
+### Task 1: Verify Admin Dashboard (Browser Test)
+Navigate to `/admin` in the preview to visually verify all widgets render. This requires login first -- will ask user to log in if needed.
 
-### 2. Enhanced Header (`AdminHeader.tsx`)
-- Add admin avatar (from profile) with dropdown menu
-- Notification bell with unread count badge (from `notifications` table)
-- Quick search bar (command palette style) for navigating admin pages
-- Current date/time display
-- Smooth entrance animation
+### Task 2: Live Session Scheduling Form + User Countdown
 
-### 3. Gradient Stat Cards (`AdminHome.tsx`)
-- Each card gets a unique gradient background (blue, green, red, purple)
-- Larger icons with colored icon containers
-- Percentage change indicator comparing today vs yesterday
-- Staggered animation on card entrance using framer-motion variants
-- Hover lift effect with shadow
+**Live Stream Control page** (`src/pages/admin/LiveStreamControl.tsx`):
+- Add a new "Schedule Session" card with a date picker (Shadcn Calendar in Popover) and time input
+- Save `scheduled_start` to `live_stream_config` table (column already exists)
+- Show currently scheduled session with option to clear it
 
-### 4. System Health Widget (new section in `AdminHome.tsx`)
-- Database status indicator (green dot + "Healthy")
-- Active sessions count (from `profiles` with recent activity)
-- Storage usage display (bucket count)
-- Uptime indicator
-- Progress bars with animated fill
-- All wrapped in a glassmorphic card
+**User-facing Live Room** (`src/pages/LiveRoom.tsx`):
+- When stream is offline but `scheduled_start` is in the future, show a countdown timer instead of the generic offline message
+- Countdown displays days/hours/minutes/seconds, auto-updates every second
+- Show session title and scheduled time
 
-### 5. Top Users Leaderboard Widget
-- Query profiles ordered by forecast count or journal entry count
-- Show avatar, name, join date, activity count
-- Ranked 1-5 with medal icons for top 3
-- Slide-in animation
+**Offline Message** (`src/components/live-room/OfflineMessage.tsx`):
+- Accept optional `scheduledStart` and `title` props
+- When scheduled, render countdown timer with animated digits
+- When no schedule, keep current "No Live Session" message
 
-### 6. Platform Overview Donut Chart
-- PieChart from recharts showing breakdown: Forecasts, Journal Entries, Contact Messages, Live Stream Views
-- Animated on mount
-- Color-coded legend
+### Task 3: Dark/Light Mode Toggle + Sidebar Dark Theme
 
-### 7. Recent Contact Messages Preview
-- Show latest 3-5 open contact messages
-- Status badge (open/resolved), priority indicator
-- Quick "View" link to `/admin/contact`
-- Fade-in list animation
+**Setup ThemeProvider** (`src/App.tsx`):
+- Wrap app with `ThemeProvider` from `next-themes` (already installed)
+- Set `attribute="class"`, `defaultTheme="dark"`
 
-### 8. Upcoming Events Calendar Widget
-- Query `calendar_events` for next 5 upcoming events
-- Show date, title, category badge
-- Link to `/admin/calendar-events`
+**Admin Header** (`src/components/admin/AdminHeader.tsx`):
+- Add Sun/Moon toggle button using `useTheme()` from next-themes
+- Animated icon swap on click
 
-### 9. Live Session Scheduler
-- Add `scheduled_start` field already exists in `live_stream_config`
-- Show next scheduled session in admin home
-- When scheduled, display countdown on user Live Room page
-- No DB migration needed -- `scheduled_start` column already exists
+**Admin Sidebar** (`src/components/admin/AdminSidebar.tsx`):
+- Add `dark:bg-black` class to the Sidebar component so it renders black in dark mode
+- Ensure nav items have proper dark mode contrast
 
-### 10. Motion & Animations Throughout
-- Page-level staggered container animation (framer-motion `staggerChildren`)
-- Each card/section fades + slides up with delay
-- Stat number count-up animation
-- Chart draw animation
-- Activity list items stagger in
-- Hover micro-interactions on all interactive elements
+**Index.css / Tailwind**:
+- No changes needed -- Tailwind dark mode via `class` strategy is already configured
 
-### Technical Details
+### Files to create/edit:
+1. `src/App.tsx` -- wrap with ThemeProvider
+2. `src/components/admin/AdminHeader.tsx` -- add theme toggle
+3. `src/components/admin/AdminSidebar.tsx` -- dark:bg-black
+4. `src/pages/admin/LiveStreamControl.tsx` -- add scheduling card
+5. `src/pages/LiveRoom.tsx` -- show countdown when scheduled
+6. `src/components/live-room/OfflineMessage.tsx` -- countdown timer UI
 
-**No database changes needed** -- all data sources already exist in Supabase tables.
-
-**Files to create/edit:**
-- Edit `src/components/admin/AdminSidebar.tsx` -- logo, grouped sections, logout
-- Edit `src/components/admin/AdminHeader.tsx` -- avatar, notifications bell, search
-- Edit `src/pages/admin/AdminHome.tsx` -- full redesign with all new widgets, gradient cards, animations
-- The `UnderDevelopmentNotice` shared component will also be extracted in parallel
-
-**Dependencies used:** framer-motion (installed), recharts (installed), lucide-react (installed)
+No database changes needed -- `scheduled_start` column already exists on `live_stream_config`.
 
