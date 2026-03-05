@@ -68,7 +68,7 @@ export function AdminSidebar() {
   let globalIndex = 0;
 
   return (
-    <Sidebar side="left" variant="sidebar" collapsible="icon" className={`${collapsed ? "w-14" : "w-64"} dark:bg-black`}>
+    <Sidebar side="left" variant="sidebar" collapsible="icon" className={collapsed ? "w-14" : "w-64"}>
       {/* Logo */}
       <div className="p-4 flex items-center gap-3 border-b border-border/50">
         <img
