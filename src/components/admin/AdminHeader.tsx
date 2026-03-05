@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Bell, Search, User, LogOut, Settings, Sun, Moon } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Bell, Search, User, LogOut, Settings } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Link, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +30,6 @@ const adminPages = [
 export const AdminHeader = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,13 +90,6 @@ export const AdminHeader = () => {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Theme Toggle */}
-          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-            <motion.div key={theme} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} transition={{ duration: 0.3 }}>
-              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </motion.div>
-          </Button>
-
           {/* Search */}
           <div className="relative">
             <Button variant="ghost" size="icon" onClick={() => setShowSearch(!showSearch)}>
