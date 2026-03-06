@@ -2,29 +2,82 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
-  sender: 'user' | 'assistant';
+  sender: "user" | "assistant";
   message: string;
   timestamp: string;
 }
 
 const ChatMessage = ({ sender, message, timestamp }: ChatMessageProps) => {
-  const isUser = sender === 'user';
+  const isUser = sender === "user";
 
-  // Simple markdown-like formatting for bold text
   const formatMessage = (text: string) => {
-    // Replace **text** with bold
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={index}>{part.slice(2, -2)}</strong>;
+    // Split into lines first for block-level formatting
+    const lines = text.split("\n");
+    const elements: React.ReactNode[] = [];
+
+    lines.forEach((line, lineIdx) => {
+      // Bullet points
+      if (line.match(/^[\-\*•]\s/)) {
+        elements.push(
+          <div key={lineIdx} className="flex gap-1.5 items-start">
+            <span className="mt-0.5">•</span>
+            <span>{formatInline(line.replace(/^[\-\*•]\s/, ""))}</span>
+          </div>
+        );
+        return;
       }
-      // Preserve newlines
-      return part.split('\n').map((line, lineIndex, array) => (
-        <span key={`${index}-${lineIndex}`}>
-          {line}
-          {lineIndex < array.length - 1 && <br />}
+
+      // Numbered lists
+      const numMatch = line.match(/^(\d+)\.\s/);
+      if (numMatch) {
+        elements.push(
+          <div key={lineIdx} className="flex gap-1.5 items-start">
+            <span className="mt-0.5">{numMatch[1]}.</span>
+            <span>{formatInline(line.replace(/^\d+\.\s/, ""))}</span>
+          </div>
+        );
+        return;
+      }
+
+      // Empty lines → spacing
+      if (line.trim() === "") {
+        elements.push(<div key={lineIdx} className="h-1.5" />);
+        return;
+      }
+
+      // Regular text line
+      elements.push(
+        <span key={lineIdx}>
+          {formatInline(line)}
+          {lineIdx < lines.length - 1 && <br />}
         </span>
-      ));
+      );
+    });
+
+    return elements;
+  };
+
+  // Inline formatting: **bold**, *italic*, `code`
+  const formatInline = (text: string): React.ReactNode[] => {
+    const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={i}>{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+        return <em key={i}>{part.slice(1, -1)}</em>;
+      }
+      if (part.startsWith("`") && part.endsWith("`")) {
+        return (
+          <code
+            key={i}
+            className="bg-background/50 px-1 py-0.5 rounded text-xs font-mono"
+          >
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      return part;
     });
   };
 
@@ -38,16 +91,16 @@ const ChatMessage = ({ sender, message, timestamp }: ChatMessageProps) => {
             : "bg-muted text-foreground rounded-bl-md"
         )}
       >
-        <p className="text-sm whitespace-pre-wrap break-words">
+        <div className="text-sm whitespace-pre-wrap break-words">
           {formatMessage(message)}
-        </p>
+        </div>
         <p
           className={cn(
             "text-[10px] mt-1",
             isUser ? "text-primary-foreground/70" : "text-muted-foreground"
           )}
         >
-          {format(new Date(timestamp), 'HH:mm')}
+          {format(new Date(timestamp), "HH:mm")}
         </p>
       </div>
     </div>
