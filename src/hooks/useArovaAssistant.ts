@@ -1,232 +1,208 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { getAssistantResponse } from "@/lib/aiAssistant";
+import { toast } from "sonner";
 
-export interface ChatMessage {
+interface Message {
   id: string;
-  sender: 'user' | 'assistant';
+  sender: "user" | "assistant";
   message: string;
   timestamp: string;
-  matchedIntent?: string;
 }
 
-interface UseArovaAssistantReturn {
-  messages: ChatMessage[];
-  isTyping: boolean;
-  sendMessage: (message: string) => Promise<void>;
-  clearMessages: () => void;
-  canSaveHistory: boolean;
-  isLoading: boolean;
-}
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
+const WELCOME_MESSAGE: Message = {
+  id: "welcome",
+  sender: "assistant",
+  message:
+    "Hey there! 👋 I'm your **Arova Assistant** — powered by AI. Ask me anything about the platform, trading concepts, or how to use any feature!",
+  timestamp: new Date().toISOString(),
+};
 
-export function useArovaAssistant(): UseArovaAssistantReturn {
+export function useArovaAssistant() {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [isTyping, setIsTyping] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
-  const initializedRef = useRef(false);
+  const [isLoading] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const canSaveHistory = subscriptionTier === 'professional';
+  const buildHistory = useCallback(
+    (msgs: Message[]) =>
+      msgs
+        .filter((m) => m.id !== "welcome")
+        .slice(-20)
+        .map((m) => ({
+          role: m.sender === "user" ? ("user" as const) : ("assistant" as const),
+          content: m.message,
+        })),
+    []
+  );
 
-  // Fetch user's subscription tier
-  useEffect(() => {
-    const fetchSubscriptionTier = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('subscription_tier')
-          .eq('user_id', user.id)
-          .single();
+  const sendMessage = useCallback(
+    async (text: string) => {
+      if (!text.trim() || isTyping) return;
 
-        if (data && !error) {
-          setSubscriptionTier(data.subscription_tier || 'free');
-        }
-      } catch (error) {
-        console.error('Error fetching subscription tier:', error);
-      }
-    };
-
-    fetchSubscriptionTier();
-  }, [user]);
-
-  // Initialize chat session
-  useEffect(() => {
-    const initializeChat = async () => {
-      if (!user || initializedRef.current) return;
-      initializedRef.current = true;
-
-      // Add welcome message
-      const welcomeMessage: ChatMessage = {
-        id: 'welcome',
-        sender: 'assistant',
-        message: canSaveHistory
-          ? "👋 Welcome back! I'm Arova Assistant, here to help you 24/7. Your chat history is saved. What can I help you with today?"
-          : "👋 Hi! I'm Arova Assistant, here to help you 24/7 with platform features and trading education. How can I assist you today?\n\n💡 *Upgrade to Professional to save your chat history.*",
+      const userMsg: Message = {
+        id: crypto.randomUUID(),
+        sender: "user",
+        message: text.trim(),
         timestamp: new Date().toISOString(),
       };
 
-      if (canSaveHistory) {
-        setIsLoading(true);
-        try {
-          // Check for existing session
-          const { data: sessions } = await supabase
-            .from('assistant_chat_sessions')
-            .select('*')
-            .eq('user_id', user.id)
-            .is('ended_at', null)
-            .order('started_at', { ascending: false })
-            .limit(1);
+      setMessages((prev) => [...prev, userMsg]);
+      setIsTyping(true);
 
-          let currentSessionId: string;
-
-          if (sessions && sessions.length > 0) {
-            currentSessionId = sessions[0].id;
-          } else {
-            // Create new session
-            const { data: newSession, error } = await supabase
-              .from('assistant_chat_sessions')
-              .insert([{ user_id: user.id }])
-              .select()
-              .single();
-            
-            if (error) throw error;
-            currentSessionId = newSession.id;
-          }
-
-          setSessionId(currentSessionId);
-
-          // Load existing messages
-          const { data: chatMessages } = await supabase
-            .from('assistant_chat_messages')
-            .select('*')
-            .eq('session_id', currentSessionId)
-            .order('created_at', { ascending: true });
-
-          if (chatMessages && chatMessages.length > 0) {
-            setMessages(chatMessages.map(msg => ({
-              id: msg.id,
-              sender: msg.sender as 'user' | 'assistant',
-              message: msg.message,
-              timestamp: msg.created_at,
-              matchedIntent: msg.matched_intent || undefined,
-            })));
-          } else {
-            setMessages([welcomeMessage]);
-          }
-        } catch (error) {
-          console.error('Error loading chat history:', error);
-          setMessages([welcomeMessage]);
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setMessages([welcomeMessage]);
-      }
-    };
-
-    initializeChat();
-  }, [user, canSaveHistory]);
-
-  const sendMessage = useCallback(async (messageText: string) => {
-    if (!messageText.trim() || !user) return;
-
-    const userMessage: ChatMessage = {
-      id: generateId(),
-      sender: 'user',
-      message: messageText.trim(),
-      timestamp: new Date().toISOString(),
-    };
-
-    // Add user message to UI
-    setMessages(prev => [...prev, userMessage]);
-    setIsTyping(true);
-
-    // Save user message if professional
-    if (canSaveHistory && sessionId) {
-      try {
-        await supabase.from('assistant_chat_messages').insert([{
-          session_id: sessionId,
-          user_id: user.id,
-          message: messageText.trim(),
-          sender: 'user',
-        }]);
-      } catch (error) {
-        console.error('Error saving user message:', error);
-      }
-    }
-
-    try {
-      // Get AI response
-      const { response, matchedIntent, isUnmatched } = await getAssistantResponse(messageText);
-
-      // Small delay for natural feel
-      await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 300));
-
-      const assistantMessage: ChatMessage = {
-        id: generateId(),
-        sender: 'assistant',
-        message: response,
-        timestamp: new Date().toISOString(),
-        matchedIntent,
-      };
-
-      // Add assistant response to UI
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // Save assistant message if professional
-      if (canSaveHistory && sessionId) {
-        try {
-          await supabase.from('assistant_chat_messages').insert([{
-            session_id: sessionId,
+      // Save user message to DB (fire and forget)
+      if (user) {
+        supabase
+          .from("assistant_chat_messages")
+          .insert({
             user_id: user.id,
-            message: response,
-            sender: 'assistant',
-            matched_intent: matchedIntent,
-            original_query: isUnmatched ? messageText : null,
-          }]);
-        } catch (error) {
-          console.error('Error saving assistant message:', error);
-        }
+            session_id: user.id,
+            sender: "user",
+            message: text.trim(),
+          })
+          .then();
       }
-    } catch (error) {
-      console.error('Error getting response:', error);
-      const errorMessage: ChatMessage = {
-        id: generateId(),
-        sender: 'assistant',
-        message: "Sorry, I encountered an error. Please try again.",
-        timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsTyping(false);
-    }
-  }, [user, canSaveHistory, sessionId]);
 
-  const clearMessages = useCallback(() => {
-    const welcomeMessage: ChatMessage = {
-      id: 'welcome-new',
-      sender: 'assistant',
-      message: "Chat cleared! 👋 How can I help you?",
-      timestamp: new Date().toISOString(),
-    };
-    setMessages([welcomeMessage]);
-  }, []);
+      const assistantId = crypto.randomUUID();
+      let assistantSoFar = "";
+
+      const upsertAssistant = (chunk: string) => {
+        assistantSoFar += chunk;
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.id === assistantId) {
+            return prev.map((m) =>
+              m.id === assistantId ? { ...m, message: assistantSoFar } : m
+            );
+          }
+          return [
+            ...prev,
+            {
+              id: assistantId,
+              sender: "assistant" as const,
+              message: assistantSoFar,
+              timestamp: new Date().toISOString(),
+            },
+          ];
+        });
+      };
+
+      try {
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        const allMessages = [...messages, userMsg];
+        const history = buildHistory(allMessages);
+
+        const resp = await fetch(CHAT_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ messages: history }),
+          signal: controller.signal,
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({ error: "Request failed" }));
+          throw new Error(err.error || `Error ${resp.status}`);
+        }
+
+        if (!resp.body) throw new Error("No response body");
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let textBuffer = "";
+        let streamDone = false;
+
+        while (!streamDone) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          textBuffer += decoder.decode(value, { stream: true });
+
+          let newlineIndex: number;
+          while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+            let line = textBuffer.slice(0, newlineIndex);
+            textBuffer = textBuffer.slice(newlineIndex + 1);
+
+            if (line.endsWith("\r")) line = line.slice(0, -1);
+            if (line.startsWith(":") || line.trim() === "") continue;
+            if (!line.startsWith("data: ")) continue;
+
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === "[DONE]") {
+              streamDone = true;
+              break;
+            }
+
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+              if (content) upsertAssistant(content);
+            } catch {
+              textBuffer = line + "\n" + textBuffer;
+              break;
+            }
+          }
+        }
+
+        // Flush remaining
+        if (textBuffer.trim()) {
+          for (let raw of textBuffer.split("\n")) {
+            if (!raw) continue;
+            if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+            if (raw.startsWith(":") || raw.trim() === "") continue;
+            if (!raw.startsWith("data: ")) continue;
+            const jsonStr = raw.slice(6).trim();
+            if (jsonStr === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+              if (content) upsertAssistant(content);
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+
+        // Save assistant response
+        if (user && assistantSoFar) {
+          supabase
+            .from("assistant_chat_messages")
+            .insert({
+              user_id: user.id,
+              session_id: user.id,
+              sender: "assistant",
+              message: assistantSoFar,
+            })
+            .then();
+        }
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        console.error("Chat error:", err);
+        const errorMessage = err instanceof Error ? err.message : "Something went wrong";
+        toast.error(errorMessage);
+
+        if (!assistantSoFar) {
+          upsertAssistant("Sorry, I couldn't process your request right now. Please try again. 🙏");
+        }
+      } finally {
+        setIsTyping(false);
+        abortRef.current = null;
+      }
+    },
+    [messages, isTyping, user, buildHistory]
+  );
 
   return {
     messages,
     isTyping,
     sendMessage,
-    clearMessages,
-    canSaveHistory,
+    canSaveHistory: true,
     isLoading,
   };
 }
