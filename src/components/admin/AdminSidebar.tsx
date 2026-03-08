@@ -1,5 +1,6 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Users, FileText, BarChart2, Bell, Inbox,
   NotebookPen, TrendingUp, CalendarDays, Radio, Bot,
@@ -12,6 +13,8 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 const navGroups = [
   {
@@ -32,8 +35,8 @@ const navGroups = [
   {
     label: "Communication",
     items: [
-      { title: "Notifications", url: "/admin/notifications", icon: Bell },
-      { title: "Contact", url: "/admin/contact", icon: Inbox },
+      { title: "Notifications", url: "/admin/notifications", icon: Bell, badgeKey: "notifications" as const },
+      { title: "Contact", url: "/admin/contact", icon: Inbox, badgeKey: "contact" as const },
       { title: "Contact Analytics", url: "/admin/contact-analytics", icon: TrendingUp },
       { title: "Live Stream", url: "/admin/live-stream", icon: Radio },
       { title: "AI Assistant", url: "/admin/ai-assistant", icon: Bot },
@@ -61,15 +64,36 @@ export function AdminSidebar() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const collapsed = state === "collapsed";
+  const [badges, setBadges] = useState<Record<string, number>>({ notifications: 0, contact: 0 });
 
-  const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    `${isActive ? "bg-primary/10 text-primary font-medium border-l-2 border-primary" : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"} flex items-center gap-2 transition-all duration-200`;
+  useEffect(() => {
+    loadBadges();
+    const ch = supabase.channel("admin-sidebar-badges")
+      .on("postgres_changes", { event: "*", schema: "public", table: "contact_messages" }, loadBadges)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  const loadBadges = async () => {
+    const [contactRes] = await Promise.all([
+      supabase.from("contact_messages").select("id", { count: "exact", head: true }).eq("status", "open"),
+    ]);
+    setBadges({ notifications: 0, contact: contactRes.count || 0 });
+  };
+
+  const isActive = (url: string) =>
+    url === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(url);
+
+  const getNavCls = ({ isActive: active }: { isActive: boolean }) =>
+    `${active
+      ? "bg-primary/10 text-primary font-medium border-l-2 border-primary shadow-[inset_0_0_12px_-4px_hsl(var(--primary)/0.15)]"
+      : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+    } flex items-center gap-2 transition-all duration-200`;
 
   let globalIndex = 0;
 
   return (
     <Sidebar side="left" variant="sidebar" collapsible="icon" className={collapsed ? "w-14" : "w-64"}>
-      {/* Logo */}
       <div className="p-4 flex items-center gap-3 border-b border-border/50">
         <img
           src="https://raw.githubusercontent.com/Promiles0/assets/main/apple-touch-icon.png"
@@ -77,11 +101,7 @@ export function AdminSidebar() {
           className="w-8 h-8 rounded-lg object-contain"
         />
         {!collapsed && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="font-bold text-foreground tracking-tight"
-          >
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-bold text-foreground tracking-tight">
             Arova Admin
           </motion.span>
         )}
@@ -92,7 +112,7 @@ export function AdminSidebar() {
       <SidebarContent className="flex-1">
         {navGroups.map((group) => {
           const groupHasActive = group.items.some(
-            (i) => location.pathname === i.url || (i.url !== "/admin" && location.pathname.startsWith(i.url))
+            (i) => isActive(i.url)
           );
 
           return (
@@ -109,23 +129,26 @@ export function AdminSidebar() {
                     <SidebarMenu>
                       {group.items.map((item) => {
                         const idx = globalIndex++;
+                        const badgeCount = (item as any).badgeKey ? badges[(item as any).badgeKey] : 0;
                         return (
-                          <motion.div
-                            key={item.title}
-                            custom={idx}
-                            initial="hidden"
-                            animate="visible"
-                            variants={itemVariants}
-                          >
+                          <motion.div key={item.title} custom={idx} initial="hidden" animate="visible" variants={itemVariants}>
                             <SidebarMenuItem>
                               <SidebarMenuButton asChild>
-                                <NavLink
-                                  to={item.url}
-                                  end={item.url === "/admin"}
-                                  className={getNavCls}
-                                >
+                                <NavLink to={item.url} end={item.url === "/admin"} className={getNavCls}>
                                   <item.icon className="mr-2 h-4 w-4 shrink-0" />
-                                  {!collapsed && <span>{item.title}</span>}
+                                  {!collapsed && (
+                                    <span className="flex-1 flex items-center justify-between">
+                                      <span>{item.title}</span>
+                                      {badgeCount > 0 && (
+                                        <Badge variant="destructive" className="text-[10px] h-5 min-w-5 px-1.5 ml-2">
+                                          {badgeCount > 99 ? "99+" : badgeCount}
+                                        </Badge>
+                                      )}
+                                    </span>
+                                  )}
+                                  {collapsed && badgeCount > 0 && (
+                                    <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-destructive" />
+                                  )}
                                 </NavLink>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -141,7 +164,6 @@ export function AdminSidebar() {
         })}
       </SidebarContent>
 
-      {/* Footer actions */}
       <div className="border-t border-border/50 p-3 space-y-1">
         <button
           onClick={() => navigate("/dashboard")}
