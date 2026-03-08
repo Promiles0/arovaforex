@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Bell, Search, User, LogOut, Settings } from "lucide-react";
+import { Bell, Search, User, LogOut, Settings, ChevronRight, Home } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,17 +27,29 @@ const adminPages = [
   { title: "AI Assistant", path: "/admin/ai-assistant" },
 ];
 
+function useLiveClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
 export const AdminHeader = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const clock = useLiveClock();
   const [unreadCount, setUnreadCount] = useState(0);
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-  const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  // Breadcrumbs
+  const currentPage = adminPages.find(p =>
+    p.path === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(p.path)
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -82,14 +94,25 @@ export const AdminHeader = () => {
       <div className="mx-auto max-w-7xl h-14 px-4 flex items-center gap-4">
         <SidebarTrigger className="mr-2" />
 
-        {/* Date/Time */}
-        <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
-          <span>{dateStr}</span>
-          <span className="text-border">•</span>
-          <span>{timeStr}</span>
-        </div>
+        {/* Breadcrumbs */}
+        <nav className="hidden md:flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Link to="/admin" className="hover:text-foreground transition-colors flex items-center gap-1">
+            <Home className="w-3.5 h-3.5" /> Admin
+          </Link>
+          {currentPage && currentPage.path !== "/admin" && (
+            <>
+              <ChevronRight className="w-3 h-3" />
+              <span className="text-foreground font-medium">{currentPage.title}</span>
+            </>
+          )}
+        </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          {/* Live Clock */}
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 text-xs font-mono tabular-nums text-muted-foreground">
+            {clock.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+          </div>
+
           {/* Search */}
           <div className="relative">
             <Button variant="ghost" size="icon" onClick={() => setShowSearch(!showSearch)}>
@@ -125,7 +148,7 @@ export const AdminHeader = () => {
             )}
           </div>
 
-          {/* Notification Bell */}
+          {/* Bell */}
           <Button variant="ghost" size="icon" className="relative" onClick={() => navigate("/admin/notifications")}>
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
@@ -139,15 +162,13 @@ export const AdminHeader = () => {
             )}
           </Button>
 
-          {/* Avatar Dropdown */}
+          {/* Avatar */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={profile?.avatar_url || ""} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                    {initials}
-                  </AvatarFallback>
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
