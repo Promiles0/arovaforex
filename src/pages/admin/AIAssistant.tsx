@@ -11,11 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bot, Plus, Pencil, Trash2, Search, X, Tag, BarChart3, FlaskConical, MessageCircle } from "lucide-react";
+import { Bot, Plus, Pencil, Trash2, Search, X, Tag, BarChart3, MessageCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { AssistantAnalytics } from "@/components/admin/AssistantAnalytics";
-import { AssistantTestMode } from "@/components/admin/AssistantTestMode";
 import { AssistantChatPreview } from "@/components/admin/AssistantChatPreview";
+import { SystemPromptEditor } from "@/components/admin/SystemPromptEditor";
 
 interface KnowledgeEntry {
   id: string;
