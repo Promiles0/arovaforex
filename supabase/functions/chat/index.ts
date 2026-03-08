@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.52.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are Arova Assistant — the friendly, knowledgeable AI helper for the Arova Forex trading platform.
+const DEFAULT_SYSTEM_PROMPT = `You are Arova Assistant — the friendly, knowledgeable AI helper for the Arova Forex trading platform.
 
 Your personality:
 - Warm, professional, and encouraging
@@ -39,6 +40,26 @@ Formatting:
 - Keep paragraphs short (2-3 sentences max)
 - Use code formatting for specific values or settings`;
 
+async function getSystemPrompt(): Promise<string> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+    if (!supabaseUrl || !supabaseKey) return DEFAULT_SYSTEM_PROMPT;
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { data, error } = await supabase
+      .from("assistant_config")
+      .select("system_prompt")
+      .limit(1)
+      .single();
+
+    if (error || !data?.system_prompt) return DEFAULT_SYSTEM_PROMPT;
+    return data.system_prompt;
+  } catch {
+    return DEFAULT_SYSTEM_PROMPT;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -52,6 +73,8 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    const systemPrompt = await getSystemPrompt();
+
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -63,7 +86,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             ...messages,
           ],
           stream: true,

@@ -184,6 +184,27 @@ export type Database = {
         }
         Relationships: []
       }
+      assistant_config: {
+        Row: {
+          id: string
+          system_prompt: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          system_prompt?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          system_prompt?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       balance_history: {
         Row: {
           balance: number | null

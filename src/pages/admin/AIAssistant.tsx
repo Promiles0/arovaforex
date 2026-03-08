@@ -11,11 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bot, Plus, Pencil, Trash2, Search, X, Tag, BarChart3, FlaskConical, MessageCircle } from "lucide-react";
+import { Bot, Plus, Pencil, Trash2, Search, X, Tag, BarChart3, MessageCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { AssistantAnalytics } from "@/components/admin/AssistantAnalytics";
-import { AssistantTestMode } from "@/components/admin/AssistantTestMode";
 import { AssistantChatPreview } from "@/components/admin/AssistantChatPreview";
+import { SystemPromptEditor } from "@/components/admin/SystemPromptEditor";
 
 interface KnowledgeEntry {
   id: string;
@@ -240,13 +240,13 @@ const AIAssistant = () => {
             <Bot className="w-4 h-4" />
             Knowledge Base
           </TabsTrigger>
+          <TabsTrigger value="system-prompt" className="gap-2">
+            <FileText className="w-4 h-4" />
+            System Prompt
+          </TabsTrigger>
           <TabsTrigger value="analytics" className="gap-2">
             <BarChart3 className="w-4 h-4" />
             Analytics
-          </TabsTrigger>
-          <TabsTrigger value="test-mode" className="gap-2">
-            <FlaskConical className="w-4 h-4" />
-            Test Mode
           </TabsTrigger>
           <TabsTrigger value="chat-preview" className="gap-2">
             <MessageCircle className="w-4 h-4" />
@@ -431,25 +431,19 @@ const AIAssistant = () => {
           </Card>
         </TabsContent>
 
-        {/* Analytics Tab */}
-        <TabsContent value="analytics">
-          <AssistantAnalytics onAddToKnowledgeBase={(query) => openCreateModal(query)} />
+        {/* System Prompt Tab */}
+        <TabsContent value="system-prompt">
+          <SystemPromptEditor />
         </TabsContent>
 
-        {/* Test Mode Tab */}
-        <TabsContent value="test-mode">
-          <AssistantTestMode 
-            knowledgeBase={knowledgeBase}
-            onEditEntry={(entry) => openEditModal(entry as KnowledgeEntry)}
-          />
+        {/* Analytics Tab */}
+        <TabsContent value="analytics">
+          <AssistantAnalytics />
         </TabsContent>
 
         {/* Chat Preview Tab */}
         <TabsContent value="chat-preview">
-          <AssistantChatPreview 
-            knowledgeBase={knowledgeBase}
-            onEditEntry={(entry) => openEditModal(entry as KnowledgeEntry)}
-          />
+          <AssistantChatPreview />
         </TabsContent>
       </Tabs>
 
