@@ -46,6 +46,7 @@ const navGroups = [
     label: "Management",
     items: [
       { title: "Users", url: "/admin/users", icon: Users },
+      { title: "Audit Log", url: "/admin/audit-log", icon: Shield },
     ],
   },
 ];
