@@ -240,13 +240,13 @@ const AIAssistant = () => {
             <Bot className="w-4 h-4" />
             Knowledge Base
           </TabsTrigger>
+          <TabsTrigger value="system-prompt" className="gap-2">
+            <FileText className="w-4 h-4" />
+            System Prompt
+          </TabsTrigger>
           <TabsTrigger value="analytics" className="gap-2">
             <BarChart3 className="w-4 h-4" />
             Analytics
-          </TabsTrigger>
-          <TabsTrigger value="test-mode" className="gap-2">
-            <FlaskConical className="w-4 h-4" />
-            Test Mode
           </TabsTrigger>
           <TabsTrigger value="chat-preview" className="gap-2">
             <MessageCircle className="w-4 h-4" />
