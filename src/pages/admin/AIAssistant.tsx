@@ -431,25 +431,19 @@ const AIAssistant = () => {
           </Card>
         </TabsContent>
 
-        {/* Analytics Tab */}
-        <TabsContent value="analytics">
-          <AssistantAnalytics onAddToKnowledgeBase={(query) => openCreateModal(query)} />
+        {/* System Prompt Tab */}
+        <TabsContent value="system-prompt">
+          <SystemPromptEditor />
         </TabsContent>
 
-        {/* Test Mode Tab */}
-        <TabsContent value="test-mode">
-          <AssistantTestMode 
-            knowledgeBase={knowledgeBase}
-            onEditEntry={(entry) => openEditModal(entry as KnowledgeEntry)}
-          />
+        {/* Analytics Tab */}
+        <TabsContent value="analytics">
+          <AssistantAnalytics />
         </TabsContent>
 
         {/* Chat Preview Tab */}
         <TabsContent value="chat-preview">
-          <AssistantChatPreview 
-            knowledgeBase={knowledgeBase}
-            onEditEntry={(entry) => openEditModal(entry as KnowledgeEntry)}
-          />
+          <AssistantChatPreview />
         </TabsContent>
       </Tabs>
 
