@@ -1,11 +1,10 @@
-import { Shield, Lock, CheckCircle, Award } from "lucide-react";
+import { Shield, Lock, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 const badges = [
   { icon: Shield, text: "Bank-Level Security", color: "text-primary" },
   { icon: Lock, text: "SSL Encrypted", color: "text-success" },
   { icon: CheckCircle, text: "GDPR Compliant", color: "text-premium" },
-  { icon: Award, text: "Award Winning", color: "text-warning" }
 ];
 
 export const TrustBadges = () => {

@@ -3,8 +3,27 @@ import { Button } from "@/components/ui/button";
 import { Lock, TrendingUp, Target } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const ForecastPreview = ({ isAuthenticated }: { isAuthenticated: boolean }) => {
+  const [winRate, setWinRate] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_platform_stats');
+        if (!error && data) {
+          const stats = data as unknown as { avg_win_rate: number };
+          setWinRate(stats.avg_win_rate || 0);
+        }
+      } catch (e) {
+        console.error('Error fetching stats:', e);
+      }
+    };
+    fetchStats();
+  }, []);
+
   return (
     <section className="py-20 px-6 bg-muted/30">
       <div className="max-w-4xl mx-auto">
@@ -81,13 +100,15 @@ export const ForecastPreview = ({ isAuthenticated }: { isAuthenticated: boolean 
 
                     {/* Floating Benefit Badges */}
                     <div className="flex justify-center gap-4 mb-8 flex-wrap">
-                      <motion.div
-                        animate={{ y: [0, -10, 0] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="px-4 py-2 rounded-full bg-success/20 backdrop-blur-sm border border-success/30 text-success text-sm font-semibold"
-                      >
-                        📈 85% Win Rate
-                      </motion.div>
+                      {winRate > 0 && (
+                        <motion.div
+                          animate={{ y: [0, -10, 0] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                          className="px-4 py-2 rounded-full bg-success/20 backdrop-blur-sm border border-success/30 text-success text-sm font-semibold"
+                        >
+                          📈 {winRate}% Avg Win Rate
+                        </motion.div>
+                      )}
                       
                       <motion.div
                         animate={{ y: [0, -10, 0] }}

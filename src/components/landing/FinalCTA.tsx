@@ -2,8 +2,27 @@ import { Button } from "@/components/ui/button";
 import { Zap, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const FinalCTA = ({ isAuthenticated }: { isAuthenticated: boolean }) => {
+  const [usersCount, setUsersCount] = useState(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_platform_stats');
+        if (!error && data) {
+          const stats = data as unknown as { users_count: number };
+          setUsersCount(stats.users_count || 0);
+        }
+      } catch (e) {
+        console.error('Error fetching stats:', e);
+      }
+    };
+    fetchStats();
+  }, []);
+
   return (
     <section className="py-20 px-6 relative overflow-hidden">
       {/* Animated Background */}
@@ -44,7 +63,7 @@ export const FinalCTA = ({ isAuthenticated }: { isAuthenticated: boolean }) => {
           </h2>
           
           <p className="text-xl text-muted-foreground mb-8">
-            Join thousands of successful traders making informed decisions with ArovaForex
+            Join {usersCount}+ traders making informed decisions with ArovaForex
           </p>
 
           {/* Guarantees */}
@@ -97,27 +116,6 @@ export const FinalCTA = ({ isAuthenticated }: { isAuthenticated: boolean }) => {
               </Button>
             </motion.div>
           </Link>
-
-          {/* Social Proof */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.5 }}
-            className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground"
-          >
-            <div className="flex -space-x-2">
-              {['JM', 'SC', 'MB', 'EW'].map((initials, i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-success flex items-center justify-center text-white text-xs font-bold border-2 border-background"
-                >
-                  {initials}
-                </div>
-              ))}
-            </div>
-            <span>127 traders joined in the last 24 hours</span>
-          </motion.div>
         </motion.div>
       </div>
     </section>
