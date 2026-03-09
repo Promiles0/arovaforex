@@ -120,7 +120,7 @@ export function AdminSidebar() {
             <SidebarGroup key={group.label}>
               <Collapsible defaultOpen={groupHasActive || true}>
                 <CollapsibleTrigger className="w-full">
-                  <SidebarGroupLabel className="flex items-center justify-between cursor-pointer hover:text-foreground transition-colors">
+                  <SidebarGroupLabel className="flex items-center justify-between cursor-pointer hover:text-[hsl(0,0%,90%)] text-[hsl(240,5%,55%)] transition-colors">
                     {!collapsed && <span>{group.label}</span>}
                     {!collapsed && <ChevronDown className="w-3 h-3" />}
                   </SidebarGroupLabel>
