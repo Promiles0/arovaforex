@@ -87,22 +87,22 @@ export function AdminSidebar() {
 
   const getNavCls = ({ isActive: active }: { isActive: boolean }) =>
     `${active
-      ? "bg-primary/10 text-primary font-medium border-l-2 border-primary shadow-[inset_0_0_12px_-4px_hsl(var(--primary)/0.15)]"
-      : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+      ? "bg-primary/15 text-primary font-medium border-l-2 border-primary shadow-[inset_0_0_12px_-4px_hsl(var(--primary)/0.15)]"
+      : "hover:bg-[hsl(240,3.7%,15.9%)]/60 text-[hsl(240,5%,65%)] hover:text-[hsl(0,0%,90%)]"
     } flex items-center gap-2 transition-all duration-200`;
 
   let globalIndex = 0;
 
   return (
-    <Sidebar side="left" variant="sidebar" collapsible="icon" className={collapsed ? "w-14" : "w-64"}>
-      <div className="p-4 flex items-center gap-3 border-b border-border/50">
+    <Sidebar side="left" variant="sidebar" collapsible="icon" className={`${collapsed ? "w-14" : "w-64"} [&>div]:bg-[hsl(240,10%,5%)] [&>div]:text-[hsl(0,0%,90%)] [&>div]:border-r-[hsl(240,3.7%,15.9%)]`}>
+      <div className="p-4 flex items-center gap-3 border-b border-[hsl(240,3.7%,15.9%)]">
         <img
           src="https://raw.githubusercontent.com/Promiles0/assets/main/apple-touch-icon.png"
           alt="Arova Logo"
           className="w-8 h-8 rounded-lg object-contain"
         />
         {!collapsed && (
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-bold text-foreground tracking-tight">
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-bold text-[hsl(0,0%,95%)] tracking-tight">
             Arova Admin
           </motion.span>
         )}
@@ -120,7 +120,7 @@ export function AdminSidebar() {
             <SidebarGroup key={group.label}>
               <Collapsible defaultOpen={groupHasActive || true}>
                 <CollapsibleTrigger className="w-full">
-                  <SidebarGroupLabel className="flex items-center justify-between cursor-pointer hover:text-foreground transition-colors">
+                  <SidebarGroupLabel className="flex items-center justify-between cursor-pointer hover:text-[hsl(0,0%,90%)] text-[hsl(240,5%,55%)] transition-colors">
                     {!collapsed && <span>{group.label}</span>}
                     {!collapsed && <ChevronDown className="w-3 h-3" />}
                   </SidebarGroupLabel>
@@ -165,10 +165,10 @@ export function AdminSidebar() {
         })}
       </SidebarContent>
 
-      <div className="border-t border-border/50 p-3 space-y-1">
+      <div className="border-t border-[hsl(240,3.7%,15.9%)] p-3 space-y-1">
         <button
           onClick={() => navigate("/dashboard")}
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-all duration-200"
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[hsl(240,5%,65%)] hover:text-[hsl(0,0%,90%)] hover:bg-[hsl(240,3.7%,15.9%)]/60 rounded-md transition-all duration-200"
         >
           <ArrowLeft className="w-4 h-4" />
           {!collapsed && <span>Back to App</span>}
