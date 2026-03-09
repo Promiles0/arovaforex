@@ -102,7 +102,7 @@ export function AdminSidebar() {
           className="w-8 h-8 rounded-lg object-contain"
         />
         {!collapsed && (
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-bold text-foreground tracking-tight">
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-bold text-[hsl(0,0%,95%)] tracking-tight">
             Arova Admin
           </motion.span>
         )}
