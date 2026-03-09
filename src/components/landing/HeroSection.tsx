@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Zap, Play, ArrowRight, Users, TrendingUp, Activity, Award } from "lucide-react";
+import { Zap, ArrowRight, Users, TrendingUp, Activity, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useCallback } from "react";
@@ -229,16 +229,6 @@ export const HeroSection = ({ isAuthenticated }: { isAuthenticated: boolean }) =
               </Button>
             </motion.div>
           </Link>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all duration-300 w-full sm:w-auto"
-            >
-              <Play className="w-5 h-5 mr-2" />
-              Watch Demo
-            </Button>
-          </motion.div>
         </motion.div>
 
         {/* Trust line */}
