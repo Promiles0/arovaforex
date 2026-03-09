@@ -1,51 +1,57 @@
 
 
-## Plan: Three Enhancements
+## Plan: Remove All Fake/Mock Data from Landing Page
 
-### Task 1: Verify Admin Dashboard (Browser Test)
-Navigate to `/admin` in the preview to visually verify all widgets render. This requires login first -- will ask user to log in if needed.
+I found several places across the landing page with hardcoded fake data. Here is what needs to change:
 
-### Task 2: Live Session Scheduling Form + User Countdown
+### Problems Found (Fake Data)
 
-**Live Stream Control page** (`src/pages/admin/LiveStreamControl.tsx`):
-- Add a new "Schedule Session" card with a date picker (Shadcn Calendar in Popover) and time input
-- Save `scheduled_start` to `live_stream_config` table (column already exists)
-- Show currently scheduled session with option to clear it
+| Location | Fake Data |
+|---|---|
+| **HeroSection** | Mini chart bars `[40,65,50...]`, "+$1,234.56 ↑", "🎯 New Signal", "+24% this month" |
+| **HeroSection** | Avatar circles with letters A/B/C/D pretending to be real users |
+| **TestimonialsCarousel** | 4 entirely fabricated people with fake names, roles, and profit percentages |
+| **ForecastPreview** | "📈 85% Win Rate" hardcoded badge |
+| **FinalCTA** | "127 traders joined in the last 24 hours", fake avatar initials |
+| **TrustBadges** | "Award Winning" claim |
 
-**User-facing Live Room** (`src/pages/LiveRoom.tsx`):
-- When stream is offline but `scheduled_start` is in the future, show a countdown timer instead of the generic offline message
-- Countdown displays days/hours/minutes/seconds, auto-updates every second
-- Show session title and scheduled time
+### What stays (already real)
+- Platform stats in Hero + StatsCounter (from `get_platform_stats` RPC) — real DB data
+- Feature descriptions in InteractiveFeatures — these describe actual product features, not claims
 
-**Offline Message** (`src/components/live-room/OfflineMessage.tsx`):
-- Accept optional `scheduledStart` and `title` props
-- When scheduled, render countdown timer with animated digits
-- When no schedule, keep current "No Live Session" message
+### Changes
 
-### Task 3: Dark/Light Mode Toggle + Sidebar Dark Theme
+**1. `src/components/landing/HeroSection.tsx`**
+- Remove the fake mini chart bars and "+24% this month" text
+- Remove "+$1,234.56 ↑" and "🎯 New Signal" floating badges
+- Remove fake avatar circles (A/B/C/D)
+- Keep the real stats grid (users_count, forecasts_count, etc. from DB)
+- Replace mini chart with a simple "Powered by real market data" note or remove entirely
 
-**Setup ThemeProvider** (`src/App.tsx`):
-- Wrap app with `ThemeProvider` from `next-themes` (already installed)
-- Set `attribute="class"`, `defaultTheme="dark"`
+**2. `src/components/landing/TestimonialsCarousel.tsx`**
+- Remove all 4 fake testimonials
+- Replace with a section that fetches real user count from `get_platform_stats` and shows a community stat instead (e.g., "Join X+ traders on ArovaForex")
+- OR remove the testimonials section entirely until real reviews exist
+- Alternative: convert to a "What You Get" value proposition section with no fake quotes
 
-**Admin Header** (`src/components/admin/AdminHeader.tsx`):
-- Add Sun/Moon toggle button using `useTheme()` from next-themes
-- Animated icon swap on click
+**3. `src/components/landing/ForecastPreview.tsx`**
+- Replace hardcoded "85% Win Rate" with the real `avg_win_rate` from `get_platform_stats`
+- Keep "Clear Entry/Exit" and "Real-time Updates" badges (these describe features, not stats)
 
-**Admin Sidebar** (`src/components/admin/AdminSidebar.tsx`):
-- Add `dark:bg-black` class to the Sidebar component so it renders black in dark mode
-- Ensure nav items have proper dark mode contrast
+**4. `src/components/landing/FinalCTA.tsx`**
+- Remove "127 traders joined in the last 24 hours" — replace with real `users_count` from DB: "Join X+ traders"
+- Remove fake avatar initials (JM, SC, MB, EW)
 
-**Index.css / Tailwind**:
-- No changes needed -- Tailwind dark mode via `class` strategy is already configured
+**5. `src/components/landing/TrustBadges.tsx`**
+- Remove "Award Winning" badge (unless there's a real award)
+- Keep SSL Encrypted, GDPR Compliant, Bank-Level Security (these are factual platform features)
 
-### Files to create/edit:
-1. `src/App.tsx` -- wrap with ThemeProvider
-2. `src/components/admin/AdminHeader.tsx` -- add theme toggle
-3. `src/components/admin/AdminSidebar.tsx` -- dark:bg-black
-4. `src/pages/admin/LiveStreamControl.tsx` -- add scheduling card
-5. `src/pages/LiveRoom.tsx` -- show countdown when scheduled
-6. `src/components/live-room/OfflineMessage.tsx` -- countdown timer UI
+**6. `src/pages/Index.tsx`**
+- If testimonials section is removed, remove import and component usage
 
-No database changes needed -- `scheduled_start` column already exists on `live_stream_config`.
+### Approach
+- Every number shown to visitors will come from the database via `get_platform_stats`
+- No fabricated people, names, profit claims, or stats
+- Feature descriptions (what the product does) are kept since they describe real functionality
+- The page will be honest and data-driven
 
