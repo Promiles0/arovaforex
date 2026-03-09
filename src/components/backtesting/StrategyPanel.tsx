@@ -92,20 +92,7 @@ export function StrategyPanel({ onRunBacktest, isLoading }: StrategyPanelProps) 
       </div>
 
       {/* Pair - Grouped */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Trading Pair</Label>
-        <Select value={pair} onValueChange={setPair}>
-          <SelectTrigger className="h-9 bg-background/50 border-border/60"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {PAIR_GROUPS.map(group => (
-              <SelectGroup key={group.label}>
-                <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70">{group.label}</SelectLabel>
-                {group.pairs.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectGroup>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <PairSelector value={pair} onChange={setPair} />
 
       {/* Timeframe */}
       <div className="space-y-1.5">
