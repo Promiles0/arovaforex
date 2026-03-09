@@ -81,7 +81,7 @@ const App = () => (
                 <Route path="settings" element={<Settings />} />
                 <Route path="calculator" element={<Calculator />} />
                 <Route path="live-room" element={<LiveRoom />} />
-                <Route path="chart-analysis" element={<ChartAnalysis />} />
+                <Route path="backtesting" element={<Backtesting />} />
               </Route>
 
               <Route path="/admin" element={

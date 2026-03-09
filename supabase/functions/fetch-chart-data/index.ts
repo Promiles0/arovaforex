@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { symbol, interval } = await req.json();
+    const { symbol, interval, start_date, end_date } = await req.json();
     
     const API_KEY = Deno.env.get('TWELVE_DATA_API_KEY');
     if (!API_KEY) {
@@ -34,7 +34,13 @@ serve(async (req) => {
     
     const apiInterval = intervalMap[interval] || '15min';
     
-    const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(formattedSymbol)}&interval=${apiInterval}&outputsize=500&apikey=${API_KEY}`;
+    let url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(formattedSymbol)}&interval=${apiInterval}&apikey=${API_KEY}`;
+    
+    if (start_date && end_date) {
+      url += `&start_date=${start_date}&end_date=${end_date}`;
+    } else {
+      url += `&outputsize=500`;
+    }
     
     const response = await fetch(url);
     const data = await response.json();
