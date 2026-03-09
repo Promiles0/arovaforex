@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Zap, Play, ArrowRight, Users, TrendingUp, Activity, Award } from "lucide-react";
+import { Zap, ArrowRight, Users, TrendingUp, Activity, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useCallback } from "react";
