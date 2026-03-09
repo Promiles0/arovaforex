@@ -1,51 +1,107 @@
 
 
-## Plan: Three Enhancements
+## Plan: Rebuild Chart Analysis → Backtesting Page
 
-### Task 1: Verify Admin Dashboard (Browser Test)
-Navigate to `/admin` in the preview to visually verify all widgets render. This requires login first -- will ask user to log in if needed.
+Replace the current "Chart Analysis" replay-based page with a dedicated **Backtesting** page at `/dashboard/backtesting`. The old route `/dashboard/chart-analysis` will redirect to the new one.
 
-### Task 2: Live Session Scheduling Form + User Countdown
+### Architecture
 
-**Live Stream Control page** (`src/pages/admin/LiveStreamControl.tsx`):
-- Add a new "Schedule Session" card with a date picker (Shadcn Calendar in Popover) and time input
-- Save `scheduled_start` to `live_stream_config` table (column already exists)
-- Show currently scheduled session with option to clear it
+```text
+Desktop Layout:
+┌──────────────────────┬──────────────────────────────┐
+│  Strategy Settings   │  Candlestick Chart           │
+│  ─────────────────   │  (lightweight-charts)        │
+│  Pair selector       │  Entry/SL/TP lines drawn     │
+│  Timeframe selector  │  after backtest runs         │
+│  Buy / Sell toggle   │                              │
+│  Entry Price input   │                              │
+│  Stop Loss input     │                              │
+│  Take Profit input   │                              │
+│  Date Range picker   │                              │
+│  [Run Backtest]      │                              │
+├──────────────────────┴──────────────────────────────┤
+│  Results Panel (cards): Result, Pips, R:R,          │
+│  Duration, Entry, Exit                              │
+└─────────────────────────────────────────────────────┘
+```
 
-**User-facing Live Room** (`src/pages/LiveRoom.tsx`):
-- When stream is offline but `scheduled_start` is in the future, show a countdown timer instead of the generic offline message
-- Countdown displays days/hours/minutes/seconds, auto-updates every second
-- Show session title and scheduled time
+### Files to Delete
+- `src/pages/ChartAnalysis.tsx`
+- `src/components/chart-analysis/TradingChart.tsx`
+- `src/components/chart-analysis/TradingPanel.tsx`
+- `src/components/chart-analysis/ReplayControls.tsx`
+- `src/components/chart-analysis/DrawingToolbar.tsx`
+- `src/components/chart-analysis/IndicatorsPanel.tsx`
+- `src/hooks/useDrawingTools.ts`
 
-**Offline Message** (`src/components/live-room/OfflineMessage.tsx`):
-- Accept optional `scheduledStart` and `title` props
-- When scheduled, render countdown timer with animated digits
-- When no schedule, keep current "No Live Session" message
+### Files to Create
 
-### Task 3: Dark/Light Mode Toggle + Sidebar Dark Theme
+**1. `src/pages/Backtesting.tsx`** — Main page component
+- Strategy settings panel (left sidebar on desktop, stacked on mobile)
+- Pair selector (same pairs + more: NZDUSD, USDCHF, GBPJPY, EURJPY)
+- Timeframe selector (5m, 15m, 30m, 1H, 4H, 1D)
+- Buy/Sell toggle buttons
+- Entry price, SL, TP number inputs
+- Date range picker (start_date / end_date) using Popover + Calendar
+- "Run Backtest" button with loading state
+- Calls edge function with `{ symbol, interval, start_date, end_date }`
+- Runs simulation logic candle-by-candle after data loads
+- Draws entry/SL/TP horizontal price lines on chart
+- Results panel with 6 metric cards
+- Optional: save backtest to DB
 
-**Setup ThemeProvider** (`src/App.tsx`):
-- Wrap app with `ThemeProvider` from `next-themes` (already installed)
-- Set `attribute="class"`, `defaultTheme="dark"`
+**2. `src/components/backtesting/BacktestChart.tsx`** — Chart component
+- lightweight-charts candlestick chart (dark theme, hex colors)
+- SMA/EMA optional overlays
+- After backtest: draw 3 horizontal price lines (Entry=blue, SL=red, TP=green)
+- Mark the exit candle with a marker
+- Responsive, 500px+ height, zoom/pan/crosshair
 
-**Admin Header** (`src/components/admin/AdminHeader.tsx`):
-- Add Sun/Moon toggle button using `useTheme()` from next-themes
-- Animated icon swap on click
+**3. `src/components/backtesting/StrategyPanel.tsx`** — Left sidebar form
+- All inputs: pair, timeframe, direction, entry, SL, TP, date range
+- Run Backtest button
+- Validation (entry required, SL/TP logic based on direction)
 
-**Admin Sidebar** (`src/components/admin/AdminSidebar.tsx`):
-- Add `dark:bg-black` class to the Sidebar component so it renders black in dark mode
-- Ensure nav items have proper dark mode contrast
+**4. `src/components/backtesting/ResultsPanel.tsx`** — Results cards
+- Trade Result (WIN/LOSS badge), Profit in pips, Risk/Reward Ratio, Trade Duration, Entry Price, Exit Price
+- Hidden until backtest completes
 
-**Index.css / Tailwind**:
-- No changes needed -- Tailwind dark mode via `class` strategy is already configured
+### Files to Edit
 
-### Files to create/edit:
-1. `src/App.tsx` -- wrap with ThemeProvider
-2. `src/components/admin/AdminHeader.tsx` -- add theme toggle
-3. `src/components/admin/AdminSidebar.tsx` -- dark:bg-black
-4. `src/pages/admin/LiveStreamControl.tsx` -- add scheduling card
-5. `src/pages/LiveRoom.tsx` -- show countdown when scheduled
-6. `src/components/live-room/OfflineMessage.tsx` -- countdown timer UI
+**5. `supabase/functions/fetch-chart-data/index.ts`**
+- Add support for `start_date` and `end_date` parameters
+- When provided, use `&start_date=...&end_date=...` instead of `&outputsize=500`
+- Keep backward compatibility (existing usage without dates still works)
 
-No database changes needed -- `scheduled_start` column already exists on `live_stream_config`.
+**6. `src/App.tsx`**
+- Replace `chart-analysis` route with `backtesting` route
+- Import new `Backtesting` page
+
+**7. Sidebar navigation** (`src/components/layout/Sidebar.tsx` or `ResponsiveSidebar.tsx`)
+- Rename "Chart Analysis" to "Backtesting" and update the route
+
+### Database (Optional — Save Backtests)
+- Create `backtests` table: `id, user_id, pair, timeframe, direction, entry, stop_loss, take_profit, result (win/loss), pips, risk_reward, duration_candles, created_at`
+- RLS: users can CRUD own rows
+- "Save Result" button appears after a completed backtest
+
+### Simulation Logic (in page component)
+```
+for each candle from entry_candle to last:
+  if BUY:
+    if candle.low <= stopLoss → LOSS, exit at SL
+    if candle.high >= takeProfit → WIN, exit at TP
+  if SELL:
+    if candle.high >= stopLoss → LOSS, exit at SL  
+    if candle.low <= takeProfit → WIN, exit at TP
+stop at first hit; if neither hit → "No Result (Open)"
+```
+
+### Key Details
+- Chart uses hex/rgba colors only (no HSL — lightweight-charts constraint)
+- Edge function already has `TWELVE_DATA_API_KEY` configured
+- Date range limited to reasonable spans to avoid API credit exhaustion
+- Loading skeleton while fetching data
+- "Run Backtest" disabled during fetch
+- Mobile: settings → button → chart → results (stacked vertically)
 
