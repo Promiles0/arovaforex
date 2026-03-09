@@ -27,7 +27,7 @@ import Journal from "./pages/Journal";
 import Settings from "./pages/Settings";
 import Calculator from "./pages/Calculator";
 import LiveRoom from "./pages/LiveRoom";
-import ChartAnalysis from "./pages/ChartAnalysis";
+import Backtesting from "./pages/Backtesting";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
