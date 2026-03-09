@@ -10,28 +10,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
-const PAIR_GROUPS = [
-  {
-    label: 'Forex Majors',
-    pairs: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'NZD/USD', 'USD/CHF'],
-  },
-  {
-    label: 'Forex Crosses',
-    pairs: ['GBP/JPY', 'EUR/JPY', 'EUR/GBP', 'AUD/JPY', 'CAD/JPY', 'EUR/AUD', 'GBP/AUD', 'EUR/CAD', 'GBP/CAD'],
-  },
-  {
-    label: 'Commodities',
-    pairs: ['XAU/USD', 'XAG/USD'],
-  },
-  {
-    label: 'Crypto',
-    pairs: ['BTC/USD', 'ETH/USD', 'BNB/USD', 'SOL/USD', 'XRP/USD'],
-  },
-  {
-    label: 'Indices',
-    pairs: ['SPX', 'IXIC', 'DJI'],
-  },
-];
+
+
 
 const TIMEFRAMES = [
   { value: '5m', label: '5 Min' },

@@ -4,22 +4,55 @@ import { CandlestickData, Time } from 'lightweight-charts';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { StrategyPanel, BacktestConfig } from '@/components/backtesting/StrategyPanel';
 import { BacktestChart } from '@/components/backtesting/BacktestChart';
 import { ResultsPanel, BacktestResult } from '@/components/backtesting/ResultsPanel';
+import { BacktestHistory } from '@/components/backtesting/BacktestHistory';
 import { SEO } from '@/components/seo/SEO';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Save, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Backtesting() {
+  const { user } = useAuth();
   const [chartData, setChartData] = useState<CandlestickData<Time>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [result, setResult] = useState<BacktestResult | null>(null);
+  const [lastConfig, setLastConfig] = useState<BacktestConfig | null>(null);
   const [priceLines, setPriceLines] = useState<{ price: number; color: string; title: string }[]>([]);
   const [markers, setMarkers] = useState<any[]>([]);
+  const [historyKey, setHistoryKey] = useState(0);
+
+  const saveBacktest = async () => {
+    if (!result || !lastConfig || !user) return;
+    setIsSaving(true);
+    const { error } = await supabase.from('backtests').insert({
+      user_id: user.id,
+      pair: lastConfig.pair,
+      timeframe: lastConfig.timeframe,
+      direction: lastConfig.direction,
+      entry_price: lastConfig.entry,
+      stop_loss: lastConfig.stopLoss,
+      take_profit: lastConfig.takeProfit,
+      exit_price: result.exitPrice,
+      result: result.result,
+      pips: result.pips,
+      risk_reward: result.riskReward,
+      duration_candles: result.durationCandles,
+      start_date: format(lastConfig.startDate, 'yyyy-MM-dd'),
+      end_date: format(lastConfig.endDate, 'yyyy-MM-dd'),
+    });
+    setIsSaving(false);
+    if (error) { toast.error('Failed to save'); return; }
+    toast.success('Backtest saved!');
+    setHistoryKey(k => k + 1);
+  };
 
   const runBacktest = useCallback(async (config: BacktestConfig) => {
     setIsLoading(true);
     setResult(null);
+    setLastConfig(config);
     setPriceLines([]);
     setMarkers([]);
 
@@ -124,7 +157,6 @@ export default function Backtesting() {
 
         {/* Main Layout */}
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* Strategy Panel */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -134,7 +166,6 @@ export default function Backtesting() {
             <StrategyPanel onRunBacktest={runBacktest} isLoading={isLoading} />
           </motion.div>
 
-          {/* Chart */}
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -145,7 +176,7 @@ export default function Backtesting() {
           </motion.div>
         </div>
 
-        {/* Results */}
+        {/* Results + Save */}
         <AnimatePresence>
           {result && (
             <motion.div
@@ -153,11 +184,28 @@ export default function Backtesting() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
+              className="space-y-3"
             >
               <ResultsPanel result={result} />
+              {user && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={saveBacktest}
+                    disabled={isSaving}
+                    size="sm"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs"
+                  >
+                    {isSaving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                    Save Result
+                  </Button>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* History */}
+        {user && <BacktestHistory key={historyKey} />}
       </div>
     </>
   );
