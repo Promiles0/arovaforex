@@ -19,10 +19,13 @@ export const TrustBadges = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="flex items-center gap-3 px-6 py-3 rounded-full bg-card border border-border/50 hover:border-primary/30 transition-all duration-300"
+              className="relative flex items-center gap-3 px-6 py-3 rounded-full bg-card border border-border/50 hover:border-primary/30 transition-all duration-300 overflow-hidden group"
             >
-              <badge.icon className={`w-5 h-5 ${badge.color}`} />
-              <span className="text-sm font-medium">{badge.text}</span>
+              {/* Shimmer sweep */}
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out bg-gradient-to-r from-transparent via-foreground/5 to-transparent" />
+              
+              <badge.icon className={`w-5 h-5 ${badge.color} relative z-10`} />
+              <span className="text-sm font-medium relative z-10">{badge.text}</span>
             </motion.div>
           ))}
         </div>
