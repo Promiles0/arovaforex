@@ -165,10 +165,10 @@ export function AdminSidebar() {
         })}
       </SidebarContent>
 
-      <div className="border-t border-border/50 p-3 space-y-1">
+      <div className="border-t border-[hsl(240,3.7%,15.9%)] p-3 space-y-1">
         <button
           onClick={() => navigate("/dashboard")}
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-all duration-200"
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[hsl(240,5%,65%)] hover:text-[hsl(0,0%,90%)] hover:bg-[hsl(240,3.7%,15.9%)]/60 rounded-md transition-all duration-200"
         >
           <ArrowLeft className="w-4 h-4" />
           {!collapsed && <span>Back to App</span>}
