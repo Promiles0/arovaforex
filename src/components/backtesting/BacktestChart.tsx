@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createChart, IChartApi, ISeriesApi, CandlestickData, Time } from 'lightweight-charts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BarChart3 } from 'lucide-react';
 
 interface PriceLine {
   price: number;
@@ -34,25 +35,26 @@ export function BacktestChart({ data, priceLines = [], markers = [], isLoading }
 
     const chart = createChart(containerRef.current, {
       layout: {
-        background: { color: '#0a0a0f' },
-        textColor: '#9ca3af',
+        background: { color: '#09090b' },
+        textColor: '#71717a',
+        fontSize: 11,
       },
       grid: {
-        vertLines: { color: '#1f2937' },
-        horzLines: { color: '#1f2937' },
+        vertLines: { color: '#18181b' },
+        horzLines: { color: '#18181b' },
       },
       crosshair: {
         mode: 0,
-        vertLine: { color: '#6366f1', labelBackgroundColor: '#6366f1' },
-        horzLine: { color: '#6366f1', labelBackgroundColor: '#6366f1' },
+        vertLine: { color: '#22c55e', width: 1, labelBackgroundColor: '#22c55e' },
+        horzLine: { color: '#22c55e', width: 1, labelBackgroundColor: '#22c55e' },
       },
       timeScale: {
-        borderColor: '#1f2937',
+        borderColor: '#27272a',
         timeVisible: true,
         secondsVisible: false,
       },
       rightPriceScale: {
-        borderColor: '#1f2937',
+        borderColor: '#27272a',
       },
     });
 
@@ -61,8 +63,8 @@ export function BacktestChart({ data, priceLines = [], markers = [], isLoading }
       downColor: '#ef4444',
       borderUpColor: '#22c55e',
       borderDownColor: '#ef4444',
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
+      wickUpColor: '#4ade80',
+      wickDownColor: '#f87171',
     });
 
     chartRef.current = chart;
@@ -90,12 +92,8 @@ export function BacktestChart({ data, priceLines = [], markers = [], isLoading }
     };
   }, [data, isLoading]);
 
-  // Update price lines
   useEffect(() => {
     if (!seriesRef.current) return;
-
-    // Remove existing price lines by re-setting data (lightweight-charts limitation)
-    // Price lines are added fresh each time
     priceLines.forEach((pl) => {
       seriesRef.current?.createPriceLine({
         price: pl.price,
@@ -108,7 +106,6 @@ export function BacktestChart({ data, priceLines = [], markers = [], isLoading }
     });
   }, [priceLines]);
 
-  // Update markers
   useEffect(() => {
     if (!seriesRef.current || markers.length === 0) return;
     seriesRef.current.setMarkers(markers as any);
@@ -116,10 +113,13 @@ export function BacktestChart({ data, priceLines = [], markers = [], isLoading }
 
   if (isLoading) {
     return (
-      <div className="w-full h-[500px] lg:h-full rounded-xl border border-border bg-card flex items-center justify-center">
+      <div className="w-full h-[500px] lg:h-full rounded-xl border border-border bg-card/80 backdrop-blur-sm flex items-center justify-center shadow-[var(--shadow-card)]">
         <div className="space-y-3 w-full p-6">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-[400px] w-full" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5 rounded" />
+            <Skeleton className="h-5 w-32" />
+          </div>
+          <Skeleton className="h-[420px] w-full rounded-lg" />
         </div>
       </div>
     );
@@ -127,10 +127,15 @@ export function BacktestChart({ data, priceLines = [], markers = [], isLoading }
 
   if (data.length === 0) {
     return (
-      <div className="w-full h-[500px] lg:h-full rounded-xl border border-border bg-card flex items-center justify-center">
-        <div className="text-center space-y-2">
-          <p className="text-muted-foreground text-sm">Configure your strategy and run a backtest</p>
-          <p className="text-muted-foreground/60 text-xs">Historical candlestick data will appear here</p>
+      <div className="w-full h-[500px] lg:h-full rounded-xl border border-border bg-card/80 backdrop-blur-sm flex items-center justify-center shadow-[var(--shadow-card)]">
+        <div className="text-center space-y-3">
+          <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <BarChart3 className="w-6 h-6 text-primary/60" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-muted-foreground text-sm font-medium">Configure your strategy and run a backtest</p>
+            <p className="text-muted-foreground/50 text-xs">Historical candlestick data will appear here</p>
+          </div>
         </div>
       </div>
     );
@@ -139,7 +144,7 @@ export function BacktestChart({ data, priceLines = [], markers = [], isLoading }
   return (
     <div
       ref={containerRef}
-      className="w-full h-[500px] lg:h-full min-h-[500px] rounded-xl border border-border overflow-hidden"
+      className="w-full h-[500px] lg:h-full min-h-[500px] rounded-xl border border-border overflow-hidden shadow-[var(--shadow-card)]"
     />
   );
 }

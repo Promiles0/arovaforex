@@ -2,11 +2,13 @@ import { useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { CandlestickData, Time } from 'lightweight-charts';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { StrategyPanel, BacktestConfig } from '@/components/backtesting/StrategyPanel';
 import { BacktestChart } from '@/components/backtesting/BacktestChart';
 import { ResultsPanel, BacktestResult } from '@/components/backtesting/ResultsPanel';
 import { SEO } from '@/components/seo/SEO';
+import { BarChart3 } from 'lucide-react';
 
 export default function Backtesting() {
   const [chartData, setChartData] = useState<CandlestickData<Time>[]>([]);
@@ -41,7 +43,6 @@ export default function Backtesting() {
       const candles: CandlestickData<Time>[] = data.data;
       setChartData(candles);
 
-      // Run simulation
       const { entry, stopLoss, takeProfit, direction } = config;
       let exitPrice = entry;
       let tradeResult: 'WIN' | 'LOSS' | 'OPEN' = 'OPEN';
@@ -50,35 +51,14 @@ export default function Backtesting() {
       for (let i = 0; i < candles.length; i++) {
         const c = candles[i];
         if (direction === 'buy') {
-          if (c.low <= stopLoss) {
-            tradeResult = 'LOSS';
-            exitPrice = stopLoss;
-            exitIndex = i;
-            break;
-          }
-          if (c.high >= takeProfit) {
-            tradeResult = 'WIN';
-            exitPrice = takeProfit;
-            exitIndex = i;
-            break;
-          }
+          if (c.low <= stopLoss) { tradeResult = 'LOSS'; exitPrice = stopLoss; exitIndex = i; break; }
+          if (c.high >= takeProfit) { tradeResult = 'WIN'; exitPrice = takeProfit; exitIndex = i; break; }
         } else {
-          if (c.high >= stopLoss) {
-            tradeResult = 'LOSS';
-            exitPrice = stopLoss;
-            exitIndex = i;
-            break;
-          }
-          if (c.low <= takeProfit) {
-            tradeResult = 'WIN';
-            exitPrice = takeProfit;
-            exitIndex = i;
-            break;
-          }
+          if (c.high >= stopLoss) { tradeResult = 'LOSS'; exitPrice = stopLoss; exitIndex = i; break; }
+          if (c.low <= takeProfit) { tradeResult = 'WIN'; exitPrice = takeProfit; exitIndex = i; break; }
         }
       }
 
-      // Pips calculation
       const isJpy = config.pair.includes('JPY');
       const pipMultiplier = isJpy ? 100 : 10000;
       const rawPips = direction === 'buy'
@@ -96,15 +76,13 @@ export default function Backtesting() {
       ]);
 
       if (tradeResult !== 'OPEN') {
-        setMarkers([
-          {
-            time: candles[exitIndex].time,
-            position: direction === 'buy' ? (tradeResult === 'WIN' ? 'aboveBar' : 'belowBar') : (tradeResult === 'WIN' ? 'belowBar' : 'aboveBar'),
-            color: tradeResult === 'WIN' ? '#22c55e' : '#ef4444',
-            shape: tradeResult === 'WIN' ? 'arrowUp' : 'arrowDown',
-            text: tradeResult === 'WIN' ? 'TP Hit' : 'SL Hit',
-          },
-        ]);
+        setMarkers([{
+          time: candles[exitIndex].time,
+          position: direction === 'buy' ? (tradeResult === 'WIN' ? 'aboveBar' : 'belowBar') : (tradeResult === 'WIN' ? 'belowBar' : 'aboveBar'),
+          color: tradeResult === 'WIN' ? '#22c55e' : '#ef4444',
+          shape: tradeResult === 'WIN' ? 'arrowUp' : 'arrowDown',
+          text: tradeResult === 'WIN' ? 'TP Hit' : 'SL Hit',
+        }]);
       }
 
       setResult({
@@ -127,26 +105,59 @@ export default function Backtesting() {
   return (
     <>
       <SEO title="Backtesting | ArovaForex" description="Test your trade ideas against historical market data" />
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Backtesting</h1>
-          <p className="text-sm text-muted-foreground">Test your trade ideas against real historical data</p>
-        </div>
+      <div className="space-y-5">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex items-center gap-3"
+        >
+          <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20">
+            <BarChart3 className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Backtesting</h1>
+            <p className="text-sm text-muted-foreground">Test your trade ideas against real historical data</p>
+          </div>
+        </motion.div>
 
+        {/* Main Layout */}
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Strategy Panel */}
-          <div className="w-full lg:w-72 shrink-0">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="w-full lg:w-72 shrink-0"
+          >
             <StrategyPanel onRunBacktest={runBacktest} isLoading={isLoading} />
-          </div>
+          </motion.div>
 
           {/* Chart */}
-          <div className="flex-1 min-h-[500px]">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="flex-1 min-h-[500px]"
+          >
             <BacktestChart data={chartData} priceLines={priceLines} markers={markers} isLoading={isLoading} />
-          </div>
+          </motion.div>
         </div>
 
         {/* Results */}
-        <ResultsPanel result={result} />
+        <AnimatePresence>
+          {result && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
+            >
+              <ResultsPanel result={result} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   );
