@@ -1,27 +1,36 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, TrendingUp, TrendingDown, Play, Loader2 } from 'lucide-react';
+import { CalendarIcon, TrendingUp, TrendingDown, Play, Loader2, Settings2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
-const PAIRS = [
-  // Forex Majors
-  'EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD',
-  'NZD/USD', 'USD/CHF',
-  // Forex Crosses
-  'GBP/JPY', 'EUR/JPY', 'EUR/GBP', 'AUD/JPY', 'CAD/JPY',
-  'EUR/AUD', 'GBP/AUD', 'EUR/CAD', 'GBP/CAD',
-  // Commodities
-  'XAU/USD', 'XAG/USD',
-  // Crypto
-  'BTC/USD', 'ETH/USD', 'BNB/USD', 'SOL/USD', 'XRP/USD',
-  // Indices
-  'SPX', 'IXIC', 'DJI',
+const PAIR_GROUPS = [
+  {
+    label: 'Forex Majors',
+    pairs: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'NZD/USD', 'USD/CHF'],
+  },
+  {
+    label: 'Forex Crosses',
+    pairs: ['GBP/JPY', 'EUR/JPY', 'EUR/GBP', 'AUD/JPY', 'CAD/JPY', 'EUR/AUD', 'GBP/AUD', 'EUR/CAD', 'GBP/CAD'],
+  },
+  {
+    label: 'Commodities',
+    pairs: ['XAU/USD', 'XAG/USD'],
+  },
+  {
+    label: 'Crypto',
+    pairs: ['BTC/USD', 'ETH/USD', 'BNB/USD', 'SOL/USD', 'XRP/USD'],
+  },
+  {
+    label: 'Indices',
+    pairs: ['SPX', 'IXIC', 'DJI'],
+  },
 ];
 
 const TIMEFRAMES = [
@@ -62,30 +71,38 @@ export function StrategyPanel({ onRunBacktest, isLoading }: StrategyPanelProps) 
   const handleSubmit = () => {
     if (!entry || !stopLoss || !takeProfit || !startDate || !endDate) return;
     onRunBacktest({
-      pair,
-      timeframe,
-      direction,
+      pair, timeframe, direction,
       entry: parseFloat(entry),
       stopLoss: parseFloat(stopLoss),
       takeProfit: parseFloat(takeProfit),
-      startDate,
-      endDate,
+      startDate, endDate,
     });
   };
 
   const isValid = entry && stopLoss && takeProfit && startDate && endDate;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-      <h3 className="text-sm font-semibold text-foreground">Strategy Settings</h3>
+    <div className="rounded-xl border border-border bg-card/80 backdrop-blur-sm p-4 space-y-4 shadow-[var(--shadow-card)]">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <div className="p-1.5 rounded-lg bg-primary/10">
+          <Settings2 className="w-3.5 h-3.5 text-primary" />
+        </div>
+        <h3 className="text-sm font-semibold text-foreground">Strategy Settings</h3>
+      </div>
 
-      {/* Pair */}
+      {/* Pair - Grouped */}
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Trading Pair</Label>
         <Select value={pair} onValueChange={setPair}>
-          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 bg-background/50 border-border/60"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {PAIRS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            {PAIR_GROUPS.map(group => (
+              <SelectGroup key={group.label}>
+                <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70">{group.label}</SelectLabel>
+                {group.pairs.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectGroup>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -93,64 +110,82 @@ export function StrategyPanel({ onRunBacktest, isLoading }: StrategyPanelProps) 
       {/* Timeframe */}
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Timeframe</Label>
-        <Select value={timeframe} onValueChange={setTimeframe}>
-          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {TIMEFRAMES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-3 gap-1">
+          {TIMEFRAMES.map(t => (
+            <button
+              key={t.value}
+              onClick={() => setTimeframe(t.value)}
+              className={cn(
+                'h-8 rounded-lg text-[11px] font-medium transition-all duration-200 border',
+                timeframe === t.value
+                  ? 'bg-primary/15 border-primary/40 text-primary shadow-sm'
+                  : 'bg-background/50 border-border/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Direction */}
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Direction</Label>
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant="outline"
+          <motion.button
+            whileTap={{ scale: 0.97 }}
             onClick={() => setDirection('buy')}
             className={cn(
-              'h-9 text-xs font-semibold',
+              'h-10 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 border',
               direction === 'buy'
-                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-                : 'text-muted-foreground'
+                ? 'bg-[hsl(var(--success))]/15 border-[hsl(var(--success))]/40 text-[hsl(var(--success))]'
+                : 'bg-background/50 border-border/40 text-muted-foreground hover:bg-muted/60'
             )}
           >
-            <TrendingUp className="w-3.5 h-3.5 mr-1" /> BUY
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
+            <TrendingUp className="w-3.5 h-3.5" /> BUY
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
             onClick={() => setDirection('sell')}
             className={cn(
-              'h-9 text-xs font-semibold',
+              'h-10 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 border',
               direction === 'sell'
-                ? 'bg-red-500/20 border-red-500/50 text-red-400'
-                : 'text-muted-foreground'
+                ? 'bg-[hsl(var(--destructive))]/15 border-[hsl(var(--destructive))]/40 text-[hsl(var(--destructive))]'
+                : 'bg-background/50 border-border/40 text-muted-foreground hover:bg-muted/60'
             )}
           >
-            <TrendingDown className="w-3.5 h-3.5 mr-1" /> SELL
-          </Button>
+            <TrendingDown className="w-3.5 h-3.5" /> SELL
+          </motion.button>
         </div>
       </div>
 
-      {/* Entry */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Entry Price</Label>
-        <Input type="number" step="0.00001" placeholder="e.g. 1.0840" value={entry} onChange={e => setEntry(e.target.value)} className="h-9" />
+      {/* Divider */}
+      <div className="h-px bg-border/50" />
+
+      {/* Price Inputs */}
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Entry Price</Label>
+          <Input type="number" step="0.00001" placeholder="e.g. 1.0840" value={entry} onChange={e => setEntry(e.target.value)} className="h-9 bg-background/50 border-border/60 tabular-nums" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-destructive" />
+            Stop Loss
+          </Label>
+          <Input type="number" step="0.00001" placeholder="e.g. 1.0800" value={stopLoss} onChange={e => setStopLoss(e.target.value)} className="h-9 bg-background/50 border-border/60 tabular-nums" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-success" />
+            Take Profit
+          </Label>
+          <Input type="number" step="0.00001" placeholder="e.g. 1.0900" value={takeProfit} onChange={e => setTakeProfit(e.target.value)} className="h-9 bg-background/50 border-border/60 tabular-nums" />
+        </div>
       </div>
 
-      {/* Stop Loss */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Stop Loss</Label>
-        <Input type="number" step="0.00001" placeholder="e.g. 1.0800" value={stopLoss} onChange={e => setStopLoss(e.target.value)} className="h-9" />
-      </div>
-
-      {/* Take Profit */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Take Profit</Label>
-        <Input type="number" step="0.00001" placeholder="e.g. 1.0900" value={takeProfit} onChange={e => setTakeProfit(e.target.value)} className="h-9" />
-      </div>
+      {/* Divider */}
+      <div className="h-px bg-border/50" />
 
       {/* Date Range */}
       <div className="grid grid-cols-2 gap-2">
@@ -158,7 +193,7 @@ export function StrategyPanel({ onRunBacktest, isLoading }: StrategyPanelProps) 
           <Label className="text-xs text-muted-foreground">Start Date</Label>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className={cn('w-full h-9 justify-start text-left text-xs font-normal', !startDate && 'text-muted-foreground')}>
+              <Button variant="outline" className={cn('w-full h-9 justify-start text-left text-xs font-normal bg-background/50 border-border/60', !startDate && 'text-muted-foreground')}>
                 <CalendarIcon className="mr-1 h-3 w-3" />
                 {startDate ? format(startDate, 'MMM d, yy') : 'Pick'}
               </Button>
@@ -172,7 +207,7 @@ export function StrategyPanel({ onRunBacktest, isLoading }: StrategyPanelProps) 
           <Label className="text-xs text-muted-foreground">End Date</Label>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className={cn('w-full h-9 justify-start text-left text-xs font-normal', !endDate && 'text-muted-foreground')}>
+              <Button variant="outline" className={cn('w-full h-9 justify-start text-left text-xs font-normal bg-background/50 border-border/60', !endDate && 'text-muted-foreground')}>
                 <CalendarIcon className="mr-1 h-3 w-3" />
                 {endDate ? format(endDate, 'MMM d, yy') : 'Pick'}
               </Button>
@@ -185,17 +220,19 @@ export function StrategyPanel({ onRunBacktest, isLoading }: StrategyPanelProps) 
       </div>
 
       {/* Run Button */}
-      <Button
-        onClick={handleSubmit}
-        disabled={!isValid || isLoading}
-        className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-      >
-        {isLoading ? (
-          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Running...</>
-        ) : (
-          <><Play className="w-4 h-4 mr-2" /> Run Backtest</>
-        )}
-      </Button>
+      <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
+        <Button
+          onClick={handleSubmit}
+          disabled={!isValid || isLoading}
+          className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-[var(--shadow-brand)] transition-shadow hover:shadow-[var(--shadow-hover)]"
+        >
+          {isLoading ? (
+            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Running...</>
+          ) : (
+            <><Play className="w-4 h-4 mr-2" /> Run Backtest</>
+          )}
+        </Button>
+      </motion.div>
     </div>
   );
 }
