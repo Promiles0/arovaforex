@@ -2,10 +2,10 @@ import { HomeHeader } from "@/components/layout/HomeHeader";
 import { HomeFooter } from "@/components/layout/HomeFooter";
 import { useAuth } from "@/hooks/useAuth";
 import { HeroSection } from "@/components/landing/HeroSection";
-import { StatsCounter } from "@/components/landing/StatsCounter";
+import { HowItWorks } from "@/components/landing/HowItWorks";
 import { InteractiveFeatures } from "@/components/landing/InteractiveFeatures";
 import { ForecastPreview } from "@/components/landing/ForecastPreview";
-import { TestimonialsCarousel } from "@/components/landing/TestimonialsCarousel";
+import { SupportedMarkets } from "@/components/landing/SupportedMarkets";
 import { TrustBadges } from "@/components/landing/TrustBadges";
 import { FinalCTA } from "@/components/landing/FinalCTA";
 import { SEO } from "@/components/seo/SEO";
@@ -24,10 +24,10 @@ const Index = () => {
         <HomeHeader />
         
         <HeroSection isAuthenticated={!!user} />
-        <StatsCounter />
+        <HowItWorks />
         <InteractiveFeatures />
         <ForecastPreview isAuthenticated={!!user} />
-        <TestimonialsCarousel />
+        <SupportedMarkets />
         <TrustBadges />
         <FinalCTA isAuthenticated={!!user} />
         
