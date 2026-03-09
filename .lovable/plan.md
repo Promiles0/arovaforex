@@ -1,71 +1,51 @@
 
 
-## Plan: Redesign Landing Page Hero Section
+## Plan: Three Enhancements
 
-The current hero section is functional but visually flat — a text column on the left, a stats card on the right. Here's a complete redesign with stronger visual impact, better animations, and modern design patterns. All data remains real (from `get_platform_stats` RPC). No mock data.
+### Task 1: Verify Admin Dashboard (Browser Test)
+Navigate to `/admin` in the preview to visually verify all widgets render. This requires login first -- will ask user to log in if needed.
 
-### New Hero Design Concept
+### Task 2: Live Session Scheduling Form + User Countdown
 
-**Layout**: Full-width cinematic hero with a centered headline, animated background effects, and a floating stats bar at the bottom of the hero instead of a side card.
+**Live Stream Control page** (`src/pages/admin/LiveStreamControl.tsx`):
+- Add a new "Schedule Session" card with a date picker (Shadcn Calendar in Popover) and time input
+- Save `scheduled_start` to `live_stream_config` table (column already exists)
+- Show currently scheduled session with option to clear it
 
-```text
-┌──────────────────────────────────────────────┐
-│  ░░ animated mesh gradient background ░░░░░  │
-│                                              │
-│      ● Live  ·  X+ Active Traders            │
-│                                              │
-│        Professional                          │
-│      Forex Trading                           │
-│        Platform                              │
-│     (typewriter subtitle cycling)            │
-│                                              │
-│   [✓ No CC] [🎯 14-Day Trial] [⚡ Cancel]    │
-│                                              │
-│   [ ⚡ Start Trading Free → ]  [ ▶ Demo ]   │
-│                                              │
-│ ┌─────────┬─────────┬─────────┬─────────┐   │
-│ │ X+      │ X       │ X       │ X%      │   │
-│ │ Traders │ Forecas │ Active  │ WinRate │   │
-│ └─────────┴─────────┴─────────┴─────────┘   │
-│            (scroll indicator)                │
-└──────────────────────────────────────────────┘
-```
+**User-facing Live Room** (`src/pages/LiveRoom.tsx`):
+- When stream is offline but `scheduled_start` is in the future, show a countdown timer instead of the generic offline message
+- Countdown displays days/hours/minutes/seconds, auto-updates every second
+- Show session title and scheduled time
 
-### Key Design Changes
+**Offline Message** (`src/components/live-room/OfflineMessage.tsx`):
+- Accept optional `scheduledStart` and `title` props
+- When scheduled, render countdown timer with animated digits
+- When no schedule, keep current "No Live Session" message
 
-**1. Centered layout** — headline, subtitle, CTAs all centered for stronger visual hierarchy. No split columns.
+### Task 3: Dark/Light Mode Toggle + Sidebar Dark Theme
 
-**2. Typewriter subtitle** — cycles through 3 real phrases:
-- "AI-Powered Market Analysis"
-- "Real-Time Trading Signals"  
-- "Professional Risk Management"
+**Setup ThemeProvider** (`src/App.tsx`):
+- Wrap app with `ThemeProvider` from `next-themes` (already installed)
+- Set `attribute="class"`, `defaultTheme="dark"`
 
-**3. Animated mesh gradient background** — multiple moving gradient orbs with more vibrant colors and larger scale, creating a living backdrop.
+**Admin Header** (`src/components/admin/AdminHeader.tsx`):
+- Add Sun/Moon toggle button using `useTheme()` from next-themes
+- Animated icon swap on click
 
-**4. Floating stats bar** — the 4 live stats sit in a glassmorphism bar at the bottom of the hero with animated number counting. Replaces the bulky side card.
+**Admin Sidebar** (`src/components/admin/AdminSidebar.tsx`):
+- Add `dark:bg-black` class to the Sidebar component so it renders black in dark mode
+- Ensure nav items have proper dark mode contrast
 
-**5. Staggered entrance animations** — each element fades in with a cascading delay using spring physics for natural feel.
+**Index.css / Tailwind**:
+- No changes needed -- Tailwind dark mode via `class` strategy is already configured
 
-**6. Particle field** — more refined floating particles with varying sizes and opacities.
+### Files to create/edit:
+1. `src/App.tsx` -- wrap with ThemeProvider
+2. `src/components/admin/AdminHeader.tsx` -- add theme toggle
+3. `src/components/admin/AdminSidebar.tsx` -- dark:bg-black
+4. `src/pages/admin/LiveStreamControl.tsx` -- add scheduling card
+5. `src/pages/LiveRoom.tsx` -- show countdown when scheduled
+6. `src/components/live-room/OfflineMessage.tsx` -- countdown timer UI
 
-**7. Subtle grid pattern** — finer, more subtle background grid.
-
-### File Changes
-
-| File | Action |
-|------|--------|
-| `src/components/landing/HeroSection.tsx` | Full rewrite — centered layout, typewriter effect, floating stats bar, enhanced animations |
-
-### Animation Details
-- **Typewriter**: `framer-motion` AnimatePresence cycling text every 3 seconds with fade+slide transition
-- **Stats counter**: Animated count-up on mount using `useEffect` with easing
-- **Background orbs**: 3 large gradient circles with slow, offset looping translations
-- **CTA button**: Shimmer sweep on hover, scale spring on tap
-- **Stats bar**: Slides up from bottom with spring animation, each stat staggered by 0.1s
-
-### What stays the same
-- Real data from `get_platform_stats` RPC
-- Feature pills (No CC, 14-Day Trial, Cancel Anytime) — these are real product facts
-- Navigation to `/auth` or `/dashboard` based on auth state
-- All other landing sections unchanged
+No database changes needed -- `scheduled_start` column already exists on `live_stream_config`.
 
