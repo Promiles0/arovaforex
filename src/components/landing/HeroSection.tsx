@@ -224,11 +224,21 @@ export const HeroSection = ({ isAuthenticated }: { isAuthenticated: boolean }) =
                   {isAuthenticated ? "Go to Dashboard" : "Start Trading Free"}
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </span>
-                {/* Shimmer */}
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
               </Button>
             </motion.div>
           </Link>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto"
+              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <ChevronDown className="w-5 h-5" />
+              See Features
+            </Button>
+          </motion.div>
         </motion.div>
 
         {/* Trust line */}
