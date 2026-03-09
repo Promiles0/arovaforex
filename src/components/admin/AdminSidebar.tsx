@@ -87,8 +87,8 @@ export function AdminSidebar() {
 
   const getNavCls = ({ isActive: active }: { isActive: boolean }) =>
     `${active
-      ? "bg-primary/10 text-primary font-medium border-l-2 border-primary shadow-[inset_0_0_12px_-4px_hsl(var(--primary)/0.15)]"
-      : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+      ? "bg-primary/15 text-primary font-medium border-l-2 border-primary shadow-[inset_0_0_12px_-4px_hsl(var(--primary)/0.15)]"
+      : "hover:bg-[hsl(240,3.7%,15.9%)]/60 text-[hsl(240,5%,65%)] hover:text-[hsl(0,0%,90%)]"
     } flex items-center gap-2 transition-all duration-200`;
 
   let globalIndex = 0;
