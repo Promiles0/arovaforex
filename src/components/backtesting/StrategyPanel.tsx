@@ -5,33 +5,13 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PairSelector } from './PairSelector';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
-const PAIR_GROUPS = [
-  {
-    label: 'Forex Majors',
-    pairs: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'NZD/USD', 'USD/CHF'],
-  },
-  {
-    label: 'Forex Crosses',
-    pairs: ['GBP/JPY', 'EUR/JPY', 'EUR/GBP', 'AUD/JPY', 'CAD/JPY', 'EUR/AUD', 'GBP/AUD', 'EUR/CAD', 'GBP/CAD'],
-  },
-  {
-    label: 'Commodities',
-    pairs: ['XAU/USD', 'XAG/USD'],
-  },
-  {
-    label: 'Crypto',
-    pairs: ['BTC/USD', 'ETH/USD', 'BNB/USD', 'SOL/USD', 'XRP/USD'],
-  },
-  {
-    label: 'Indices',
-    pairs: ['SPX', 'IXIC', 'DJI'],
-  },
-];
+
+
 
 const TIMEFRAMES = [
   { value: '5m', label: '5 Min' },
@@ -92,20 +72,7 @@ export function StrategyPanel({ onRunBacktest, isLoading }: StrategyPanelProps) 
       </div>
 
       {/* Pair - Grouped */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Trading Pair</Label>
-        <Select value={pair} onValueChange={setPair}>
-          <SelectTrigger className="h-9 bg-background/50 border-border/60"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {PAIR_GROUPS.map(group => (
-              <SelectGroup key={group.label}>
-                <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70">{group.label}</SelectLabel>
-                {group.pairs.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectGroup>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <PairSelector value={pair} onChange={setPair} />
 
       {/* Timeframe */}
       <div className="space-y-1.5">

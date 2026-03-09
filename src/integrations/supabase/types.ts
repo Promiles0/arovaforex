@@ -205,6 +205,63 @@ export type Database = {
         }
         Relationships: []
       }
+      backtests: {
+        Row: {
+          created_at: string
+          direction: string
+          duration_candles: number | null
+          end_date: string
+          entry_price: number
+          exit_price: number | null
+          id: string
+          pair: string
+          pips: number | null
+          result: string
+          risk_reward: number | null
+          start_date: string
+          stop_loss: number
+          take_profit: number
+          timeframe: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          direction: string
+          duration_candles?: number | null
+          end_date: string
+          entry_price: number
+          exit_price?: number | null
+          id?: string
+          pair: string
+          pips?: number | null
+          result: string
+          risk_reward?: number | null
+          start_date: string
+          stop_loss: number
+          take_profit: number
+          timeframe: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          direction?: string
+          duration_candles?: number | null
+          end_date?: string
+          entry_price?: number
+          exit_price?: number | null
+          id?: string
+          pair?: string
+          pips?: number | null
+          result?: string
+          risk_reward?: number | null
+          start_date?: string
+          stop_loss?: number
+          take_profit?: number
+          timeframe?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       balance_history: {
         Row: {
           balance: number | null
