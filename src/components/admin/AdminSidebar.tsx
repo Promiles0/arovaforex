@@ -94,8 +94,8 @@ export function AdminSidebar() {
   let globalIndex = 0;
 
   return (
-    <Sidebar side="left" variant="sidebar" collapsible="icon" className={collapsed ? "w-14" : "w-64"}>
-      <div className="p-4 flex items-center gap-3 border-b border-border/50">
+    <Sidebar side="left" variant="sidebar" collapsible="icon" className={`${collapsed ? "w-14" : "w-64"} [&>div]:bg-[hsl(240,10%,5%)] [&>div]:text-[hsl(0,0%,90%)] [&>div]:border-r-[hsl(240,3.7%,15.9%)]`}>
+      <div className="p-4 flex items-center gap-3 border-b border-[hsl(240,3.7%,15.9%)]">
         <img
           src="https://raw.githubusercontent.com/Promiles0/assets/main/apple-touch-icon.png"
           alt="Arova Logo"
