@@ -10,9 +10,18 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
 const PAIRS = [
+  // Forex Majors
   'EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD',
-  'NZD/USD', 'USD/CHF', 'GBP/JPY', 'EUR/JPY', 'EUR/GBP',
-  'XAU/USD',
+  'NZD/USD', 'USD/CHF',
+  // Forex Crosses
+  'GBP/JPY', 'EUR/JPY', 'EUR/GBP', 'AUD/JPY', 'CAD/JPY',
+  'EUR/AUD', 'GBP/AUD', 'EUR/CAD', 'GBP/CAD',
+  // Commodities
+  'XAU/USD', 'XAG/USD',
+  // Crypto
+  'BTC/USD', 'ETH/USD', 'BNB/USD', 'SOL/USD', 'XRP/USD',
+  // Indices
+  'SPX', 'IXIC', 'DJI',
 ];
 
 const TIMEFRAMES = [
