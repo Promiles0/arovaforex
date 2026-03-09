@@ -61,7 +61,7 @@ const features: Feature[] = [
 
 export const InteractiveFeatures = () => {
   return (
-    <section className="py-24 px-6">
+    <section id="features" className="py-24 px-6">
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
