@@ -11,32 +11,8 @@ interface Testimonial {
 }
 
 export const SignalsTestimonials = () => {
-  const testimonials: Testimonial[] = [
-    {
-      name: 'John Smith',
-      role: 'Day Trader',
-      avatar: '👨',
-      rating: 5,
-      text: "The signals are incredibly accurate. I've been profitable for 3 months straight thanks to ArovaForex. The detailed analysis helps me understand each trade.",
-      profit: '+$4,200',
-    },
-    {
-      name: 'Sarah Johnson',
-      role: 'Swing Trader',
-      avatar: '👩',
-      rating: 5,
-      text: "Best investment I've made in my trading career. The telegram alerts are instant, and the community is super supportive. Highly recommended!",
-      profit: '+$2,850',
-    },
-    {
-      name: 'Mike Chen',
-      role: 'Full-time Trader',
-      avatar: '👨‍💼',
-      rating: 5,
-      text: 'Professional-grade signals with excellent risk management. The win rate is consistently high, and the analysis provided is top-notch.',
-      profit: '+$7,100',
-    },
-  ];
+  // Real testimonials will come from database — no fake reviews
+  const testimonials: Testimonial[] = [];
 
   return (
     <div className="mb-12">
