@@ -30,10 +30,20 @@ export const PerformanceMetrics = () => {
           Proven Track Record
         </h2>
         <p className="text-muted-foreground">
-          Transparent performance metrics from the last 6 months
+          Transparent performance metrics updated in real time
         </p>
       </div>
 
+      {metrics.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-5xl mb-4">📈</div>
+          <p className="text-muted-foreground font-medium">Performance data coming soon</p>
+          <p className="text-sm text-muted-foreground/70 mt-2">
+            Real metrics will appear here once signals are published and tracked
+          </p>
+        </div>
+      ) : (
+      <>
       {/* Monthly Performance Chart */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {metrics.map((month, index) => (
