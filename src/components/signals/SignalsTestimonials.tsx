@@ -79,6 +79,7 @@ export const SignalsTestimonials = () => {
           </motion.div>
         ))}
       </div>
+      )}
     </div>
   );
 };

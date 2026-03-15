@@ -114,6 +114,8 @@ export const PerformanceMetrics = () => {
           <div className="text-sm text-muted-foreground">Avg R:R Ratio</div>
         </motion.div>
       </div>
+      </>
+      )}
     </motion.div>
   );
 };
