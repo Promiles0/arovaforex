@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Signal, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { Signal } from "lucide-react";
 import {
   SignalsHero,
   SignalPreview,
@@ -12,47 +11,8 @@ import {
   SignalsFinalCTA,
 } from "@/components/signals";
 
-// Mock user premium status - in real app this would come from auth context
+// TODO: Replace with real subscription check from user profile
 const isPremiumUser = false;
-
-const mockSignals = [
-  {
-    id: 1,
-    pair: "EUR/USD",
-    type: "BUY",
-    entry: 1.0850,
-    stopLoss: 1.0820,
-    takeProfit: 1.0920,
-    publishedAt: "2024-01-15T08:30:00Z",
-    status: "Active",
-    confidence: "High",
-    analysis: "Strong bullish momentum with key support holding at 1.0840. ECB dovish stance expected."
-  },
-  {
-    id: 2,
-    pair: "GBP/JPY",
-    type: "SELL",
-    entry: 185.50,
-    stopLoss: 186.20,
-    takeProfit: 184.00,
-    publishedAt: "2024-01-15T06:15:00Z",
-    status: "Closed",
-    confidence: "Medium",
-    analysis: "Overbought conditions at resistance. BoJ intervention risk at these levels."
-  },
-  {
-    id: 3,
-    pair: "USD/CAD",
-    type: "BUY",
-    entry: 1.3420,
-    stopLoss: 1.3380,
-    takeProfit: 1.3500,
-    publishedAt: "2024-01-14T14:45:00Z",
-    status: "Active",
-    confidence: "High",
-    analysis: "Oil weakness supporting USD strength. Break above 1.3400 confirms bullish bias."
-  }
-];
 
 const formatTime = (dateString: string) => {
   return new Date(dateString).toLocaleString("en-US", {
