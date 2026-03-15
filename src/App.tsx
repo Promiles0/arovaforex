@@ -42,6 +42,7 @@ import AdminCalendarEvents from "./pages/admin/CalendarEvents";
 import LiveStreamControl from "./pages/admin/LiveStreamControl";
 import AIAssistant from "./pages/admin/AIAssistant";
 import AuditLog from "./pages/admin/AuditLog";
+import AdminSignals from "./pages/admin/Signals";
 
 const queryClient = new QueryClient();
 
