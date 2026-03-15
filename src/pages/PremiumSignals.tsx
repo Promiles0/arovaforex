@@ -83,7 +83,7 @@ export default function PremiumSignals() {
     );
   }
 
-  // Premium user view - full signal access
+  // Premium user view - full signal access (will connect to real signals table)
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -102,78 +102,13 @@ export default function PremiumSignals() {
         </Badge>
       </div>
 
-      {/* Signals List */}
-      <div className="space-y-4">
-        {mockSignals.map((signal) => (
-          <Card key={signal.id} className="border-border/50">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl flex items-center gap-3">
-                  {signal.type === "BUY" ? (
-                    <TrendingUp className="w-5 h-5 text-success" />
-                  ) : (
-                    <TrendingDown className="w-5 h-5 text-destructive" />
-                  )}
-                  {signal.pair}
-                  <Badge className={getSignalTypeColor(signal.type)}>
-                    {signal.type}
-                  </Badge>
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge className={getStatusColor(signal.status)}>
-                    {signal.status}
-                  </Badge>
-                  <Badge className={getConfidenceColor(signal.confidence)}>
-                    {signal.confidence}
-                  </Badge>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                Published {formatTime(signal.publishedAt)}
-              </p>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              {/* Signal Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-                  <p className="text-sm font-medium text-primary mb-1">Entry Point</p>
-                  <p className="text-lg font-bold">{signal.entry}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-                  <p className="text-sm font-medium text-destructive mb-1">Stop Loss</p>
-                  <p className="text-lg font-bold">{signal.stopLoss}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-success/5 border border-success/20">
-                  <p className="text-sm font-medium text-success mb-1">Take Profit</p>
-                  <p className="text-lg font-bold">{signal.takeProfit}</p>
-                </div>
-              </div>
-
-              {/* Analysis */}
-              <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                <h4 className="font-medium mb-2">Market Analysis</h4>
-                <p className="text-muted-foreground">{signal.analysis}</p>
-              </div>
-
-              {/* Risk Reward */}
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-4">
-                  <span className="text-muted-foreground">
-                    Risk: {Math.abs(signal.entry - signal.stopLoss).toFixed(4)} pips
-                  </span>
-                  <span className="text-muted-foreground">
-                    Reward: {Math.abs(signal.takeProfit - signal.entry).toFixed(4)} pips
-                  </span>
-                </div>
-                <Badge variant="outline">
-                  R:R 1:{(Math.abs(signal.takeProfit - signal.entry) / Math.abs(signal.entry - signal.stopLoss)).toFixed(1)}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Empty state — real signals coming soon */}
+      <div className="text-center py-20 bg-card/50 backdrop-blur border border-border rounded-3xl">
+        <div className="text-6xl mb-4">📡</div>
+        <h3 className="text-xl font-semibold text-foreground mb-2">No signals yet</h3>
+        <p className="text-muted-foreground max-w-md mx-auto">
+          Premium trading signals will appear here in real time once published by our analysts.
+        </p>
       </div>
     </div>
   );
