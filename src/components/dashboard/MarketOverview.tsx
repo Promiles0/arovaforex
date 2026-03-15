@@ -124,8 +124,40 @@ export function MarketOverview() {
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {/* Top 5 Movers Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {/* Gold + Top 5 Movers Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+            {/* Gold Card */}
+            {goldData && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                className={cn(
+                  "relative p-3 rounded-lg border cursor-pointer transition-all overflow-hidden",
+                  "bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/15"
+                )}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold text-amber-400">⭐ GOLD</span>
+                  {goldData.percentChange > 0 ? (
+                    <TrendingUp className="w-4 h-4 text-amber-400" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 text-amber-400" />
+                  )}
+                </div>
+                <div className="text-sm font-bold truncate">XAU/USD</div>
+                <div className={cn(
+                  "text-xl font-bold",
+                  goldData.percentChange > 0 ? "text-success" : "text-destructive"
+                )}>
+                  {goldData.percentChange > 0 ? '+' : ''}{goldData.percentChange.toFixed(2)}%
+                </div>
+                <div className="text-[10px] text-muted-foreground font-mono mt-1">
+                  {goldData.price.toFixed(2)}
+                </div>
+              </motion.div>
+            )}
+
             {topMovers.map((pair, index) => {
               const isPositive = pair.percentChange > 0;
               
@@ -139,32 +171,25 @@ export function MarketOverview() {
                   className={cn(
                     "relative p-3 rounded-lg border cursor-pointer transition-all overflow-hidden",
                     isPositive
-                      ? "bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/15"
-                      : "bg-red-500/10 border-red-500/30 hover:bg-red-500/15"
+                      ? "bg-success/10 border-success/30 hover:bg-success/15"
+                      : "bg-destructive/10 border-destructive/30 hover:bg-destructive/15"
                   )}
                 >
-                  {/* Rank Badge */}
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-bold text-muted-foreground">#{index + 1}</span>
                     {isPositive ? (
-                      <TrendingUp className="w-4 h-4 text-emerald-400" />
+                      <TrendingUp className="w-4 h-4 text-success" />
                     ) : (
-                      <TrendingDown className="w-4 h-4 text-red-400" />
+                      <TrendingDown className="w-4 h-4 text-destructive" />
                     )}
                   </div>
-                  
-                  {/* Currency Pair */}
                   <div className="text-sm font-bold truncate">{pair.symbol}</div>
-                  
-                  {/* Percent Change */}
                   <div className={cn(
                     "text-xl font-bold",
-                    isPositive ? "text-emerald-400" : "text-red-400"
+                    isPositive ? "text-success" : "text-destructive"
                   )}>
                     {isPositive ? '+' : ''}{pair.percentChange.toFixed(2)}%
                   </div>
-                  
-                  {/* Current Price */}
                   <div className="text-[10px] text-muted-foreground font-mono mt-1">
                     {pair.price.toFixed(pair.symbol.includes('JPY') ? 2 : 4)}
                   </div>
