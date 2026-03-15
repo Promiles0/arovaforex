@@ -64,6 +64,9 @@ export function MarketOverview() {
     ?.sort((a, b) => Math.abs(b.percentChange) - Math.abs(a.percentChange))
     ?.slice(0, 5) || [];
 
+  // Get gold data
+  const goldData = marketData?.gold || marketData?.pairs?.find(p => p.symbol === 'XAU/USD') || null;
+
   if (loading) {
     return (
       <Card className="border-border/50 bg-card/50 backdrop-blur">
