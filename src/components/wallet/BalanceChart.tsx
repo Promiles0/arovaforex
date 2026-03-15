@@ -43,30 +43,11 @@ export const BalanceChart = () => {
           balance: Number(d.balance)
         })));
       } else {
-        // Generate sample data for demo purposes
-        const sampleData: BalanceData[] = [];
-        for (let i = days; i >= 0; i--) {
-          const date = subDays(new Date(), i);
-          sampleData.push({
-            date: format(date, 'MMM d'),
-            balance: Math.random() * 2000 + 3000 + (days - i) * 50
-          });
-        }
-        setChartData(sampleData);
+        setChartData([]);
       }
     } catch (error) {
       console.error('Error fetching chart data:', error);
-      // Fallback to sample data
-      const days = period === '7D' ? 7 : period === '1M' ? 30 : 90;
-      const sampleData: BalanceData[] = [];
-      for (let i = days; i >= 0; i--) {
-        const date = subDays(new Date(), i);
-        sampleData.push({
-          date: format(date, 'MMM d'),
-          balance: Math.random() * 2000 + 3000 + (days - i) * 50
-        });
-      }
-      setChartData(sampleData);
+      setChartData([]);
     } finally {
       setIsLoading(false);
     }
