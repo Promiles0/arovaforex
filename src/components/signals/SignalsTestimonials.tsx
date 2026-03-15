@@ -30,6 +30,15 @@ export const SignalsTestimonials = () => {
         </p>
       </motion.div>
 
+      {testimonials.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-5xl mb-4">💬</div>
+          <p className="text-muted-foreground font-medium">Member reviews coming soon</p>
+          <p className="text-sm text-muted-foreground/70 mt-2">
+            Real feedback from our signal members will appear here
+          </p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {testimonials.map((testimonial, index) => (
           <motion.div
