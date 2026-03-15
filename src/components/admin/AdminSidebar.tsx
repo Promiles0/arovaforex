@@ -28,6 +28,7 @@ const navGroups = [
     label: "Content",
     items: [
       { title: "Content", url: "/admin/content", icon: FileText },
+      { title: "Signals", url: "/admin/signals", icon: Signal },
       { title: "Calendar Events", url: "/admin/calendar-events", icon: CalendarDays },
       { title: "Journal", url: "/admin/journal", icon: NotebookPen },
     ],
