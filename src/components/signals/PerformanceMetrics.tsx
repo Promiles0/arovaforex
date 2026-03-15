@@ -9,13 +9,8 @@ interface MonthlyPerformance {
 }
 
 export const PerformanceMetrics = () => {
-  // Sample performance data for last 6 months
-  const metrics: MonthlyPerformance[] = Array.from({ length: 6 }, (_, i) => ({
-    month: subMonths(new Date(), i),
-    win_rate: Math.floor(Math.random() * 15) + 65, // 65-80%
-    total_signals: Math.floor(Math.random() * 15) + 20,
-    total_pips: Math.floor(Math.random() * 300) + 300,
-  })).reverse();
+  // Placeholder — will be populated with real signal performance data
+  const metrics: MonthlyPerformance[] = [];
 
   const getWinRateColor = (rate: number) => {
     if (rate >= 70) return 'text-success';
@@ -35,10 +30,20 @@ export const PerformanceMetrics = () => {
           Proven Track Record
         </h2>
         <p className="text-muted-foreground">
-          Transparent performance metrics from the last 6 months
+          Transparent performance metrics updated in real time
         </p>
       </div>
 
+      {metrics.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-5xl mb-4">📈</div>
+          <p className="text-muted-foreground font-medium">Performance data coming soon</p>
+          <p className="text-sm text-muted-foreground/70 mt-2">
+            Real metrics will appear here once signals are published and tracked
+          </p>
+        </div>
+      ) : (
+      <>
       {/* Monthly Performance Chart */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {metrics.map((month, index) => (
@@ -109,6 +114,8 @@ export const PerformanceMetrics = () => {
           <div className="text-sm text-muted-foreground">Avg R:R Ratio</div>
         </motion.div>
       </div>
+      </>
+      )}
     </motion.div>
   );
 };

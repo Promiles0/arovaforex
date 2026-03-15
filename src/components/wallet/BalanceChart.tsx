@@ -43,30 +43,11 @@ export const BalanceChart = () => {
           balance: Number(d.balance)
         })));
       } else {
-        // Generate sample data for demo purposes
-        const sampleData: BalanceData[] = [];
-        for (let i = days; i >= 0; i--) {
-          const date = subDays(new Date(), i);
-          sampleData.push({
-            date: format(date, 'MMM d'),
-            balance: Math.random() * 2000 + 3000 + (days - i) * 50
-          });
-        }
-        setChartData(sampleData);
+        setChartData([]);
       }
     } catch (error) {
       console.error('Error fetching chart data:', error);
-      // Fallback to sample data
-      const days = period === '7D' ? 7 : period === '1M' ? 30 : 90;
-      const sampleData: BalanceData[] = [];
-      for (let i = days; i >= 0; i--) {
-        const date = subDays(new Date(), i);
-        sampleData.push({
-          date: format(date, 'MMM d'),
-          balance: Math.random() * 2000 + 3000 + (days - i) * 50
-        });
-      }
-      setChartData(sampleData);
+      setChartData([]);
     } finally {
       setIsLoading(false);
     }
@@ -107,6 +88,12 @@ export const BalanceChart = () => {
         {isLoading ? (
           <div className="h-full flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground">Loading chart...</div>
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center">
+            <div className="text-4xl mb-3">📊</div>
+            <p className="text-muted-foreground">No balance history yet</p>
+            <p className="text-sm text-muted-foreground/70 mt-1">Your balance chart will appear here as data is recorded</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">

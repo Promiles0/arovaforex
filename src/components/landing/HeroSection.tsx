@@ -196,8 +196,8 @@ export const HeroSection = ({ isAuthenticated }: { isAuthenticated: boolean }) =
         >
           {[
             { icon: '✓', text: 'No Credit Card Required' },
-            { icon: '🎯', text: '14-Day Free Trial' },
-            { icon: '⚡', text: 'Cancel Anytime' },
+            { icon: '⚡', text: 'Free Forever Plan' },
+            { icon: '🔒', text: 'Secure & Private' },
           ].map((f, i) => (
             <div key={i} className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/30 text-sm text-muted-foreground">
               <span>{f.icon}</span>

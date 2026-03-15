@@ -47,15 +47,7 @@ export const RecentTransactions = () => {
       setTransactions(data || []);
     } catch (error) {
       console.error('Error fetching transactions:', error);
-      // Generate sample data for demo
-      const sampleTransactions: Transaction[] = [
-        { id: '1', type: 'deposit', amount: 1000, status: 'completed', description: 'Bank Transfer Deposit', created_at: subDays(new Date(), 1).toISOString() },
-        { id: '2', type: 'trade', amount: -50, status: 'completed', description: 'EUR/USD Trade Loss', created_at: subDays(new Date(), 2).toISOString() },
-        { id: '3', type: 'trade', amount: 150, status: 'completed', description: 'GBP/JPY Trade Profit', created_at: subDays(new Date(), 3).toISOString() },
-        { id: '4', type: 'bonus', amount: 50, status: 'completed', description: 'Referral Bonus', created_at: subDays(new Date(), 4).toISOString() },
-        { id: '5', type: 'withdrawal', amount: -200, status: 'pending', description: 'Withdrawal Request', created_at: subDays(new Date(), 5).toISOString() },
-      ];
-      setTransactions(filter === 'all' ? sampleTransactions : sampleTransactions.filter(t => t.type === filter));
+      setTransactions([]);
     } finally {
       setIsLoading(false);
     }

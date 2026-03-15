@@ -11,32 +11,8 @@ interface Testimonial {
 }
 
 export const SignalsTestimonials = () => {
-  const testimonials: Testimonial[] = [
-    {
-      name: 'John Smith',
-      role: 'Day Trader',
-      avatar: '👨',
-      rating: 5,
-      text: "The signals are incredibly accurate. I've been profitable for 3 months straight thanks to ArovaForex. The detailed analysis helps me understand each trade.",
-      profit: '+$4,200',
-    },
-    {
-      name: 'Sarah Johnson',
-      role: 'Swing Trader',
-      avatar: '👩',
-      rating: 5,
-      text: "Best investment I've made in my trading career. The telegram alerts are instant, and the community is super supportive. Highly recommended!",
-      profit: '+$2,850',
-    },
-    {
-      name: 'Mike Chen',
-      role: 'Full-time Trader',
-      avatar: '👨‍💼',
-      rating: 5,
-      text: 'Professional-grade signals with excellent risk management. The win rate is consistently high, and the analysis provided is top-notch.',
-      profit: '+$7,100',
-    },
-  ];
+  // Real testimonials will come from database — no fake reviews
+  const testimonials: Testimonial[] = [];
 
   return (
     <div className="mb-12">
@@ -54,6 +30,15 @@ export const SignalsTestimonials = () => {
         </p>
       </motion.div>
 
+      {testimonials.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-5xl mb-4">💬</div>
+          <p className="text-muted-foreground font-medium">Member reviews coming soon</p>
+          <p className="text-sm text-muted-foreground/70 mt-2">
+            Real feedback from our signal members will appear here
+          </p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {testimonials.map((testimonial, index) => (
           <motion.div
@@ -94,6 +79,7 @@ export const SignalsTestimonials = () => {
           </motion.div>
         ))}
       </div>
+      )}
     </div>
   );
 };

@@ -49,11 +49,7 @@ export const PaymentMethods = () => {
       setCards(data || []);
     } catch (error) {
       console.error('Error fetching payment methods:', error);
-      // Sample data for demo
-      setCards([
-        { id: '1', brand: 'visa', last4: '4242', exp_month: 12, exp_year: 2026, holder_name: 'John Doe', is_default: true },
-        { id: '2', brand: 'mastercard', last4: '8888', exp_month: 6, exp_year: 2025, holder_name: 'John Doe', is_default: false },
-      ]);
+      setCards([]);
     } finally {
       setIsLoading(false);
     }
