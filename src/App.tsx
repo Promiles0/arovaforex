@@ -102,6 +102,7 @@ const App = () => (
                 <Route path="live-stream" element={<LiveStreamControl />} />
                 <Route path="ai-assistant" element={<AIAssistant />} />
                 <Route path="audit-log" element={<AuditLog />} />
+                <Route path="signals" element={<AdminSignals />} />
               </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
