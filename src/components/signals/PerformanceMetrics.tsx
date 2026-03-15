@@ -9,13 +9,8 @@ interface MonthlyPerformance {
 }
 
 export const PerformanceMetrics = () => {
-  // Sample performance data for last 6 months
-  const metrics: MonthlyPerformance[] = Array.from({ length: 6 }, (_, i) => ({
-    month: subMonths(new Date(), i),
-    win_rate: Math.floor(Math.random() * 15) + 65, // 65-80%
-    total_signals: Math.floor(Math.random() * 15) + 20,
-    total_pips: Math.floor(Math.random() * 300) + 300,
-  })).reverse();
+  // Placeholder — will be populated with real signal performance data
+  const metrics: MonthlyPerformance[] = [];
 
   const getWinRateColor = (rate: number) => {
     if (rate >= 70) return 'text-success';
