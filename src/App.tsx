@@ -42,6 +42,7 @@ import AdminCalendarEvents from "./pages/admin/CalendarEvents";
 import LiveStreamControl from "./pages/admin/LiveStreamControl";
 import AIAssistant from "./pages/admin/AIAssistant";
 import AuditLog from "./pages/admin/AuditLog";
+import AdminSignals from "./pages/admin/Signals";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +102,7 @@ const App = () => (
                 <Route path="live-stream" element={<LiveStreamControl />} />
                 <Route path="ai-assistant" element={<AIAssistant />} />
                 <Route path="audit-log" element={<AuditLog />} />
+                <Route path="signals" element={<AdminSignals />} />
               </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

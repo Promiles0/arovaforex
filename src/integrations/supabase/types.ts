@@ -1395,6 +1395,72 @@ export type Database = {
         }
         Relationships: []
       }
+      trading_signals: {
+        Row: {
+          analysis: string | null
+          chart_url: string | null
+          closed_at: string | null
+          confidence: string
+          created_at: string
+          currency_pair: string
+          entry_price: number
+          id: string
+          outcome: string | null
+          pips_gained: number | null
+          published_by: string
+          signal_type: string
+          status: string
+          stop_loss: number
+          take_profit: number
+          take_profit_2: number | null
+          take_profit_3: number | null
+          timeframe: string | null
+          updated_at: string
+        }
+        Insert: {
+          analysis?: string | null
+          chart_url?: string | null
+          closed_at?: string | null
+          confidence?: string
+          created_at?: string
+          currency_pair: string
+          entry_price: number
+          id?: string
+          outcome?: string | null
+          pips_gained?: number | null
+          published_by: string
+          signal_type: string
+          status?: string
+          stop_loss: number
+          take_profit: number
+          take_profit_2?: number | null
+          take_profit_3?: number | null
+          timeframe?: string | null
+          updated_at?: string
+        }
+        Update: {
+          analysis?: string | null
+          chart_url?: string | null
+          closed_at?: string | null
+          confidence?: string
+          created_at?: string
+          currency_pair?: string
+          entry_price?: number
+          id?: string
+          outcome?: string | null
+          pips_gained?: number | null
+          published_by?: string
+          signal_type?: string
+          status?: string
+          stop_loss?: number
+          take_profit?: number
+          take_profit_2?: number | null
+          take_profit_3?: number | null
+          timeframe?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
