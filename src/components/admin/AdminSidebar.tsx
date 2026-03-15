@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Users, FileText, BarChart2, Bell, Inbox,
   NotebookPen, TrendingUp, CalendarDays, Radio, Bot,
-  ArrowLeft, LogOut, ChevronDown, Shield
+  ArrowLeft, LogOut, ChevronDown, Shield, Signal
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
