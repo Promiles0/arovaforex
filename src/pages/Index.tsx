@@ -8,6 +8,7 @@ import { ForecastPreview } from "@/components/landing/ForecastPreview";
 import { SupportedMarkets } from "@/components/landing/SupportedMarkets";
 import { TrustBadges } from "@/components/landing/TrustBadges";
 import { FinalCTA } from "@/components/landing/FinalCTA";
+import { ActivityFeed } from "@/components/landing/ActivityFeed";
 import { SEO } from "@/components/seo/SEO";
 
 const Index = () => {
@@ -27,10 +28,11 @@ const Index = () => {
         <HowItWorks />
         <InteractiveFeatures />
         <ForecastPreview isAuthenticated={!!user} />
+        <ActivityFeed />
         <SupportedMarkets />
         <TrustBadges />
         <FinalCTA isAuthenticated={!!user} />
-        
+
         <HomeFooter />
       </div>
     </>

@@ -1326,6 +1326,7 @@ export type Database = {
           notify_comment: boolean
           notify_like: boolean
           notify_system: boolean
+          onboarding_tour_completed: boolean | null
           phone_number: string | null
           push_notifications_enabled: boolean
           risk_tolerance: string | null
@@ -1354,6 +1355,7 @@ export type Database = {
           notify_comment?: boolean
           notify_like?: boolean
           notify_system?: boolean
+          onboarding_tour_completed?: boolean | null
           phone_number?: string | null
           push_notifications_enabled?: boolean
           risk_tolerance?: string | null
@@ -1382,6 +1384,7 @@ export type Database = {
           notify_comment?: boolean
           notify_like?: boolean
           notify_system?: boolean
+          onboarding_tour_completed?: boolean | null
           phone_number?: string | null
           push_notifications_enabled?: boolean
           risk_tolerance?: string | null

@@ -4,9 +4,12 @@ import { ResponsiveSidebar } from "./ResponsiveSidebar";
 import { MobileHeader } from "./MobileHeader";
 import { Header } from "./Header";
 import { ArovaAssistant } from "@/components/assistant";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { useSignalNotifications } from "@/hooks/useSignalNotifications";
 
 export const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  useSignalNotifications();
 
   return (
     <div className="min-h-screen bg-background w-full">
@@ -33,6 +36,9 @@ export const DashboardLayout = () => {
       
       {/* AI Assistant Widget */}
       <ArovaAssistant />
+      
+      {/* Onboarding Tour for new users */}
+      <OnboardingTour />
     </div>
   );
 };
