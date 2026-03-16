@@ -9,6 +9,7 @@ import { useSignalNotifications } from "@/hooks/useSignalNotifications";
 
 export const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  useSignalNotifications();
 
   return (
     <div className="min-h-screen bg-background w-full">
