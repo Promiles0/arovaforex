@@ -28,10 +28,11 @@ const Index = () => {
         <HowItWorks />
         <InteractiveFeatures />
         <ForecastPreview isAuthenticated={!!user} />
+        <ActivityFeed />
         <SupportedMarkets />
         <TrustBadges />
         <FinalCTA isAuthenticated={!!user} />
-        
+
         <HomeFooter />
       </div>
     </>

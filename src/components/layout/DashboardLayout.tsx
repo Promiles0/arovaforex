@@ -36,6 +36,9 @@ export const DashboardLayout = () => {
       
       {/* AI Assistant Widget */}
       <ArovaAssistant />
+      
+      {/* Onboarding Tour for new users */}
+      <OnboardingTour />
     </div>
   );
 };
