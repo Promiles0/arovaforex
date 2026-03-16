@@ -4,6 +4,8 @@ import { ResponsiveSidebar } from "./ResponsiveSidebar";
 import { MobileHeader } from "./MobileHeader";
 import { Header } from "./Header";
 import { ArovaAssistant } from "@/components/assistant";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { useSignalNotifications } from "@/hooks/useSignalNotifications";
 
 export const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
