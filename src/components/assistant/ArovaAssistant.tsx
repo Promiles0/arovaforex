@@ -255,8 +255,8 @@ const ArovaAssistant = () => {
       >
         {/* Drag hint */}
         {!hasDragged.current && !isOpen && (
-          <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-card border border-border px-3 py-1 rounded-lg text-xs text-foreground whitespace-nowrap animate-bounce pointer-events-none">
-            👆 Drag me!
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-sm border border-primary/30 px-3 py-1.5 rounded-full text-[11px] md:text-xs text-foreground whitespace-nowrap animate-bounce pointer-events-none shadow-lg shadow-primary/10">
+            <span className="mr-1">👆</span> Hold & drag me!
           </div>
         )}
 
