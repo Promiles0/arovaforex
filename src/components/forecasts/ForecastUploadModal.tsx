@@ -86,17 +86,15 @@ export default function ForecastUploadModal({ profile, onUploadSuccess }: Foreca
 
       if (uploadError) throw uploadError;
 
-      // Get public URL for the image
-      const { data: { publicUrl } } = supabase.storage
-        .from('forecasts')
-        .getPublicUrl(fileName);
+      // Store the storage path (bucket is now private, signed URLs generated at render time)
+      const storagePath = fileName;
 
       // Insert forecast record
       const { error: insertError } = await supabase
         .from('forecasts')
         .insert({
           title: uploadForm.title,
-          image_url: publicUrl,
+          image_url: storagePath,
           forecast_type: 'public',
           currency_pair: uploadForm.currency_pair,
           trade_bias: uploadForm.trade_bias as 'long' | 'short' | 'neutral',

@@ -64,8 +64,7 @@ export default function AdminContent() {
       const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from('forecasts').upload(path, file);
       if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from('forecasts').getPublicUrl(path);
-      return publicUrl;
+      return path; // Store path only; signed URLs generated at render time
     } catch {
       toast({ title: "Upload failed", description: "Could not upload image", variant: "destructive" });
       return null;
