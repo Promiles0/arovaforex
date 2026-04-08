@@ -38,7 +38,51 @@ Formatting:
 - Use **bold** for emphasis
 - Use bullet points for lists
 - Keep paragraphs short (2-3 sentences max)
-- Use code formatting for specific values or settings`;
+- Use code formatting for specific values or settings
+
+Quick Actions:
+When the user asks to navigate somewhere or wants to go to a page, include a navigation link in this exact format:
+[ACTION:navigate:/dashboard/journal:Go to Journal]
+[ACTION:navigate:/dashboard/forecasts:View Forecasts]
+[ACTION:navigate:/dashboard/calculator:Open Calculator]
+[ACTION:navigate:/dashboard/signals:Check Signals]
+[ACTION:navigate:/dashboard/calendar:View Calendar]
+[ACTION:navigate:/dashboard/backtesting:Chart Analysis]
+[ACTION:navigate:/dashboard/live-room:Join Live Room]
+[ACTION:navigate:/dashboard/wallet:My Wallet]
+[ACTION:navigate:/dashboard/profile:My Profile]
+
+Only include these action links when the user explicitly asks to go somewhere or when it's clearly helpful. Don't force them into every message.`;
+
+const PAGE_CONTEXT: Record<string, string> = {
+  "/dashboard": "The user is on their main trading dashboard viewing market overview, today's stats, performance charts, and smart insights.",
+  "/dashboard/journal": "The user is in the trade journal. They can log manual trades, connect brokers for auto-import, view analytics (win rate, P&L, drawdown), and browse a calendar view of trades.",
+  "/dashboard/forecasts": "The user is browsing market forecasts with chart images, sentiment analysis (bullish/bearish/neutral), likes, comments, and bookmarks.",
+  "/dashboard/signals": "The user is on the Premium Signals page where they can view real-time trading signals with entry/exit prices, stop loss, and take profit levels.",
+  "/dashboard/calculator": "The user is using the position size and risk calculator to plan trades.",
+  "/dashboard/calendar": "The user is viewing the economic events calendar with currency strength heatmap and price alerts.",
+  "/dashboard/backtesting": "The user is on the chart analysis page with drawing tools, indicators, and replay mode for backtesting strategies.",
+  "/dashboard/live-room": "The user is in the live trading room with real-time video stream and chat.",
+  "/dashboard/wallet": "The user is managing their wallet: balance, transactions, payment methods, and subscription.",
+  "/dashboard/profile": "The user is viewing/editing their profile, achievements, and trading preferences.",
+  "/dashboard/settings": "The user is on the settings page managing notification preferences, display settings, and account options.",
+};
+
+function getPageContext(currentPage?: string): string {
+  if (!currentPage) return "";
+  
+  // Try exact match first, then prefix match
+  const exact = PAGE_CONTEXT[currentPage];
+  if (exact) return `\n\nCurrent context: ${exact}`;
+  
+  for (const [path, context] of Object.entries(PAGE_CONTEXT)) {
+    if (currentPage.startsWith(path)) {
+      return `\n\nCurrent context: ${context}`;
+    }
+  }
+  
+  return "";
+}
 
 async function getSystemPrompt(): Promise<string> {
   try {
@@ -66,7 +110,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, currentPage } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -74,6 +118,7 @@ serve(async (req) => {
     }
 
     const systemPrompt = await getSystemPrompt();
+    const pageContext = getPageContext(currentPage);
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -86,7 +131,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: systemPrompt },
+            { role: "system", content: systemPrompt + pageContext },
             ...messages,
           ],
           stream: true,
