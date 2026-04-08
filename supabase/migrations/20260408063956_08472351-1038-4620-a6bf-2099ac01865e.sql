@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Edge functions can read config" ON public.assistant_config;
