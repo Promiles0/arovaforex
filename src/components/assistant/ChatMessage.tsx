@@ -1,5 +1,8 @@
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 interface ChatMessageProps {
   sender: "user" | "assistant";
@@ -7,16 +10,38 @@ interface ChatMessageProps {
   timestamp: string;
 }
 
+interface ActionLink {
+  type: string;
+  path: string;
+  label: string;
+}
+
+function parseActions(text: string): { cleanText: string; actions: ActionLink[] } {
+  const actionRegex = /\[ACTION:navigate:([^\]:]+):([^\]]+)\]/g;
+  const actions: ActionLink[] = [];
+  let match;
+
+  while ((match = actionRegex.exec(text)) !== null) {
+    actions.push({ type: "navigate", path: match[1], label: match[2] });
+  }
+
+  const cleanText = text.replace(actionRegex, "").trim();
+  return { cleanText, actions };
+}
+
 const ChatMessage = ({ sender, message, timestamp }: ChatMessageProps) => {
   const isUser = sender === "user";
+  const navigate = useNavigate();
+
+  const { cleanText, actions } = isUser
+    ? { cleanText: message, actions: [] }
+    : parseActions(message);
 
   const formatMessage = (text: string) => {
-    // Split into lines first for block-level formatting
     const lines = text.split("\n");
     const elements: React.ReactNode[] = [];
 
     lines.forEach((line, lineIdx) => {
-      // Bullet points
       if (line.match(/^[\-\*•]\s/)) {
         elements.push(
           <div key={lineIdx} className="flex gap-1.5 items-start">
@@ -27,7 +52,6 @@ const ChatMessage = ({ sender, message, timestamp }: ChatMessageProps) => {
         return;
       }
 
-      // Numbered lists
       const numMatch = line.match(/^(\d+)\.\s/);
       if (numMatch) {
         elements.push(
@@ -39,13 +63,11 @@ const ChatMessage = ({ sender, message, timestamp }: ChatMessageProps) => {
         return;
       }
 
-      // Empty lines → spacing
       if (line.trim() === "") {
         elements.push(<div key={lineIdx} className="h-1.5" />);
         return;
       }
 
-      // Regular text line
       elements.push(
         <span key={lineIdx}>
           {formatInline(line)}
@@ -57,7 +79,6 @@ const ChatMessage = ({ sender, message, timestamp }: ChatMessageProps) => {
     return elements;
   };
 
-  // Inline formatting: **bold**, *italic*, `code`
   const formatInline = (text: string): React.ReactNode[] => {
     const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
     return parts.map((part, i) => {
@@ -92,8 +113,26 @@ const ChatMessage = ({ sender, message, timestamp }: ChatMessageProps) => {
         )}
       >
         <div className="text-sm whitespace-pre-wrap break-words">
-          {formatMessage(message)}
+          {formatMessage(cleanText)}
         </div>
+
+        {actions.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {actions.map((action, idx) => (
+              <Button
+                key={idx}
+                variant="secondary"
+                size="sm"
+                className="h-7 text-xs gap-1 bg-primary/10 hover:bg-primary/20 text-primary border-0"
+                onClick={() => navigate(action.path)}
+              >
+                {action.label}
+                <ArrowRight className="w-3 h-3" />
+              </Button>
+            ))}
+          </div>
+        )}
+
         <p
           className={cn(
             "text-[10px] mt-1",
