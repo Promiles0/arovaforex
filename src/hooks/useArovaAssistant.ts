@@ -23,6 +23,7 @@ const WELCOME_MESSAGE: Message = {
 
 export function useArovaAssistant() {
   const { user } = useAuth();
+  const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading] = useState(false);
