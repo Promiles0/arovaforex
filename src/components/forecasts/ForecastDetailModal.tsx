@@ -8,6 +8,7 @@ import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { UserDisplayName } from "@/components/common/UserDisplayName";
+import { ForecastImage } from "@/components/forecasts/ForecastImage";
 import {
   AlertDialog,
   AlertDialogAction,

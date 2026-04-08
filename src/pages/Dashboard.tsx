@@ -12,6 +12,7 @@ import { TopInstruments } from "@/components/dashboard/TopInstruments";
 import { MarketOverview } from "@/components/dashboard/MarketOverview";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { ForecastImage } from "@/components/forecasts/ForecastImage";
 import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 
