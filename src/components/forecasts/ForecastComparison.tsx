@@ -208,9 +208,9 @@ function ComparisonCard({ forecast, onRemove, getBiasStyles, getTimeAgo }: Compa
             wrapperClass="w-full h-full"
             contentClass="w-full h-full flex items-center justify-center"
           >
-            <img 
+            <ForecastImage 
               src={forecast.image_url} 
-              alt={forecast.title || "Forecast"} 
+              alt={forecast.title || "Forecast"}
               className="w-full h-full object-contain select-none"
               draggable={false}
             />

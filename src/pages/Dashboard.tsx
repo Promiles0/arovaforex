@@ -180,7 +180,7 @@ export default function Dashboard() {
               <>
                 <div className="aspect-video bg-muted/30 rounded-lg flex items-center justify-center border border-border/50 overflow-hidden">
                   {latestForecast.image_url ? (
-                    <img 
+                    <ForecastImage 
                       src={latestForecast.image_url} 
                       alt={latestForecast.title}
                       className="w-full h-full object-cover"
