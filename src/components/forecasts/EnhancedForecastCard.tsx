@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { supabase } from "@/integrations/supabase/client";
 import { UserDisplayName } from "@/components/common/UserDisplayName";
+import { ForecastImage } from "@/components/forecasts/ForecastImage";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -233,7 +234,7 @@ export default function EnhancedForecastCard({
               onImageClick(forecast);
             }}
           >
-            <img 
+            <ForecastImage 
               src={forecast.image_url} 
               alt={`${forecast.currency_pair || 'Market'} analysis chart`} 
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

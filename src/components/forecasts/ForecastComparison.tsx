@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { ForecastImage } from "@/components/forecasts/ForecastImage";
 
 interface Profile {
   full_name: string | null;
@@ -208,9 +209,9 @@ function ComparisonCard({ forecast, onRemove, getBiasStyles, getTimeAgo }: Compa
             wrapperClass="w-full h-full"
             contentClass="w-full h-full flex items-center justify-center"
           >
-            <img 
+            <ForecastImage 
               src={forecast.image_url} 
-              alt={forecast.title || "Forecast"} 
+              alt={forecast.title || "Forecast"}
               className="w-full h-full object-contain select-none"
               draggable={false}
             />

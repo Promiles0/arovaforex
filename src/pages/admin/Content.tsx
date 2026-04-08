@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/seo/SEO";
 import { supabase } from "@/integrations/supabase/client";
+import { ForecastImage } from "@/components/forecasts/ForecastImage";
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, Trash2, Plus, Eye, Heart, MessageSquare, Upload, Search, ImageIcon } from "lucide-react";
 
@@ -64,8 +65,7 @@ export default function AdminContent() {
       const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from('forecasts').upload(path, file);
       if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from('forecasts').getPublicUrl(path);
-      return publicUrl;
+      return path; // Store path only; signed URLs generated at render time
     } catch {
       toast({ title: "Upload failed", description: "Could not upload image", variant: "destructive" });
       return null;
@@ -201,7 +201,7 @@ export default function AdminContent() {
             <Input name="image_url" placeholder="Image URL" defaultValue={editingForecast?.image_url || ''} />
             {editingForecast?.image_url && (
               <div className="w-20 h-14 rounded-md overflow-hidden border border-border">
-                <img src={editingForecast.image_url} alt="" className="w-full h-full object-cover" />
+                <ForecastImage src={editingForecast.image_url} alt="" className="w-full h-full object-cover" />
               </div>
             )}
           </div>
@@ -308,7 +308,7 @@ export default function AdminContent() {
                         <TableCell>
                           {forecast.image_url ? (
                             <div className="w-10 h-10 rounded-md overflow-hidden border border-border bg-muted">
-                              <img src={forecast.image_url} alt="" className="w-full h-full object-cover" />
+                              <ForecastImage src={forecast.image_url} alt="" className="w-full h-full object-cover" />
                             </div>
                           ) : (
                             <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">

@@ -8,6 +8,7 @@ import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { UserDisplayName } from "@/components/common/UserDisplayName";
+import { ForecastImage } from "@/components/forecasts/ForecastImage";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -278,9 +279,9 @@ export default function ForecastDetailModal({
           {/* Chart Image */}
           <div className="p-6">
             <div className="relative overflow-hidden rounded-lg border border-border/30 bg-muted/10 group">
-              <img 
+              <ForecastImage 
                 src={forecast.image_url} 
-                alt={forecast.title || "Forecast"} 
+                alt={forecast.title || "Forecast"}
                 className="w-full aspect-video object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
                 onClick={() => onImageClick(forecast)}
               />
