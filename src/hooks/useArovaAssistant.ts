@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ const WELCOME_MESSAGE: Message = {
 
 export function useArovaAssistant() {
   const { user } = useAuth();
+  const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading] = useState(false);
@@ -103,7 +105,7 @@ export function useArovaAssistant() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ messages: history }),
+          body: JSON.stringify({ messages: history, currentPage: location.pathname }),
           signal: controller.signal,
         });
 

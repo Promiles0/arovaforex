@@ -5,6 +5,7 @@ import { MobileHeader } from "./MobileHeader";
 import { Header } from "./Header";
 import { ArovaAssistant } from "@/components/assistant";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { PageSummaryBubble } from "@/components/assistant/PageSummaryBubble";
 import { useSignalNotifications } from "@/hooks/useSignalNotifications";
 
 export const DashboardLayout = () => {
@@ -30,6 +31,7 @@ export const DashboardLayout = () => {
         </div>
         
         <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
+          <PageSummaryBubble />
           <Outlet />
         </main>
       </div>
