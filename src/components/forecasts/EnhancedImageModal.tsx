@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, ZoomIn, ZoomOut, Download, Share2, RotateCcw, TrendingUp, TrendingDown, Minus, Maximize, Minimize } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
 
 interface Profile {
   full_name: string | null;
