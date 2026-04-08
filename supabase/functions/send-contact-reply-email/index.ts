@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.52.0";
 import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -8,26 +9,109 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface ContactReplyRequest {
-  userEmail: string;
-  userName: string;
-  subject: string;
-  adminResponse: string;
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { userEmail, userName, subject, adminResponse }: ContactReplyRequest = await req.json();
+    // --- Authentication ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
+    // --- Authorization: admin only ---
+    const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+
+    if (roleError || !isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: admin access required" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // --- Input validation ---
+    const body = await req.json();
+    const { userEmail, userName, subject, adminResponse } = body;
+
+    if (!userEmail || typeof userEmail !== "string" || userEmail.length > 255) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or missing userEmail" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userEmail)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email format" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!userName || typeof userName !== "string" || userName.length > 200) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or missing userName" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!subject || typeof subject !== "string" || subject.length > 500) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or missing subject" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!adminResponse || typeof adminResponse !== "string" || adminResponse.length > 10000) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or missing adminResponse" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // --- Escape all user-controlled values for HTML ---
+    const safeUserName = escapeHtml(userName);
+    const safeSubject = escapeHtml(subject);
+    const safeResponse = escapeHtml(adminResponse);
 
     console.log(`Sending reply email to ${userEmail} for subject: ${subject}`);
 
     const emailResponse = await resend.emails.send({
-      from: "Arova Forex <onboarding@resend.dev>", // Change to your verified domain
+      from: "Arova Forex <onboarding@resend.dev>",
       to: [userEmail],
       subject: `Re: ${subject}`,
       html: `
@@ -98,16 +182,6 @@ const handler = async (req: Request): Promise<Response> => {
                 color: #6b7280;
                 font-size: 14px;
               }
-              .button {
-                display: inline-block;
-                padding: 12px 24px;
-                background: linear-gradient(135deg, #10b981, #059669);
-                color: #ffffff;
-                text-decoration: none;
-                border-radius: 8px;
-                font-weight: 600;
-                margin: 16px 0;
-              }
               .subject-reference {
                 color: #6b7280;
                 font-size: 14px;
@@ -124,22 +198,18 @@ const handler = async (req: Request): Promise<Response> => {
               
               <h1 class="title">Response to Your Inquiry</h1>
               
-              <p class="greeting">Hi ${userName},</p>
+              <p class="greeting">Hi ${safeUserName},</p>
               
               <p style="color: #4b5563;">Thank you for reaching out to us. We've reviewed your message and here's our response:</p>
               
               <div class="message-box">
-                <div class="response-text">${adminResponse}</div>
+                <div class="response-text">${safeResponse}</div>
               </div>
               
-              <p class="subject-reference"><strong>Original Subject:</strong> ${subject}</p>
-              
-              <div style="text-align: center;">
-                <a href="https://your-app-url.com/support" class="button">View in Dashboard</a>
-              </div>
+              <p class="subject-reference"><strong>Original Subject:</strong> ${safeSubject}</p>
               
               <p style="color: #4b5563; margin-top: 24px;">
-                If you have any additional questions or concerns, please don't hesitate to reply to this email or submit a new message through our contact form.
+                If you have any additional questions or concerns, please don't hesitate to submit a new message through our contact form.
               </p>
               
               <div class="footer">
@@ -156,19 +226,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
     console.error("Error in send-contact-reply-email function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ error: "An unexpected error occurred" }),
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 };

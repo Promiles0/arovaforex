@@ -43,10 +43,10 @@ Formatting:
 async function getSystemPrompt(): Promise<string> {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
-    if (!supabaseUrl || !supabaseKey) return DEFAULT_SYSTEM_PROMPT;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) return DEFAULT_SYSTEM_PROMPT;
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
     const { data, error } = await supabase
       .from("assistant_config")
       .select("system_prompt")
