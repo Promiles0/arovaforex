@@ -44,6 +44,7 @@ export default function EnhancedImageModal({ forecast, open, onClose }: Enhanced
   const [imageLoaded, setImageLoaded] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(1);
   const { toast } = useToast();
+  const signedUrl = useSignedUrl(forecast.image_url);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -82,7 +83,7 @@ export default function EnhancedImageModal({ forecast, open, onClose }: Enhanced
 
   const handleDownload = async () => {
     try {
-      const response = await fetch(forecast.image_url);
+      const response = await fetch(signedUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -239,7 +240,7 @@ export default function EnhancedImageModal({ forecast, open, onClose }: Enhanced
                     </div>
                   )}
                   <img 
-                    src={forecast.image_url} 
+                    src={signedUrl} 
                     alt={forecast.title || "Forecast"} 
                     className={`max-w-full max-h-full object-contain select-none transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
                     draggable={false}

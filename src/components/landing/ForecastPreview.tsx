@@ -4,6 +4,7 @@ import { ArrowRight, TrendingUp, TrendingDown, Minus, Eye, Heart, MessageCircle,
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { ForecastImage } from "@/components/forecasts/ForecastImage";
 
 interface ForecastData {
   id: string;
@@ -103,7 +104,7 @@ export const ForecastPreview = ({ isAuthenticated }: { isAuthenticated: boolean 
             >
               {/* Chart image */}
               <div className="relative aspect-video overflow-hidden">
-                <img
+                <ForecastImage
                   src={forecast.image_url}
                   alt={forecast.title || forecast.currency_pair || 'Forecast'}
                   className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
