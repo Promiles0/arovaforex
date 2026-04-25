@@ -59,6 +59,10 @@ export const LiveChatContainer = ({ streamId, isLive = true }: LiveChatContainer
         slowMode={slowMode}
         onToggleSlowMode={toggleSlowMode}
       />
+
+      <div className="px-3 pt-2">
+        <AICatchUp streamId={streamId} />
+      </div>
       
       <ChatMessages
         messages={messages}
