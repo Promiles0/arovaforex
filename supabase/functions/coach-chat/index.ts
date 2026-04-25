@@ -22,29 +22,30 @@ Formatting:
 - Keep paragraphs short (2–3 sentences). Use markdown headings sparingly.
 - Sign off occasionally with motivating short phrases — never robotic.`;
 
-async function getJournalContext(supabase: ReturnType<typeof createClient>, userId: string): Promise<string> {
+async function getJournalContext(supabase: any, userId: string): Promise<string> {
   try {
-    const { data: entries } = await supabase
+    const { data } = await supabase
       .from("journal_entries")
       .select("instrument, direction, outcome, pnl, risk_reward_ratio, entry_date, emotional_state, setup_type")
       .eq("user_id", userId)
       .order("entry_date", { ascending: false })
       .limit(30);
 
-    if (!entries || entries.length === 0) {
+    const entries = (data as any[]) || [];
+    if (entries.length === 0) {
       return "\n\n[Trader context: No journal entries yet — encourage them to start journaling.]";
     }
 
-    const wins = entries.filter((e) => e.outcome === "win").length;
-    const losses = entries.filter((e) => e.outcome === "loss").length;
+    const wins = entries.filter((e: any) => e.outcome === "win").length;
+    const losses = entries.filter((e: any) => e.outcome === "loss").length;
     const total = entries.length;
     const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
-    const totalPnl = entries.reduce((s, e) => s + (Number(e.pnl) || 0), 0);
+    const totalPnl = entries.reduce((s: number, e: any) => s + (Number(e.pnl) || 0), 0);
 
     const byInstrument: Record<string, { count: number; wins: number; pnl: number }> = {};
-    for (const e of entries) {
-      const key = e.instrument || "Unknown";
-      byInstrument[key] ??= { count: 0, wins: 0, pnl: 0 };
+    for (const e of entries as any[]) {
+      const key = (e.instrument as string) || "Unknown";
+      if (!byInstrument[key]) byInstrument[key] = { count: 0, wins: 0, pnl: 0 };
       byInstrument[key].count++;
       if (e.outcome === "win") byInstrument[key].wins++;
       byInstrument[key].pnl += Number(e.pnl) || 0;
@@ -56,7 +57,7 @@ async function getJournalContext(supabase: ReturnType<typeof createClient>, user
       .join(" • ");
 
     const emotions = entries
-      .map((e) => e.emotional_state)
+      .map((e: any) => e.emotional_state)
       .filter(Boolean)
       .slice(0, 10)
       .join(", ");
