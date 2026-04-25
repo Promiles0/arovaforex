@@ -17,12 +17,14 @@ import {
   Bell,
   Lock,
   NotebookPen,
-  BarChart3
+  BarChart3,
+  Sparkles
 } from "lucide-react";
 
 const navigationItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Forecasts", href: "/dashboard/forecasts", icon: TrendingUp },
+  { name: "AI Coach", href: "/dashboard/coach", icon: Sparkles },
   { name: "Premium Signals", href: "/dashboard/signals", icon: Signal, premium: true },
   { name: "My Journal", href: "/dashboard/journal", icon: NotebookPen },
   { name: "Chart Analysis", href: "/dashboard/chart-analysis", icon: BarChart3 },
