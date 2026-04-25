@@ -28,6 +28,7 @@ import Settings from "./pages/Settings";
 import Calculator from "./pages/Calculator";
 import LiveRoom from "./pages/LiveRoom";
 import Backtesting from "./pages/Backtesting";
+import Coach from "./pages/Coach";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
@@ -83,6 +84,7 @@ const App = () => (
                 <Route path="calculator" element={<Calculator />} />
                 <Route path="live-room" element={<LiveRoom />} />
                 <Route path="backtesting" element={<Backtesting />} />
+                <Route path="coach" element={<Coach />} />
               </Route>
 
               <Route path="/admin" element={

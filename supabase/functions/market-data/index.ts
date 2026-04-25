@@ -409,7 +409,7 @@ serve(async (req) => {
         matrix: generatePairMatrix(demoData.pairs),
         lastUpdated: new Date().toISOString(),
         isDemo: true,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

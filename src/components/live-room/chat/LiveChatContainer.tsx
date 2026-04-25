@@ -4,6 +4,7 @@ import { useLiveChat } from '@/hooks/useLiveChat';
 import { ChatHeader } from './ChatHeader';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
+import { AICatchUp } from '../AICatchUp';
 
 interface LiveChatContainerProps {
   streamId?: string;
@@ -58,6 +59,10 @@ export const LiveChatContainer = ({ streamId, isLive = true }: LiveChatContainer
         slowMode={slowMode}
         onToggleSlowMode={toggleSlowMode}
       />
+
+      <div className="px-3 pt-2">
+        <AICatchUp streamId={streamId} />
+      </div>
       
       <ChatMessages
         messages={messages}

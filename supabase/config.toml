@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.chat]
 verify_jwt = false
+
+[functions.coach-chat]
+verify_jwt = false
+
+[functions.live-chat-recap]
+verify_jwt = false
