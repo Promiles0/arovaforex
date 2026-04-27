@@ -1321,6 +1321,42 @@ export type Database = {
         }
         Relationships: []
       }
+      news_digests: {
+        Row: {
+          created_at: string
+          currency_impacts: Json
+          digest_date: string
+          event_count: number
+          highlights: Json
+          id: string
+          model: string | null
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency_impacts?: Json
+          digest_date: string
+          event_count?: number
+          highlights?: Json
+          id?: string
+          model?: string | null
+          summary: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency_impacts?: Json
+          digest_date?: string
+          event_count?: number
+          highlights?: Json
+          id?: string
+          model?: string | null
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           content: string
