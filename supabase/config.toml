@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.ai-playbook-generate]
 verify_jwt = false
+
+[functions.ai-news-digest]
+verify_jwt = false
