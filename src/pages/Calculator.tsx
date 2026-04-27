@@ -13,6 +13,7 @@ import { SEO } from "@/components/seo/SEO";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AIAdvisorPanel } from "@/components/calculator/AIAdvisorPanel";
 
 // Pip values and contract sizes for different instruments
 const INSTRUMENTS = {
@@ -606,7 +607,8 @@ export default function CalculatorPage() {
 
             {/* Position Size Calculator Tab */}
             <TabsContent value="position">
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2 grid gap-6 md:grid-cols-2">
             {/* Input Card */}
             <Card className="border-border/50">
               <CardHeader>
