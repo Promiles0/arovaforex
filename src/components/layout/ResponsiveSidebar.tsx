@@ -18,7 +18,8 @@ import {
   X,
   Video,
   BarChart3,
-  Sparkles
+  Sparkles,
+  ScrollText
 } from "lucide-react";
 import { useLiveStreamStatus } from "@/hooks/useLiveStreamStatus";
 
@@ -26,6 +27,7 @@ const navigationItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Forecasts", href: "/dashboard/forecasts", icon: TrendingUp },
   { name: "AI Coach", href: "/dashboard/coach", icon: Sparkles },
+  { name: "AI Playbook", href: "/dashboard/playbook", icon: ScrollText },
   { name: "Premium Signals", href: "/dashboard/signals", icon: Signal, premium: true },
   { name: "Live Room", href: "/dashboard/live-room", icon: Video, showLiveBadge: true },
   { name: "My Journal", href: "/dashboard/journal", icon: NotebookPen },

@@ -1,121 +1,112 @@
-## Plan: Expand AI Across the Platform
+## AI Expansion — Slice 2: Advisor, Briefs & Playbook
 
-You already have a strong AI base: the draggable Arova Assistant, context-aware system prompts, action buttons, smart insights on the dashboard, and first-visit page summary bubbles. Below is a prioritized expansion that adds AI to the pages where it will create the most value, plus a few **new AI-first pages** worth adding.
-
-All features reuse the existing `chat` edge function (and a new lightweight `ai-task` edge function for non-conversational, structured outputs) — no new infrastructure beyond that.
+Building on the existing `/dashboard/coach` foundation (streaming Gemini via Lovable AI Gateway + journal context injection). All three features reuse that pattern — no new infra.
 
 ---
 
-### 🔥 Tier 1 — High-impact additions to existing pages
+### 1. AI Calculator Advisor (enhances `/dashboard/calculator`)
 
-**1. Journal → AI Trade Coach**
-- After saving a trade entry: AI generates a 3-bullet review (what went well, what to improve, emotional pattern detected).
-- "Weekly Recap" card at the top of `/dashboard/journal` summarizing the last 7 days: best/worst trade, most-traded pair, behavioral patterns (e.g. "You revenge-traded twice on Wednesday").
-- "Tag this trade" button → AI auto-suggests tags (FOMO, breakout, news, etc.) from the notes.
-- Files: `JournalEntryForm.tsx`, new `components/journal/AITradeReview.tsx`, new `components/journal/WeeklyAIRecap.tsx`.
+**What it does**
+- Adds an **"Ask AI Advisor"** panel inside `Calculator.tsx` (collapsible card on the right, sticky on desktop, accordion on mobile).
+- Pre-filled context from the active calculator tab (Position Size, R:R, P/L, Margin, Compound).
+- AI returns a structured critique:
+  - **Risk verdict** (Safe / Aggressive / Dangerous) with a colored badge
+  - **SL/TP suggestions** based on instrument volatility heuristics + user's journal win rate per pair
+  - **Position-sizing recommendation** ("Your last 10 EURUSD trades had 38% WR — consider risking 0.5% instead of 2%")
+  - **One concrete next step**
 
-**2. Forecasts → AI Chart Reader & Sentiment Synthesizer**
-- On each forecast card: "Explain this setup" button → AI reads the caption + sentiment and produces a beginner-friendly explanation with risk notes.
-- Top of `/dashboard/forecasts`: "Today's Market Brief" — AI aggregates all active forecasts into a 2-paragraph macro view.
-- Files: `EnhancedForecastCard.tsx`, new `components/forecasts/MarketBriefCard.tsx`.
-
-**3. Calculator → AI Position Sizing Advisor**
-- After a calculation: an AI panel that critiques the proposed risk based on the user's recent journal performance ("Your win rate on EURUSD is 38% — consider halving this size").
-- Natural-language input: "I want to risk $50 on gold with 30 pip stop" → AI fills the form.
-- Files: `pages/Calculator.tsx`, new `components/calculator/AIRiskAdvisor.tsx`.
-
-**4. Calendar → AI Event Impact Brief**
-- Click an economic event → AI explains in plain English: what the event is, why it matters, historic market reaction, which pairs to watch.
-- "Plan my week" button → AI generates a trading plan based on upcoming high-impact events + user's preferred instruments.
-- Files: `pages/Calendar.tsx`, new `components/calendar/AIEventBrief.tsx`.
-
-**5. Backtesting → AI Strategy Critic**
-- After a backtest run: AI analyzes results (drawdown, win rate, R:R) and suggests one specific parameter to tweak.
-- "Describe your strategy in plain English" → AI converts to backtestable rules.
-- Files: `ResultsPanel.tsx`, `StrategyPanel.tsx`.
-
-**6. Live Room → AI Chat Moderator + Recap**
-- Real-time toxicity / spam filter for `LiveChat` (already-typed messages get an AI score before send if flagged).
-- "What did I miss?" button → AI summarizes the last N messages of the live chat for late joiners.
-- Files: `live-room/chat/ChatInput.tsx`, new `live-room/AICatchUp.tsx`.
-
-**7. Profile → AI Trader Personality**
-- "Generate my trader profile" — AI analyzes journal data + preferences and produces a personality card (e.g. "Patient swing trader with strong risk discipline, but tends to over-trade on Fridays"). Shareable as an image.
-- Files: `pages/Profile.tsx`, new `components/profile/AITraderPersona.tsx`.
+**Technical**
+- New edge function `ai-calc-advisor` (non-streaming, returns JSON via tool calling — `risk_verdict`, `sl_suggestion`, `tp_suggestion`, `position_recommendation`, `reasoning`).
+- Pulls last 30 `journal_entries` for the selected instrument to ground advice in real history.
+- Hook `useCalcAdvisor()` debounces input changes (1.5s) and caches per-input-hash for 5 min in memory.
+- New component: `src/components/calculator/AIAdvisorPanel.tsx`.
 
 ---
 
-### ✨ Tier 2 — Brand new AI-first pages
+### 2. AI Event Briefs (enhances `/dashboard/calendar`)
 
-**8. `/dashboard/coach` — Arova Coach (full-page AI mentor)**
-- A dedicated full-screen conversational coach (separate from the floating widget) with persistent multi-thread chat history, saved playbooks, and lesson plans tailored to the user's journal data.
-- Threaded conversations like ChatGPT, with sidebar of past topics.
-- Files: new `pages/Coach.tsx`, new `components/coach/*`, route in `App.tsx`.
+**What it does**
+- On every `EventCard`, adds a small **"✨ Why it matters"** button that expands an AI-generated 2–3 sentence brief inline.
+- Brief explains: what the event is, which pairs it impacts, typical volatility pattern, and a one-line "watch for" tip.
+- For high-impact events, brief auto-loads on first card render (lazy, IntersectionObserver).
 
-**9. `/dashboard/news` — AI News Digest**
-- Pulls forex/crypto news (RSS or free API) and an AI generates: 5-bullet daily digest, sentiment per major pair, "what to watch today".
-- Files: new `pages/NewsDigest.tsx`, new edge function `news-digest`.
-
-**10. `/dashboard/playbook` — AI Strategy Playbook Builder**
-- User describes a setup once; AI converts it into a structured playbook (entry rules, exit rules, invalidation, R:R). Saved playbooks become checklists in the journal entry form.
-- Files: new `pages/Playbook.tsx`, new table `trading_playbooks` (RLS scoped to `user_id`).
-
-**11. `/dashboard/learn` — AI-personalized Academy lessons**
-- Replace/augment `JoinAcademy` with an AI tutor that picks the next lesson based on what the user struggles with in their journal (e.g. detects high losses around news → recommends "Trading the News" lesson).
-- Files: extend `JoinAcademy.tsx` or new `pages/LearnPath.tsx`.
-
----
-
-### 🛠️ Tier 3 — Admin AI helpers
-
-**12. Admin → AI Reply Drafter for `/admin/contact`**
-- One-click "Draft reply" on each contact message — AI proposes a polite, on-brand response the admin can edit before sending.
-
-**13. Admin → AI Insights on `/admin/analytics`**
-- "Explain this trend" button on each chart; AI describes anomalies and suggests actions.
-
-**14. Admin → AI Signal Caption Generator on `/admin/signals`**
-- When publishing a signal, AI auto-drafts a caption + risk disclaimer from the entry/SL/TP values.
-
-**15. Admin → AI Notification Composer on `/admin/notifications`**
-- AI rewrites broadcast messages for tone (urgent / friendly / educational) and target audience.
+**Technical**
+- New edge function `ai-event-brief` (non-streaming, plain text response).
+- **Caching strategy** — new table `event_ai_briefs`:
+  ```
+  event_id uuid PK FK calendar_events,
+  brief text,
+  generated_at timestamptz,
+  model text
+  ```
+  Briefs are shared across all users (events are public) → one generation per event, served from DB after that. Public SELECT, admin-only DELETE for regeneration.
+- Admin button in `/admin/calendar-events` to "Regenerate AI brief" per event.
+- Frontend: `useEventBrief(eventId)` hook checks DB first → calls function only if missing.
 
 ---
 
-### 🧩 Tier 4 — Cross-cutting AI utilities
+### 3. AI Playbook page (`/dashboard/playbook` — NEW)
 
-- **Global ⌘K AI Command Bar** — type natural language ("show my last 10 EURUSD trades", "go to backtesting", "what's NFP?") → AI routes to action / page / answer.
-- **AI image alt-text** for forecast uploads (accessibility + SEO).
-- **AI translation toggle** in Settings — translate the entire UI / forecasts to user's language on the fly.
+**What it does**
+- Weekly trading plan auto-generated from the user's recent activity. Layout:
+  - **Hero**: "Your week in focus" — generated headline + week range
+  - **Section 1: Market context** — synthesized from active `trading_signals` and recent `forecasts` (admin Arova picks)
+  - **Section 2: Personal patterns** — pulled from journal: best/worst sessions, instruments to avoid this week, emotional triggers spotted
+  - **Section 3: This week's gameplan** — 3–5 actionable rules ("Skip Monday Asia session — 0/4 wins", "Stick to EURUSD London opens — your 68% WR setup")
+  - **Section 4: Risk budget** — recommended max risk per trade and weekly loss cap based on equity & recent drawdown
+- Buttons: **Regenerate**, **Save to journal as note**, **Share with coach** (auto-creates a `coach_threads` entry).
+- "Last generated 2h ago" indicator. Manual regen limited to 3/day per user.
+
+**Technical**
+- New edge function `ai-playbook-generate` — uses tool calling for structured JSON sections, then frontend renders nicely.
+- New table `playbooks`:
+  ```
+  id uuid PK,
+  user_id uuid,
+  week_start date,
+  content jsonb,    -- { headline, market_context, patterns, gameplan[], risk_budget }
+  generated_at timestamptz,
+  model text,
+  unique (user_id, week_start)
+  ```
+  RLS: users manage own rows.
+- Quota table `ai_usage_log` (user_id, feature, day, count) — checked before regen.
+- Page: `src/pages/Playbook.tsx`, hook `usePlaybook()`, components `PlaybookHero`, `PlaybookSection`, `RiskBudgetCard`.
+- Sidebar entry "AI Playbook" with `ScrollText` icon, added to `Sidebar.tsx` and `ResponsiveSidebar.tsx` under AI Coach.
+- Route `/dashboard/playbook` registered in `App.tsx`.
 
 ---
 
-### Technical foundation (one-time work)
+### Shared infrastructure (small additions)
 
-1. **New edge function `ai-task`** (non-streaming, JSON output) for structured tasks: trade reviews, summaries, tag suggestions, playbook generation. Uses the same Lovable AI Gateway.
-2. **Reusable hook `useAITask(taskType, input)`** → returns `{ data, loading, error }`. All Tier 1 features use this.
-3. **Token/cost guardrails**: per-user daily AI request quota table + RLS, so heavy users don't blow the AI budget. Surface remaining quota in Settings.
-4. **Cache layer**: hash `(taskType + input)` → cache results for 24 h in a `ai_cache` table to avoid repeat costs (e.g. same forecast explained 100 times).
-
----
-
-### Suggested rollout order
-
-1. **Foundation**: `ai-task` edge function + `useAITask` hook + quota table.
-2. **Tier 1.1–1.3** (Journal Coach, Forecast Brief, Calculator Advisor) — biggest user value.
-3. **Tier 2.8** (`/dashboard/coach` full page) — flagship feature.
-4. **Tier 3** admin helpers (fast wins, low risk).
-5. **Tier 4** command bar + remaining items.
+- **`ai_usage_log` table** — global per-user/per-feature/per-day counter to enforce quotas (Advisor: 30/day, Brief: shared cache so unlimited reads, Playbook: 3 regens/day).
+- **Reusable `useAITask` hook** — wraps `supabase.functions.invoke` with loading/error/cached state, used by Advisor and Playbook.
+- All three functions verify JWT in code (consistent with `coach-chat`).
 
 ---
 
-### What I need from you before building
+### Other AI features I noticed we should add (suggestions)
 
-Pick which slice to build first — recommended starting point:
+Pick any to queue after this slice:
 
-- **Option A (recommended)**: Foundation + Journal AI Coach + Forecast Market Brief + Calculator Advisor. Ships the most user-visible value in one go.
-- **Option B**: Foundation + the new `/dashboard/coach` full-page AI mentor. Flagship single feature.
-- **Option C**: Admin AI helpers (reply drafter, signal captions, analytics explainer). Low-risk, internal value.
-- **Option D**: Custom — tell me which numbered items above you want first.
+1. **Forecast Market Brief** — "Explain this setup" button on every `ForecastCard` → AI breaks down the chart context, bias rationale, and invalidation level. (Already in the master plan, high value.)
+2. **Journal Auto-Tagger & Weekly Recap** — On save, AI auto-suggests tags (`breakout`, `revenge-trade`, `news-driven`) and writes a Sunday email recap of the week's trades.
+3. **Live Room AI Moderator** — beyond the existing recap, add an admin-only "Summarize last 30 min" button + auto-flag toxic messages for moderation.
+4. **Backtesting Critic** — after a backtest run on `/dashboard/backtesting`, AI critiques the strategy ("R:R is 1.2 but win rate needs >55% to be profitable — your sample shows 48%").
+5. **Smart Contact Reply Drafter** — admin-only on `/admin/contact`: AI drafts a reply based on message + user's profile + similar past replies.
+6. **AI Signal Caption Writer** — admin-only on `/admin/signals`: when publishing, AI generates a clean Telegram-style caption from SL/TP/entry.
+7. **Global ⌘K Command Bar** — natural language navigation + queries ("show my XAUUSD trades from last month", "open new forecast"). Acts as a power-user shortcut layer.
+8. **AI News Digest page (`/dashboard/news`)** — daily 5-bullet digest of forex news synthesized from RSS/scraped sources, with pair-impact tags.
+9. **Trade Idea Generator** — paired with Playbook: button "Generate 3 trade ideas for tomorrow" using your favorite pairs + current strength heatmap.
+10. **Onboarding AI Interview** — replace the static `/onboarding` with a 5-question conversational flow that fills the profile via AI extraction.
 
-Also note: there's a small **build error unrelated to AI** in `supabase/functions/fetch-chart-data/index.ts` and `market-data/index.ts` (`'error' is of type 'unknown'`). I'll fix those in the same pass when implementation starts.
+---
+
+### Build order (this slice)
+
+1. Shared `ai_usage_log` table + `useAITask` hook
+2. AI Calculator Advisor (smallest, fastest user-visible win)
+3. AI Event Briefs (cache-heavy, adds value across all users instantly)
+4. `/dashboard/playbook` page (biggest, flagship of this slice)
+
+Approve and I'll ship them in this order.

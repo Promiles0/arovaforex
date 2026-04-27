@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isToday, isFuture, isPast } from "date-fns";
 import CurrencyStrengthHeatmap from "@/components/calendar/CurrencyStrengthHeatmap";
+import { EventBrief } from "@/components/calendar/EventBrief";
 
 interface CalendarEvent {
   id: string;
@@ -238,6 +239,8 @@ export default function Calendar() {
                 </a>
               )}
             </div>
+
+            <EventBrief eventId={event.id} autoLoad={event.impact === "high" && isTodayEvent} />
           </CardContent>
         </Card>
       </motion.div>

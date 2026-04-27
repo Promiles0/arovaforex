@@ -119,6 +119,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_usage_log: {
+        Row: {
+          count: number
+          created_at: string
+          day: string
+          feature: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          day?: string
+          feature: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          day?: string
+          feature?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       assistant_chat_messages: {
         Row: {
           created_at: string | null
@@ -575,6 +602,35 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "contact_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_ai_briefs: {
+        Row: {
+          brief: string
+          event_id: string
+          generated_at: string
+          model: string | null
+        }
+        Insert: {
+          brief: string
+          event_id: string
+          generated_at?: string
+          model?: string | null
+        }
+        Update: {
+          brief?: string
+          event_id?: string
+          generated_at?: string
+          model?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_ai_briefs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "calendar_events"
             referencedColumns: ["id"]
           },
         ]
@@ -1331,6 +1387,39 @@ export type Database = {
           is_default?: boolean | null
           last4?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      playbooks: {
+        Row: {
+          content: Json
+          created_at: string
+          generated_at: string
+          id: string
+          model: string | null
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          model?: string | null
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          model?: string | null
+          updated_at?: string
+          user_id?: string
+          week_start?: string
         }
         Relationships: []
       }
