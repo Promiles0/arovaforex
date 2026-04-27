@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Authenticated can insert briefs" ON public.event_ai_briefs;
