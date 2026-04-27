@@ -18,13 +18,15 @@ import {
   Lock,
   NotebookPen,
   BarChart3,
-  Sparkles
+  Sparkles,
+  ScrollText
 } from "lucide-react";
 
 const navigationItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Forecasts", href: "/dashboard/forecasts", icon: TrendingUp },
   { name: "AI Coach", href: "/dashboard/coach", icon: Sparkles },
+  { name: "AI Playbook", href: "/dashboard/playbook", icon: ScrollText },
   { name: "Premium Signals", href: "/dashboard/signals", icon: Signal, premium: true },
   { name: "My Journal", href: "/dashboard/journal", icon: NotebookPen },
   { name: "Chart Analysis", href: "/dashboard/chart-analysis", icon: BarChart3 },
