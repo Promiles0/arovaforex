@@ -19,7 +19,8 @@ import {
   NotebookPen,
   BarChart3,
   Sparkles,
-  ScrollText
+  ScrollText,
+  Newspaper
 } from "lucide-react";
 
 const navigationItems = [
@@ -27,6 +28,7 @@ const navigationItems = [
   { name: "Forecasts", href: "/dashboard/forecasts", icon: TrendingUp },
   { name: "AI Coach", href: "/dashboard/coach", icon: Sparkles },
   { name: "AI Playbook", href: "/dashboard/playbook", icon: ScrollText },
+  { name: "AI News Digest", href: "/dashboard/news", icon: Newspaper },
   { name: "Premium Signals", href: "/dashboard/signals", icon: Signal, premium: true },
   { name: "My Journal", href: "/dashboard/journal", icon: NotebookPen },
   { name: "Chart Analysis", href: "/dashboard/chart-analysis", icon: BarChart3 },
