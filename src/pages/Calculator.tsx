@@ -838,6 +838,13 @@ export default function CalculatorPage() {
                   </CardContent>
                 </Card>
               </div>
+                <div className="lg:col-span-1">
+                  <AIAdvisorPanel
+                    context={{ type: "position_size", pair: selectedPair, accountBalance, riskPercent, stopLossPips, lotSize: calculations.lotSize, riskAmount: calculations.riskAmount }}
+                    instrument={selectedPair}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Risk:Reward Calculator Tab */}
