@@ -23,3 +23,12 @@ verify_jwt = false
 
 [functions.live-chat-recap]
 verify_jwt = false
+
+[functions.ai-calc-advisor]
+verify_jwt = false
+
+[functions.ai-event-brief]
+verify_jwt = false
+
+[functions.ai-playbook-generate]
+verify_jwt = false
