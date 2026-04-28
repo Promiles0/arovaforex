@@ -1,112 +1,91 @@
-## AI Expansion — Slice 2: Advisor, Briefs & Playbook
+# News Digest Enhancements + System Cleanup
 
-Building on the existing `/dashboard/coach` foundation (streaming Gemini via Lovable AI Gateway + journal context injection). All three features reuse that pattern — no new infra.
+## Part 1 — System audit (quick fixes)
 
----
+A full sweep of pages, routes, and components surfaced only one real loose end:
 
-### 1. AI Calculator Advisor (enhances `/dashboard/calculator`)
+- **`src/pages/Support.tsx`** exists but is not routed anywhere and not linked from any sidebar. It's dead code left from an earlier iteration of the contact flow (which is now `Contact.tsx`).
+  - **Fix:** delete `src/pages/Support.tsx`.
+- **Duplicate `/terms` route** declared twice in `src/App.tsx` (lines 68–69).
+  - **Fix:** remove the duplicate line.
+- Two "coming soon" labels in `SignalsTestimonials.tsx` and `PerformanceMetrics.tsx` are intentional empty-state copy on the public Signals landing page (no real testimonials yet) — leaving as-is per the real-data-only rule. Not a bug.
 
-**What it does**
-- Adds an **"Ask AI Advisor"** panel inside `Calculator.tsx` (collapsible card on the right, sticky on desktop, accordion on mobile).
-- Pre-filled context from the active calculator tab (Position Size, R:R, P/L, Margin, Compound).
-- AI returns a structured critique:
-  - **Risk verdict** (Safe / Aggressive / Dangerous) with a colored badge
-  - **SL/TP suggestions** based on instrument volatility heuristics + user's journal win rate per pair
-  - **Position-sizing recommendation** ("Your last 10 EURUSD trades had 38% WR — consider risking 0.5% instead of 2%")
-  - **One concrete next step**
+Everything else (Coach, Playbook, News, Calculator AI Advisor, Calendar Briefs, all admin pages, all dashboard pages) is wired, routed, and functional.
 
-**Technical**
-- New edge function `ai-calc-advisor` (non-streaming, returns JSON via tool calling — `risk_verdict`, `sl_suggestion`, `tp_suggestion`, `position_recommendation`, `reasoning`).
-- Pulls last 30 `journal_entries` for the selected instrument to ground advice in real history.
-- Hook `useCalcAdvisor()` debounces input changes (1.5s) and caches per-input-hash for 5 min in memory.
-- New component: `src/components/calculator/AIAdvisorPanel.tsx`.
+## Part 2 — News Digest feature work
 
----
+### 1. Watchlist on `/dashboard/news`
 
-### 2. AI Event Briefs (enhances `/dashboard/calendar`)
+Let users pick the currencies/pairs they care about and visually highlight them in the Currency Impact Map.
 
-**What it does**
-- On every `EventCard`, adds a small **"✨ Why it matters"** button that expands an AI-generated 2–3 sentence brief inline.
-- Brief explains: what the event is, which pairs it impacts, typical volatility pattern, and a one-line "watch for" tip.
-- For high-impact events, brief auto-loads on first card render (lazy, IntersectionObserver).
+- New table `news_watchlist`:
+  - `user_id uuid`, `currencies text[]`, `pairs text[]`, `updated_at timestamptz`
+  - Unique on `user_id`; RLS = owner-only.
+- New hook `useNewsWatchlist` (load / upsert).
+- New component `WatchlistEditor.tsx` — popover with checkboxes for the 8 majors (USD, EUR, GBP, JPY, CHF, CAD, AUD, NZD) + XAU, plus an input to add custom pair tags (e.g. `EURUSD`).
+- In `News.tsx`:
+  - Sort `currency_impacts` so watchlisted currencies render first.
+  - Watchlisted cards get a primary border + small "★ Watching" badge.
+  - Pairs in `c.pairs` that are watchlisted render as filled primary badges instead of secondary.
+  - Header gets an "Edit watchlist" button opening the editor.
 
-**Technical**
-- New edge function `ai-event-brief` (non-streaming, plain text response).
-- **Caching strategy** — new table `event_ai_briefs`:
+### 2. Reading time + last-updated timestamp
+
+At the top of `News.tsx`, just under the title:
+
+- **Reading time:** computed from `summary` + each `highlight.detail` + each `currency_impact.note` at ~225 wpm, rounded up. Display: `📖 ~3 min read`.
+- **Last updated:** formatted from `digest.updated_at` using a small `timeAgo()` helper (`Updated 2h ago · Apr 28, 2026 14:32`). Tooltip shows full local timestamp.
+- Place both as a subtle muted-foreground row alongside the existing date/event-count line.
+
+### 3. Notification when a new digest is generated
+
+Use the existing `notifications` table (already wired to `NotificationsBell` + realtime).
+
+- In `supabase/functions/ai-news-digest/index.ts`, after a successful upsert **only when `cached === false` AND the digest_date row was newly inserted** (detect by comparing `created_at === updated_at` on the upserted row), broadcast to all users who opted in:
+  ```sql
+  INSERT INTO notifications (user_id, type, content, link)
+  SELECT user_id, 'system',
+         '🗞️ Today's AI News Digest is ready — ' || event_count || ' events analyzed',
+         '/dashboard/news'
+  FROM profiles WHERE notify_system = true;
   ```
-  event_id uuid PK FK calendar_events,
-  brief text,
-  generated_at timestamptz,
-  model text
-  ```
-  Briefs are shared across all users (events are public) → one generation per event, served from DB after that. Public SELECT, admin-only DELETE for regeneration.
-- Admin button in `/admin/calendar-events` to "Regenerate AI brief" per event.
-- Frontend: `useEventBrief(eventId)` hook checks DB first → calls function only if missing.
+- Done via the existing `broadcast_notification` RPC for consistency.
+- No schema change needed — type `'system'` is already supported by the bell, RLS, and notification preferences.
 
----
+### 4. Ratings + optional comment per digest
 
-### 3. AI Playbook page (`/dashboard/playbook` — NEW)
+Let users thumbs-up / thumbs-down each daily digest with an optional comment. This data feeds future prompt tuning.
 
-**What it does**
-- Weekly trading plan auto-generated from the user's recent activity. Layout:
-  - **Hero**: "Your week in focus" — generated headline + week range
-  - **Section 1: Market context** — synthesized from active `trading_signals` and recent `forecasts` (admin Arova picks)
-  - **Section 2: Personal patterns** — pulled from journal: best/worst sessions, instruments to avoid this week, emotional triggers spotted
-  - **Section 3: This week's gameplan** — 3–5 actionable rules ("Skip Monday Asia session — 0/4 wins", "Stick to EURUSD London opens — your 68% WR setup")
-  - **Section 4: Risk budget** — recommended max risk per trade and weekly loss cap based on equity & recent drawdown
-- Buttons: **Regenerate**, **Save to journal as note**, **Share with coach** (auto-creates a `coach_threads` entry).
-- "Last generated 2h ago" indicator. Manual regen limited to 3/day per user.
+- New table `news_digest_ratings`:
+  - `id uuid pk`, `digest_id uuid`, `user_id uuid`, `rating text check in ('up','down')`, `comment text`, `created_at`, `updated_at`
+  - Unique `(digest_id, user_id)` so each user has one rating per digest (upsert to change).
+  - RLS: users insert/update/select/delete their own row; admins can `SELECT` all (for analytics).
+- New hook `useDigestRating(digestId)` — returns `{ myRating, counts: {up, down}, rate(value, comment), clear() }`.
+  - Aggregate counts via a lightweight `select rating` query (digests are ~1 row/day, low volume).
+- New component `DigestRatingPanel.tsx` rendered at the bottom of `News.tsx`:
+  - Two large thumbs buttons showing total counts.
+  - When a thumb is clicked, a textarea appears (`What could be better?` / `What did you like?`) with a Save button.
+  - "Thanks for your feedback" confirmation toast on save.
+  - If the user already rated, show their existing selection highlighted with an "Update feedback" affordance.
 
-**Technical**
-- New edge function `ai-playbook-generate` — uses tool calling for structured JSON sections, then frontend renders nicely.
-- New table `playbooks`:
-  ```
-  id uuid PK,
-  user_id uuid,
-  week_start date,
-  content jsonb,    -- { headline, market_context, patterns, gameplan[], risk_budget }
-  generated_at timestamptz,
-  model text,
-  unique (user_id, week_start)
-  ```
-  RLS: users manage own rows.
-- Quota table `ai_usage_log` (user_id, feature, day, count) — checked before regen.
-- Page: `src/pages/Playbook.tsx`, hook `usePlaybook()`, components `PlaybookHero`, `PlaybookSection`, `RiskBudgetCard`.
-- Sidebar entry "AI Playbook" with `ScrollText` icon, added to `Sidebar.tsx` and `ResponsiveSidebar.tsx` under AI Coach.
-- Route `/dashboard/playbook` registered in `App.tsx`.
+## Files to add / change
 
----
+**New**
+- `supabase/migrations/<ts>_news_watchlist_and_ratings.sql`
+- `src/hooks/useNewsWatchlist.ts`
+- `src/hooks/useDigestRating.ts`
+- `src/components/news/WatchlistEditor.tsx`
+- `src/components/news/DigestRatingPanel.tsx`
 
-### Shared infrastructure (small additions)
+**Edit**
+- `src/pages/News.tsx` — reading time, updated timestamp, watchlist integration, rating panel
+- `supabase/functions/ai-news-digest/index.ts` — broadcast notification on first generation of the day
+- `src/App.tsx` — remove duplicate `/terms` route
 
-- **`ai_usage_log` table** — global per-user/per-feature/per-day counter to enforce quotas (Advisor: 30/day, Brief: shared cache so unlimited reads, Playbook: 3 regens/day).
-- **Reusable `useAITask` hook** — wraps `supabase.functions.invoke` with loading/error/cached state, used by Advisor and Playbook.
-- All three functions verify JWT in code (consistent with `coach-chat`).
+**Delete**
+- `src/pages/Support.tsx` (orphan)
 
----
-
-### Other AI features I noticed we should add (suggestions)
-
-Pick any to queue after this slice:
-
-1. **Forecast Market Brief** — "Explain this setup" button on every `ForecastCard` → AI breaks down the chart context, bias rationale, and invalidation level. (Already in the master plan, high value.)
-2. **Journal Auto-Tagger & Weekly Recap** — On save, AI auto-suggests tags (`breakout`, `revenge-trade`, `news-driven`) and writes a Sunday email recap of the week's trades.
-3. **Live Room AI Moderator** — beyond the existing recap, add an admin-only "Summarize last 30 min" button + auto-flag toxic messages for moderation.
-4. **Backtesting Critic** — after a backtest run on `/dashboard/backtesting`, AI critiques the strategy ("R:R is 1.2 but win rate needs >55% to be profitable — your sample shows 48%").
-5. **Smart Contact Reply Drafter** — admin-only on `/admin/contact`: AI drafts a reply based on message + user's profile + similar past replies.
-6. **AI Signal Caption Writer** — admin-only on `/admin/signals`: when publishing, AI generates a clean Telegram-style caption from SL/TP/entry.
-7. **Global ⌘K Command Bar** — natural language navigation + queries ("show my XAUUSD trades from last month", "open new forecast"). Acts as a power-user shortcut layer.
-8. **AI News Digest page (`/dashboard/news`)** — daily 5-bullet digest of forex news synthesized from RSS/scraped sources, with pair-impact tags.
-9. **Trade Idea Generator** — paired with Playbook: button "Generate 3 trade ideas for tomorrow" using your favorite pairs + current strength heatmap.
-10. **Onboarding AI Interview** — replace the static `/onboarding` with a 5-question conversational flow that fills the profile via AI extraction.
-
----
-
-### Build order (this slice)
-
-1. Shared `ai_usage_log` table + `useAITask` hook
-2. AI Calculator Advisor (smallest, fastest user-visible win)
-3. AI Event Briefs (cache-heavy, adds value across all users instantly)
-4. `/dashboard/playbook` page (biggest, flagship of this slice)
-
-Approve and I'll ship them in this order.
+## Notes
+- All three new tables/queries are user-scoped with RLS — no admin-only data leaks.
+- No mock data. Empty states: "No watchlist set — track your favourite currencies" and "Be the first to rate today's digest".
+- Rating component uses existing shadcn `Button`, `Textarea`, and Lucide `ThumbsUp`/`ThumbsDown` icons.

@@ -194,6 +194,14 @@ Generate the digest now via the publish_digest tool. Focus on what's most action
       return new Response(JSON.stringify({ error: "Invalid AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Detect whether this is a brand-new digest for today (insert) vs a regenerate (update)
+    const { data: existing } = await supabaseAdmin
+      .from("news_digests")
+      .select("id")
+      .eq("digest_date", today)
+      .maybeSingle();
+    const isNewDigest = !existing;
+
     const { data: upserted, error: upsertErr } = await supabaseAdmin
       .from("news_digests")
       .upsert({
@@ -213,7 +221,20 @@ Generate the digest now via the publish_digest tool. Focus on what's most action
       return new Response(JSON.stringify({ error: "Failed to save digest" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ digest: upserted, cached: false }), {
+    // Broadcast a notification only on first generation of the day
+    if (isNewDigest) {
+      try {
+        await supabaseAdmin.rpc("broadcast_notification", {
+          p_type: "system",
+          p_content: `🗞️ Today's AI News Digest is ready — ${events?.length ?? 0} events analyzed`,
+          p_link: "/dashboard/news",
+        });
+      } catch (notifyErr) {
+        console.error("notification broadcast failed", notifyErr);
+      }
+    }
+
+    return new Response(JSON.stringify({ digest: upserted, cached: false, notified: isNewDigest }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

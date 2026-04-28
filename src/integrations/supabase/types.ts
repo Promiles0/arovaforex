@@ -1321,6 +1321,36 @@ export type Database = {
         }
         Relationships: []
       }
+      news_digest_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          digest_id: string
+          id: string
+          rating: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          digest_id: string
+          id?: string
+          rating: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          digest_id?: string
+          id?: string
+          rating?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       news_digests: {
         Row: {
           created_at: string
@@ -1354,6 +1384,33 @@ export type Database = {
           model?: string | null
           summary?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      news_watchlist: {
+        Row: {
+          created_at: string
+          currencies: string[]
+          id: string
+          pairs: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currencies?: string[]
+          id?: string
+          pairs?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currencies?: string[]
+          id?: string
+          pairs?: string[]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
