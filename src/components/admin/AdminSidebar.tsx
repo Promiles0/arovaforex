@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Users, FileText, BarChart2, Bell, Inbox,
   NotebookPen, TrendingUp, CalendarDays, Radio, Bot,
-  ArrowLeft, LogOut, ChevronDown, Shield, Signal
+  ArrowLeft, LogOut, ChevronDown, Shield, Signal, MessageSquare
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -39,6 +39,7 @@ const navGroups = [
       { title: "Notifications", url: "/admin/notifications", icon: Bell, badgeKey: "notifications" as const },
       { title: "Contact", url: "/admin/contact", icon: Inbox, badgeKey: "contact" as const },
       { title: "Contact Analytics", url: "/admin/contact-analytics", icon: TrendingUp },
+      { title: "Digest Feedback", url: "/admin/digest-feedback", icon: MessageSquare },
       { title: "Live Stream", url: "/admin/live-stream", icon: Radio },
       { title: "AI Assistant", url: "/admin/ai-assistant", icon: Bot },
     ],
