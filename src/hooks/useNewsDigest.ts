@@ -28,10 +28,32 @@ export type NewsDigest = {
   updated_at: string;
 };
 
-export function useNewsDigest() {
+export function useNewsDigest(dateOverride?: string | null) {
   const [digest, setDigest] = useState<NewsDigest | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+
+  const fetchByDate = useCallback(async (date: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("news_digests")
+        .select("*")
+        .eq("digest_date", date)
+        .maybeSingle();
+      if (error) throw error;
+      setDigest((data as NewsDigest | null) ?? null);
+    } catch (e) {
+      console.error("fetch digest by date error", e);
+      toast({
+        title: "Could not load digest",
+        description: e instanceof Error ? e.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const fetchDigest = useCallback(async (force = false) => {
     if (force) setGenerating(true);
@@ -57,8 +79,12 @@ export function useNewsDigest() {
   }, []);
 
   useEffect(() => {
-    fetchDigest(false);
-  }, [fetchDigest]);
+    if (dateOverride) {
+      fetchByDate(dateOverride);
+    } else {
+      fetchDigest(false);
+    }
+  }, [dateOverride, fetchDigest, fetchByDate]);
 
   return { digest, loading, generating, regenerate: () => fetchDigest(true) };
 }

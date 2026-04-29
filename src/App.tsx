@@ -8,6 +8,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { AdminLayout } from "./components/layout/AdminLayout";
+import { VisitorTracker } from "./components/admin/VisitorTracker";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
@@ -46,6 +47,7 @@ import LiveStreamControl from "./pages/admin/LiveStreamControl";
 import AIAssistant from "./pages/admin/AIAssistant";
 import AuditLog from "./pages/admin/AuditLog";
 import AdminSignals from "./pages/admin/Signals";
+import AdminDigestFeedback from "./pages/admin/DigestFeedback";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +58,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <VisitorTracker />
           <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -108,6 +111,7 @@ const App = () => (
                 <Route path="ai-assistant" element={<AIAssistant />} />
                 <Route path="audit-log" element={<AuditLog />} />
                 <Route path="signals" element={<AdminSignals />} />
+                <Route path="digest-feedback" element={<AdminDigestFeedback />} />
               </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

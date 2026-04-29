@@ -221,16 +221,14 @@ Generate the digest now via the publish_digest tool. Focus on what's most action
       return new Response(JSON.stringify({ error: "Failed to save digest" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Broadcast a notification only on first generation of the day
-    if (isNewDigest) {
+    // Dispatch granular notifications only on first generation of the day
+    if (isNewDigest && upserted?.id) {
       try {
-        await supabaseAdmin.rpc("broadcast_notification", {
-          p_type: "system",
-          p_content: `🗞️ Today's AI News Digest is ready — ${events?.length ?? 0} events analyzed`,
-          p_link: "/dashboard/news",
+        await supabaseAdmin.rpc("notify_digest_subscribers", {
+          p_digest_id: upserted.id,
         });
       } catch (notifyErr) {
-        console.error("notification broadcast failed", notifyErr);
+        console.error("notification dispatch failed", notifyErr);
       }
     }
 

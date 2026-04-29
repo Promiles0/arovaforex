@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Mail, CheckCircle } from 'lucide-react';
+import { Bell, Mail, CheckCircle, Sparkles } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,9 @@ export const PreferencesTab = ({ profile, onUpdate }: PreferencesTabProps) => {
     notify_comment: profile.notify_comment ?? true,
     notify_announcement: profile.notify_announcement ?? true,
     notify_system: profile.notify_system ?? true,
+    notify_news_digest: profile.notify_news_digest ?? true,
+    notify_news_mention: profile.notify_news_mention ?? true,
+    notify_ai_system: profile.notify_ai_system ?? true,
     email_notifications_enabled: profile.email_notifications_enabled ?? false,
     push_notifications_enabled: profile.push_notifications_enabled ?? false
   });
@@ -45,6 +48,9 @@ export const PreferencesTab = ({ profile, onUpdate }: PreferencesTabProps) => {
           notify_comment: formData.notify_comment,
           notify_announcement: formData.notify_announcement,
           notify_system: formData.notify_system,
+          notify_news_digest: formData.notify_news_digest,
+          notify_news_mention: formData.notify_news_mention,
+          notify_ai_system: formData.notify_ai_system,
           email_notifications_enabled: formData.email_notifications_enabled,
           push_notifications_enabled: formData.push_notifications_enabled,
           updated_at: new Date().toISOString()
@@ -146,6 +152,50 @@ export const PreferencesTab = ({ profile, onUpdate }: PreferencesTabProps) => {
                 id="notify_system"
                 checked={formData.notify_system}
                 onCheckedChange={(checked) => handleChange('notify_system', checked)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Sparkles size={20} className="text-primary" />
+            AI &amp; News
+          </h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div>
+                <Label htmlFor="notify_news_digest" className="font-medium">New daily digest</Label>
+                <p className="text-sm text-muted-foreground">Get notified when a fresh AI News Digest is published</p>
+              </div>
+              <Switch
+                id="notify_news_digest"
+                checked={formData.notify_news_digest}
+                onCheckedChange={(checked) => handleChange('notify_news_digest', checked)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div>
+                <Label htmlFor="notify_news_mention" className="font-medium">Watchlist mentions</Label>
+                <p className="text-sm text-muted-foreground">Alert me when a digest mentions a currency or pair I'm watching</p>
+              </div>
+              <Switch
+                id="notify_news_mention"
+                checked={formData.notify_news_mention}
+                onCheckedChange={(checked) => handleChange('notify_news_mention', checked)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div>
+                <Label htmlFor="notify_ai_system" className="font-medium">All AI system alerts</Label>
+                <p className="text-sm text-muted-foreground">Other AI-generated insights and assistant updates</p>
+              </div>
+              <Switch
+                id="notify_ai_system"
+                checked={formData.notify_ai_system}
+                onCheckedChange={(checked) => handleChange('notify_ai_system', checked)}
               />
             </div>
           </div>

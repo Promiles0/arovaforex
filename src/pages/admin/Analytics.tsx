@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/seo/SEO";
 import { supabase } from "@/integrations/supabase/client";
 import { ResponsiveContainer, AreaChart, Area, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, Heart, MessageSquare, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { VisitorsTab } from "@/components/admin/VisitorsTab";
 
 interface AnalyticsData {
   userGrowth: Array<{ name: string; value: number; date: string }>;
