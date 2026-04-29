@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.ai-news-digest]
 verify_jwt = false
+
+[functions.track-visit]
+verify_jwt = false
