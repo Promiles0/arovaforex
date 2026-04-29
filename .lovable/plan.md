@@ -1,91 +1,128 @@
-# News Digest Enhancements + System Cleanup
+# Plan: Visitor Tracking + News Digest Enhancements
 
-## Part 1 — System audit (quick fixes)
+Six independent features grouped into two areas.
 
-A full sweep of pages, routes, and components surfaced only one real loose end:
+---
 
-- **`src/pages/Support.tsx`** exists but is not routed anywhere and not linked from any sidebar. It's dead code left from an earlier iteration of the contact flow (which is now `Contact.tsx`).
-  - **Fix:** delete `src/pages/Support.tsx`.
-- **Duplicate `/terms` route** declared twice in `src/App.tsx` (lines 68–69).
-  - **Fix:** remove the duplicate line.
-- Two "coming soon" labels in `SignalsTestimonials.tsx` and `PerformanceMetrics.tsx` are intentional empty-state copy on the public Signals landing page (no real testimonials yet) — leaving as-is per the real-data-only rule. Not a bug.
+## A. Visitor Tracking System
 
-Everything else (Coach, Playbook, News, Calculator AI Advisor, Calendar Briefs, all admin pages, all dashboard pages) is wired, routed, and functional.
+### 1. Database (migration)
+New table `visitor_events`:
+- `id uuid pk`, `created_at timestamptz default now()`
+- `session_id uuid` (client-generated, persisted in `localStorage` for unique-visitor counting)
+- `user_id uuid null` (set if logged in)
+- `path text`, `full_url text`, `referrer text`, `user_agent text`
+- `ip_address inet`, `country text`, `city text` (geo-enriched server-side)
+- `device_type text` (mobile/tablet/desktop, parsed from UA)
 
-## Part 2 — News Digest feature work
+RLS:
+- `INSERT`: anyone (anon + authenticated) — public tracker
+- `SELECT/DELETE`: admins only (`has_role(auth.uid(),'admin')`)
 
-### 1. Watchlist on `/dashboard/news`
+Indexes on `created_at desc`, `session_id`, `path`.
 
-Let users pick the currencies/pairs they care about and visually highlight them in the Currency Impact Map.
+### 2. Edge function `track-visit`
+- `verify_jwt = false` (public)
+- Validates body with zod (path, referrer, userAgent, sessionId)
+- Captures `req.headers.get('x-forwarded-for')` for IP
+- Calls free `https://ipapi.co/{ip}/json/` (no key needed) for country/city — wrapped in try/catch, never blocks insert
+- Inserts row using service-role client
+- CORS enabled via SDK
 
-- New table `news_watchlist`:
-  - `user_id uuid`, `currencies text[]`, `pairs text[]`, `updated_at timestamptz`
-  - Unique on `user_id`; RLS = owner-only.
-- New hook `useNewsWatchlist` (load / upsert).
-- New component `WatchlistEditor.tsx` — popover with checkboxes for the 8 majors (USD, EUR, GBP, JPY, CHF, CAD, AUD, NZD) + XAU, plus an input to add custom pair tags (e.g. `EURUSD`).
-- In `News.tsx`:
-  - Sort `currency_impacts` so watchlisted currencies render first.
-  - Watchlisted cards get a primary border + small "★ Watching" badge.
-  - Pairs in `c.pairs` that are watchlisted render as filled primary badges instead of secondary.
-  - Header gets an "Edit watchlist" button opening the editor.
+### 3. Frontend tracker
+- New hook `src/hooks/useVisitorTracking.ts`:
+  - On mount + on every `location.pathname` change, fire `supabase.functions.invoke('track-visit', { body })`
+  - Gets/creates `visitor_session_id` in `localStorage`
+  - Skips `/admin/*` routes (don't track admin browsing)
+  - Skips when `localStorage.tracking_opt_out === 'true'`
+- Mounted once inside `App.tsx` via a small `<VisitorTracker />` component placed inside `BrowserRouter`
 
-### 2. Reading time + last-updated timestamp
+### 4. Admin Analytics page upgrade
+Extend existing `src/pages/admin/Analytics.tsx` with a new **"Visitors"** tab:
+- KPI cards: Total visits, Unique sessions, Logged-in vs anonymous, Today's visits
+- Real-time: subscribe to `visitor_events` `INSERT` via Supabase Realtime → live counter + toast
+- Charts (Recharts): visits per hour (last 24h), visits per day (last 30d), top 10 pages, top 10 referrers, country breakdown (pie)
+- Sortable/filterable table of latest 100 visits (path, referrer, country, device, time, user link)
+- Date-range filter (today / 7d / 30d)
 
-At the top of `News.tsx`, just under the title:
+### 5. Privacy
+- Append a one-line disclosure to existing `PrivacyPolicy.tsx` ("We log anonymous visit metadata…") and a small "Do not track me" toggle on the privacy page that flips `localStorage.tracking_opt_out`.
 
-- **Reading time:** computed from `summary` + each `highlight.detail` + each `currency_impact.note` at ~225 wpm, rounded up. Display: `📖 ~3 min read`.
-- **Last updated:** formatted from `digest.updated_at` using a small `timeAgo()` helper (`Updated 2h ago · Apr 28, 2026 14:32`). Tooltip shows full local timestamp.
-- Place both as a subtle muted-foreground row alongside the existing date/event-count line.
+---
 
-### 3. Notification when a new digest is generated
+## B. News Digest Enhancements
 
-Use the existing `notifications` table (already wired to `NotificationsBell` + realtime).
+### B1. Admin moderation panel for digest feedback
+- New admin page `src/pages/admin/DigestFeedback.tsx` at `/admin/digest-feedback`
+- Lists rows from `news_digest_ratings` joined with `profiles` (name, avatar) and `news_digests` (digest_date)
+- Filters: rating (up/down/all), with-comment-only, date range
+- Actions: **Delete comment** (clears `comment` to null) and **Delete rating** entirely
+- Logs each delete via `log_admin_action` RPC
+- Add to `AdminSidebar` under "Communication" with `MessageSquare` icon
 
-- In `supabase/functions/ai-news-digest/index.ts`, after a successful upsert **only when `cached === false` AND the digest_date row was newly inserted** (detect by comparing `created_at === updated_at` on the upserted row), broadcast to all users who opted in:
-  ```sql
-  INSERT INTO notifications (user_id, type, content, link)
-  SELECT user_id, 'system',
-         '🗞️ Today's AI News Digest is ready — ' || event_count || ' events analyzed',
-         '/dashboard/news'
-  FROM profiles WHERE notify_system = true;
-  ```
-- Done via the existing `broadcast_notification` RPC for consistency.
-- No schema change needed — type `'system'` is already supported by the bell, RLS, and notification preferences.
+RLS update (migration): admins can `UPDATE`/`DELETE` on `news_digest_ratings`.
 
-### 4. Ratings + optional comment per digest
+### B2. Auto-suggest pairs in WatchlistEditor
+Update `src/components/news/WatchlistEditor.tsx`:
+- Compute suggestions from selected currencies × all majors (e.g., user picks `EUR` + `JPY` → suggest `EURUSD`, `EURJPY`, `USDJPY`, `GBPJPY`, `XAUUSD` if `XAU`)
+- Also pull existing pairs from the latest `news_digest.currency_impacts[].pairs` to surface "trending" suggestions
+- Render below the pair input as clickable `Badge` chips ("+ EURUSD"); clicking adds to `draftPairs`
+- Hide pairs already in draft
 
-Let users thumbs-up / thumbs-down each daily digest with an optional comment. This data feeds future prompt tuning.
+### B3. Digest notification settings
+Migration: add columns to `profiles`:
+- `notify_news_digest boolean default true` (new daily digest)
+- `notify_news_mention boolean default true` (digest mentions a watched currency/pair)
+- `notify_ai_system boolean default true` (general AI system alerts)
 
-- New table `news_digest_ratings`:
-  - `id uuid pk`, `digest_id uuid`, `user_id uuid`, `rating text check in ('up','down')`, `comment text`, `created_at`, `updated_at`
-  - Unique `(digest_id, user_id)` so each user has one rating per digest (upsert to change).
-  - RLS: users insert/update/select/delete their own row; admins can `SELECT` all (for analytics).
-- New hook `useDigestRating(digestId)` — returns `{ myRating, counts: {up, down}, rate(value, comment), clear() }`.
-  - Aggregate counts via a lightweight `select rating` query (digests are ~1 row/day, low volume).
-- New component `DigestRatingPanel.tsx` rendered at the bottom of `News.tsx`:
-  - Two large thumbs buttons showing total counts.
-  - When a thumb is clicked, a textarea appears (`What could be better?` / `What did you like?`) with a Save button.
-  - "Thanks for your feedback" confirmation toast on save.
-  - If the user already rated, show their existing selection highlighted with an "Update feedback" affordance.
+Frontend: add a new "AI & News" group inside `src/components/profile/PreferencesTab.tsx` with three switches.
 
-## Files to add / change
+Edge function update: `ai-news-digest` already calls `broadcast_notification`. Replace that single call with two passes:
+- Pass 1: notify users with `notify_news_digest = true` (general "New digest available")
+- Pass 2: for users with `notify_news_mention = true`, check overlap between their `news_watchlist` and digest currencies/pairs; insert a personalized notification ("Your watched EUR was flagged volatile today")
 
-**New**
-- `supabase/migrations/<ts>_news_watchlist_and_ratings.sql`
-- `src/hooks/useNewsWatchlist.ts`
-- `src/hooks/useDigestRating.ts`
-- `src/components/news/WatchlistEditor.tsx`
-- `src/components/news/DigestRatingPanel.tsx`
+This is implemented via a new SQL helper `notify_digest_subscribers(p_digest_id uuid)` called from the edge function.
 
-**Edit**
-- `src/pages/News.tsx` — reading time, updated timestamp, watchlist integration, rating panel
-- `supabase/functions/ai-news-digest/index.ts` — broadcast notification on first generation of the day
-- `src/App.tsx` — remove duplicate `/terms` route
+### B4. News page filters
+Add a filter bar at the top of `src/pages/News.tsx` (above Market Overview):
+- Toggle: **"Watched only"** — filters `currency_impacts` to entries where the currency or any pair is in the user's watchlist; filters `highlights` whose `pairs`/text mentions a watched currency
+- Toggle: **"Hide low impact"** — removes `highlights` with `impact === 'low'`
+- Reset button when any filter is on
+- State stored in `useState`; persisted to `localStorage` as `news_filters`
+- Empty-state message when filters yield nothing
 
-**Delete**
-- `src/pages/Support.tsx` (orphan)
+### B5. Share button
+Add a "Share" button next to "Regenerate" in the News header:
+- Uses Web Share API when available (`navigator.share`)
+- Fallback: copies a URL of the form `https://<host>/dashboard/news?date=YYYY-MM-DD` to clipboard via `navigator.clipboard.writeText`
+- Toast confirmation
+- News page reads `?date=` query param; if present, fetches that specific digest by `digest_date` (extends `useNewsDigest` with optional `date` arg)
+
+---
+
+## Files Summary
+
+**New:**
+- `supabase/migrations/<ts>_visitor_tracking.sql`
+- `supabase/migrations/<ts>_news_enhancements.sql` (profile cols, ratings RLS, helper fn)
+- `supabase/functions/track-visit/index.ts`
+- `src/hooks/useVisitorTracking.ts`
+- `src/components/admin/VisitorTracker.tsx` (mounts the hook)
+- `src/pages/admin/DigestFeedback.tsx`
+
+**Edited:**
+- `src/App.tsx` (mount tracker, register `/admin/digest-feedback`)
+- `src/pages/admin/Analytics.tsx` (Visitors tab)
+- `src/components/admin/AdminSidebar.tsx` (Digest Feedback link)
+- `src/components/news/WatchlistEditor.tsx` (suggestions)
+- `src/components/profile/PreferencesTab.tsx` (3 new toggles)
+- `src/pages/News.tsx` (filters, share button, ?date param)
+- `src/hooks/useNewsDigest.ts` (optional date arg)
+- `src/pages/PrivacyPolicy.tsx` (disclosure + opt-out)
+- `supabase/functions/ai-news-digest/index.ts` (granular notifications)
+- `supabase/config.toml` (register `track-visit`, `verify_jwt=false`)
 
 ## Notes
-- All three new tables/queries are user-scoped with RLS — no admin-only data leaks.
-- No mock data. Empty states: "No watchlist set — track your favourite currencies" and "Be the first to rate today's digest".
-- Rating component uses existing shadcn `Button`, `Textarea`, and Lucide `ThumbsUp`/`ThumbsDown` icons.
+- No new secrets needed (ipapi.co free tier is keyless; Lovable AI gateway already configured).
+- Geolocation enrichment is best-effort — failures don't block tracking.
+- Admin analytics realtime uses existing Supabase Realtime; `visitor_events` will be added to the `supabase_realtime` publication in the migration.

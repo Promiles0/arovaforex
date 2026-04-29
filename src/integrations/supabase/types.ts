@@ -1565,10 +1565,13 @@ export type Database = {
           full_name: string | null
           id: string
           is_suspended: boolean
+          notify_ai_system: boolean
           notify_announcement: boolean
           notify_bookmark: boolean
           notify_comment: boolean
           notify_like: boolean
+          notify_news_digest: boolean
+          notify_news_mention: boolean
           notify_system: boolean
           onboarding_tour_completed: boolean | null
           phone_number: string | null
@@ -1594,10 +1597,13 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_suspended?: boolean
+          notify_ai_system?: boolean
           notify_announcement?: boolean
           notify_bookmark?: boolean
           notify_comment?: boolean
           notify_like?: boolean
+          notify_news_digest?: boolean
+          notify_news_mention?: boolean
           notify_system?: boolean
           onboarding_tour_completed?: boolean | null
           phone_number?: string | null
@@ -1623,10 +1629,13 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_suspended?: boolean
+          notify_ai_system?: boolean
           notify_announcement?: boolean
           notify_bookmark?: boolean
           notify_comment?: boolean
           notify_like?: boolean
+          notify_news_digest?: boolean
+          notify_news_mention?: boolean
           notify_system?: boolean
           onboarding_tour_completed?: boolean | null
           phone_number?: string | null
@@ -1833,6 +1842,51 @@ export type Database = {
         }
         Relationships: []
       }
+      visitor_events: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string
+          device_type: string | null
+          full_url: string | null
+          id: string
+          ip_address: unknown
+          path: string
+          referrer: string | null
+          session_id: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          full_url?: string | null
+          id?: string
+          ip_address?: unknown
+          path: string
+          referrer?: string | null
+          session_id: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          full_url?: string | null
+          id?: string
+          ip_address?: unknown
+          path?: string
+          referrer?: string | null
+          session_id?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1875,6 +1929,10 @@ export type Database = {
           p_target_type: string
         }
         Returns: string
+      }
+      notify_digest_subscribers: {
+        Args: { p_digest_id: string }
+        Returns: number
       }
     }
     Enums: {
