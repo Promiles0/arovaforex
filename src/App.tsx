@@ -8,6 +8,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { AdminLayout } from "./components/layout/AdminLayout";
+import { VisitorTracker } from "./components/admin/VisitorTracker";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
@@ -46,6 +47,7 @@ import LiveStreamControl from "./pages/admin/LiveStreamControl";
 import AIAssistant from "./pages/admin/AIAssistant";
 import AuditLog from "./pages/admin/AuditLog";
 import AdminSignals from "./pages/admin/Signals";
+import AdminDigestFeedback from "./pages/admin/DigestFeedback";
 
 const queryClient = new QueryClient();
 
@@ -57,7 +59,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<><VisitorTracker /><Index /></>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/auth/confirm-email" element={<ConfirmEmail />} />
