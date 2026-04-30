@@ -1844,10 +1844,16 @@ export type Database = {
       }
       visitor_events: {
         Row: {
+          browser: string | null
           city: string | null
           country: string | null
           created_at: string
           device_type: string | null
+          duration_ms: number | null
+          element_href: string | null
+          element_tag: string | null
+          element_text: string | null
+          event_type: string
           full_url: string | null
           id: string
           ip_address: unknown
@@ -1858,10 +1864,16 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          browser?: string | null
           city?: string | null
           country?: string | null
           created_at?: string
           device_type?: string | null
+          duration_ms?: number | null
+          element_href?: string | null
+          element_tag?: string | null
+          element_text?: string | null
+          event_type?: string
           full_url?: string | null
           id?: string
           ip_address?: unknown
@@ -1872,10 +1884,16 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          browser?: string | null
           city?: string | null
           country?: string | null
           created_at?: string
           device_type?: string | null
+          duration_ms?: number | null
+          element_href?: string | null
+          element_tag?: string | null
+          element_text?: string | null
+          event_type?: string
           full_url?: string | null
           id?: string
           ip_address?: unknown
@@ -1889,7 +1907,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      visitor_sessions_summary: {
+        Row: {
+          browser: string | null
+          city: string | null
+          clicks: number | null
+          country: string | null
+          device_type: string | null
+          first_seen: string | null
+          last_path: string | null
+          last_seen: string | null
+          pageviews: number | null
+          referrer: string | null
+          session_id: string | null
+          total_duration_ms: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       broadcast_notification: {
