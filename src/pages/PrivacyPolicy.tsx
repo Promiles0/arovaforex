@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrackingOptOut } from "@/components/privacy/TrackingOptOut";
 
 const PrivacyPolicy = () => {
   return (
@@ -22,7 +23,16 @@ const PrivacyPolicy = () => {
                   <li>Trading preferences and settings</li>
                   <li>Usage data and analytics</li>
                   <li>Communication preferences</li>
+                  <li>Anonymous visit metadata: page paths, referrers, browser/device type, and approximate location (country/city) derived from IP. This is used in aggregate to improve the platform and is never sold.</li>
                 </ul>
+              </section>
+
+              <section>
+                <h2 className="text-2xl font-semibold mb-4">Tracking Preferences</h2>
+                <p className="text-muted-foreground mb-4">
+                  You can opt out of anonymous visit tracking on this device. This setting is stored locally in your browser.
+                </p>
+                <TrackingOptOut />
               </section>
 
               <section>
