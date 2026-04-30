@@ -1,128 +1,135 @@
-# Plan: Visitor Tracking + News Digest Enhancements
+## Goal
 
-Six independent features grouped into two areas.
+Turn the existing admin **Visitors** tab into a full "see everything that happens on my site" dashboard:
 
----
+1. A list of every visitor (sessions), sortable/searchable.
+2. Click any visitor → modal showing their full journey: pages visited, clicks, time on each page, total time on site, visit count, device, location, and (if logged in) profile info.
+3. Top metrics with charts: unique visitors, pageviews per route, referrers, devices, browsers.
 
-## A. Visitor Tracking System
-
-### 1. Database (migration)
-New table `visitor_events`:
-- `id uuid pk`, `created_at timestamptz default now()`
-- `session_id uuid` (client-generated, persisted in `localStorage` for unique-visitor counting)
-- `user_id uuid null` (set if logged in)
-- `path text`, `full_url text`, `referrer text`, `user_agent text`
-- `ip_address inet`, `country text`, `city text` (geo-enriched server-side)
-- `device_type text` (mobile/tablet/desktop, parsed from UA)
-
-RLS:
-- `INSERT`: anyone (anon + authenticated) — public tracker
-- `SELECT/DELETE`: admins only (`has_role(auth.uid(),'admin')`)
-
-Indexes on `created_at desc`, `session_id`, `path`.
-
-### 2. Edge function `track-visit`
-- `verify_jwt = false` (public)
-- Validates body with zod (path, referrer, userAgent, sessionId)
-- Captures `req.headers.get('x-forwarded-for')` for IP
-- Calls free `https://ipapi.co/{ip}/json/` (no key needed) for country/city — wrapped in try/catch, never blocks insert
-- Inserts row using service-role client
-- CORS enabled via SDK
-
-### 3. Frontend tracker
-- New hook `src/hooks/useVisitorTracking.ts`:
-  - On mount + on every `location.pathname` change, fire `supabase.functions.invoke('track-visit', { body })`
-  - Gets/creates `visitor_session_id` in `localStorage`
-  - Skips `/admin/*` routes (don't track admin browsing)
-  - Skips when `localStorage.tracking_opt_out === 'true'`
-- Mounted once inside `App.tsx` via a small `<VisitorTracker />` component placed inside `BrowserRouter`
-
-### 4. Admin Analytics page upgrade
-Extend existing `src/pages/admin/Analytics.tsx` with a new **"Visitors"** tab:
-- KPI cards: Total visits, Unique sessions, Logged-in vs anonymous, Today's visits
-- Real-time: subscribe to `visitor_events` `INSERT` via Supabase Realtime → live counter + toast
-- Charts (Recharts): visits per hour (last 24h), visits per day (last 30d), top 10 pages, top 10 referrers, country breakdown (pie)
-- Sortable/filterable table of latest 100 visits (path, referrer, country, device, time, user link)
-- Date-range filter (today / 7d / 30d)
-
-### 5. Privacy
-- Append a one-line disclosure to existing `PrivacyPolicy.tsx` ("We log anonymous visit metadata…") and a small "Do not track me" toggle on the privacy page that flips `localStorage.tracking_opt_out`.
+All data stays anonymous unless the visitor is a logged-in user, in which case we link to their profile. Existing tracking opt-out is respected.
 
 ---
 
-## B. News Digest Enhancements
+## What we'll capture (extension of current tracking)
 
-### B1. Admin moderation panel for digest feedback
-- New admin page `src/pages/admin/DigestFeedback.tsx` at `/admin/digest-feedback`
-- Lists rows from `news_digest_ratings` joined with `profiles` (name, avatar) and `news_digests` (digest_date)
-- Filters: rating (up/down/all), with-comment-only, date range
-- Actions: **Delete comment** (clears `comment` to null) and **Delete rating** entirely
-- Logs each delete via `log_admin_action` RPC
-- Add to `AdminSidebar` under "Communication" with `MessageSquare` icon
+Today `visitor_events` only records pageviews. We'll extend tracking to also record:
 
-RLS update (migration): admins can `UPDATE`/`DELETE` on `news_digest_ratings`.
+- **Click events** — element tag, text (truncated), href, and path where it happened
+- **Page exit / time-on-page** — how long the user stayed on each page
+- **Browser** — parsed from user-agent (Chrome, Safari, Firefox, Edge, etc.)
 
-### B2. Auto-suggest pairs in WatchlistEditor
-Update `src/components/news/WatchlistEditor.tsx`:
-- Compute suggestions from selected currencies × all majors (e.g., user picks `EUR` + `JPY` → suggest `EURUSD`, `EURJPY`, `USDJPY`, `GBPJPY`, `XAUUSD` if `XAU`)
-- Also pull existing pairs from the latest `news_digest.currency_impacts[].pairs` to surface "trending" suggestions
-- Render below the pair input as clickable `Badge` chips ("+ EURUSD"); clicking adds to `draftPairs`
-- Hide pairs already in draft
+This gives us a true activity timeline per session.
 
-### B3. Digest notification settings
-Migration: add columns to `profiles`:
-- `notify_news_digest boolean default true` (new daily digest)
-- `notify_news_mention boolean default true` (digest mentions a watched currency/pair)
-- `notify_ai_system boolean default true` (general AI system alerts)
+### Database changes (one migration)
 
-Frontend: add a new "AI & News" group inside `src/components/profile/PreferencesTab.tsx` with three switches.
+Add to `visitor_events`:
+- `event_type text not null default 'pageview'` — `pageview` | `click` | `pageleave`
+- `element_tag text` — e.g. `BUTTON`, `A`
+- `element_text text` — truncated visible text
+- `element_href text` — for link clicks
+- `duration_ms integer` — time spent on the page (set by `pageleave`)
+- `browser text` — parsed browser name
 
-Edge function update: `ai-news-digest` already calls `broadcast_notification`. Replace that single call with two passes:
-- Pass 1: notify users with `notify_news_digest = true` (general "New digest available")
-- Pass 2: for users with `notify_news_mention = true`, check overlap between their `news_watchlist` and digest currencies/pairs; insert a personalized notification ("Your watched EUR was flagged volatile today")
+Indexes: `(session_id, created_at)`, `(user_id)`, `(event_type)`.
 
-This is implemented via a new SQL helper `notify_digest_subscribers(p_digest_id uuid)` called from the edge function.
+A SQL view `visitor_sessions_summary` aggregates per session:
+- `session_id`, `user_id`, `first_seen`, `last_seen`, `pageviews`, `clicks`, `total_duration_ms`, `country`, `city`, `device_type`, `browser`, `referrer`, `last_path`.
 
-### B4. News page filters
-Add a filter bar at the top of `src/pages/News.tsx` (above Market Overview):
-- Toggle: **"Watched only"** — filters `currency_impacts` to entries where the currency or any pair is in the user's watchlist; filters `highlights` whose `pairs`/text mentions a watched currency
-- Toggle: **"Hide low impact"** — removes `highlights` with `impact === 'low'`
-- Reset button when any filter is on
-- State stored in `useState`; persisted to `localStorage` as `news_filters`
-- Empty-state message when filters yield nothing
+This view powers the visitor list efficiently without scanning all events client-side.
 
-### B5. Share button
-Add a "Share" button next to "Regenerate" in the News header:
-- Uses Web Share API when available (`navigator.share`)
-- Fallback: copies a URL of the form `https://<host>/dashboard/news?date=YYYY-MM-DD` to clipboard via `navigator.clipboard.writeText`
-- Toast confirmation
-- News page reads `?date=` query param; if present, fetches that specific digest by `digest_date` (extends `useNewsDigest` with optional `date` arg)
+RLS: only admins can `select` from `visitor_events` (already true) and the new view.
 
 ---
 
-## Files Summary
+## Frontend changes
 
-**New:**
-- `supabase/migrations/<ts>_visitor_tracking.sql`
-- `supabase/migrations/<ts>_news_enhancements.sql` (profile cols, ratings RLS, helper fn)
-- `supabase/functions/track-visit/index.ts`
-- `src/hooks/useVisitorTracking.ts`
-- `src/components/admin/VisitorTracker.tsx` (mounts the hook)
-- `src/pages/admin/DigestFeedback.tsx`
+### 1. Extend `useVisitorTracking.ts`
+- Keep current pageview tracking.
+- Add a global `click` listener (capture phase) — debounced, ignores form inputs, sends `{ event_type:'click', element_tag, element_text (≤80 chars), element_href, path }`.
+- On route change & `visibilitychange='hidden'` & `beforeunload`, send a `pageleave` event with `duration_ms` for the previous page (uses `navigator.sendBeacon` for reliability).
+- Continues to skip `/admin/*` and respect `tracking_opt_out`.
 
-**Edited:**
-- `src/App.tsx` (mount tracker, register `/admin/digest-feedback`)
-- `src/pages/admin/Analytics.tsx` (Visitors tab)
-- `src/components/admin/AdminSidebar.tsx` (Digest Feedback link)
-- `src/components/news/WatchlistEditor.tsx` (suggestions)
-- `src/components/profile/PreferencesTab.tsx` (3 new toggles)
-- `src/pages/News.tsx` (filters, share button, ?date param)
-- `src/hooks/useNewsDigest.ts` (optional date arg)
-- `src/pages/PrivacyPolicy.tsx` (disclosure + opt-out)
-- `supabase/functions/ai-news-digest/index.ts` (granular notifications)
-- `supabase/config.toml` (register `track-visit`, `verify_jwt=false`)
+### 2. Update `track-visit` edge function
+- Accept the new fields (`event_type`, `element_*`, `duration_ms`).
+- Parse `browser` from user-agent server-side (Chrome / Safari / Firefox / Edge / Opera / Other).
+- Validate and clamp string lengths.
 
-## Notes
-- No new secrets needed (ipapi.co free tier is keyless; Lovable AI gateway already configured).
-- Geolocation enrichment is best-effort — failures don't block tracking.
-- Admin analytics realtime uses existing Supabase Realtime; `visitor_events` will be added to the `supabase_realtime` publication in the migration.
+### 3. Rebuild `VisitorsTab.tsx`
+
+**Top row — KPI cards** (range: Today / 7d / 30d):
+- Unique visitors (distinct sessions)
+- Logged-in vs anonymous
+- Total pageviews
+- Total clicks
+- Avg session duration
+- Live count (realtime, already wired)
+
+**Charts grid:**
+- Pageviews per route (horizontal bar, top 10)
+- Top referrers (horizontal bar)
+- Devices (donut: desktop / mobile / tablet)
+- Browsers (donut)
+- Countries (donut, already exists)
+- Visitors over time (area chart by day/hour)
+
+**Visitors list** (replaces the raw events table):
+- One row per session via `visitor_sessions_summary`.
+- Columns: User (avatar+name if logged-in, else "Anonymous • short session id"), Country/City, Device · Browser, Pageviews, Clicks, Duration, Last seen, Referrer.
+- Search by user name/email/session id, filter by Logged-in / Anonymous, sort by last_seen / duration / pageviews.
+- Pagination (50/page).
+- Click a row → opens `VisitorDetailModal`.
+
+### 4. New `VisitorDetailModal.tsx`
+
+Shows one visitor's complete picture:
+
+- **Header**: avatar + name + email + role badge (if logged-in) OR "Anonymous visitor"; session id; first seen / last seen.
+- **Stats strip**: total visits (count of distinct sessions for this user_id, if logged-in), pageviews, clicks, total time on site, avg time per page, country/city, device · browser, IP (admin-only).
+- **Activity timeline** (scrollable): chronological list of events for this session — pageview / click / pageleave with relative time and duration. Each pageview shows path, time spent, referrer if first.
+- **Top pages** mini-bar: most visited paths in this session.
+- **Other sessions** (if logged-in user): collapsible list of their previous sessions with quick stats; clicking switches the modal to that session.
+- **Quick actions**: "Open user profile" (admin route) when logged-in.
+
+Built with the existing `Dialog` primitive (with `VisuallyHidden` `DialogTitle`/`DialogDescription` per project rule).
+
+### 5. Realtime
+Keep the existing realtime channel; new event types just appear with appropriate icons in the live feed strip at the top of the tab.
+
+---
+
+## Privacy & safety
+
+- Click tracking ignores `<input>`, `<textarea>`, elements with `[data-no-track]`, and anything inside `[data-sensitive]`.
+- Element text is truncated to 80 chars; never captures values from inputs.
+- Existing `/admin/*` skip and `tracking_opt_out` localStorage flag both honored.
+- Privacy policy page already discloses tracking — we'll add one line about anonymous click tracking.
+
+---
+
+## File plan
+
+**New**
+- `supabase/migrations/<ts>_visitor_events_activity.sql` — columns, indexes, view, RLS for view.
+- `src/components/admin/VisitorDetailModal.tsx`
+- `src/components/admin/visitors/MetricCards.tsx`
+- `src/components/admin/visitors/VisitorList.tsx`
+- `src/components/admin/visitors/ActivityTimeline.tsx`
+- `src/hooks/useVisitorSessions.ts` — fetches summary view + filters/pagination.
+- `src/hooks/useVisitorSessionDetail.ts` — fetches all events for a session + sibling sessions for the user.
+
+**Edited**
+- `src/hooks/useVisitorTracking.ts` — add click + pageleave tracking.
+- `supabase/functions/track-visit/index.ts` — accept new fields, parse browser.
+- `src/components/admin/VisitorsTab.tsx` — refactor to use new components.
+- `src/pages/PrivacyPolicy.tsx` — one-line disclosure update.
+
+---
+
+## Out of scope (can do later if you want)
+
+- Heatmaps / scroll depth tracking
+- Funnel analytics
+- Exporting visitor data to CSV
+- Bot filtering beyond user-agent heuristics
+
+Approve and I'll implement it end-to-end.
