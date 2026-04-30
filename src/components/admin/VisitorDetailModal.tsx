@@ -63,10 +63,8 @@ export const VisitorDetailModal = ({ sessionId, onClose }: Props) => {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
-        <VisuallyHidden>
-          <DialogTitle>Visitor session detail</DialogTitle>
-          <DialogDescription>Full activity timeline for the selected visitor session.</DialogDescription>
-        </VisuallyHidden>
+        <DialogTitle className="sr-only">Visitor session detail</DialogTitle>
+        <DialogDescription className="sr-only">Full activity timeline for the selected visitor session.</DialogDescription>
 
         {/* Header */}
         <div className="p-6 border-b bg-gradient-to-br from-primary/5 to-accent/5">
