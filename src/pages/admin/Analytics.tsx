@@ -268,6 +268,12 @@ export default function AdminAnalytics() {
             </CardContent>
           </Card>
         </div>
+          </TabsContent>
+
+          <TabsContent value="visitors" className="mt-6">
+            <VisitorsTab />
+          </TabsContent>
+        </Tabs>
       </motion.section>
     </>
   );
