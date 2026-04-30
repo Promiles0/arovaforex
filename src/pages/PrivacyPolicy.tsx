@@ -33,6 +33,7 @@ const PrivacyPolicy = () => {
                   You can opt out of anonymous visit tracking on this device. This setting is stored locally in your browser.
                 </p>
                 <TrackingOptOut />
+              </section>
 
               <section>
                 <h2 className="text-2xl font-semibold mb-4">2. How We Use Your Information</h2>
