@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { BarChart3, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/seo/SEO";
 import { supabase } from "@/integrations/supabase/client";
@@ -152,13 +153,20 @@ export default function AdminAnalytics() {
           </div>
         </div>
         
-        <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as any)} className="mb-6">
+        <Tabs defaultValue="overview" className="mb-6">
           <TabsList>
-            <TabsTrigger value="day">Last 7 Days</TabsTrigger>
-            <TabsTrigger value="week">Last 8 Weeks</TabsTrigger>
-            <TabsTrigger value="month">Last 30 Days</TabsTrigger>
+            <TabsTrigger value="overview" className="gap-2"><BarChart3 className="w-4 h-4" /> Overview</TabsTrigger>
+            <TabsTrigger value="visitors" className="gap-2"><Globe className="w-4 h-4" /> Visitors</TabsTrigger>
           </TabsList>
-        </Tabs>
+
+          <TabsContent value="overview" className="mt-6 space-y-6">
+            <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as any)}>
+              <TabsList>
+                <TabsTrigger value="day">Last 7 Days</TabsTrigger>
+                <TabsTrigger value="week">Last 8 Weeks</TabsTrigger>
+                <TabsTrigger value="month">Last 30 Days</TabsTrigger>
+              </TabsList>
+            </Tabs>
 
         {/* Gradient Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
